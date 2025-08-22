@@ -1,0 +1,5 @@
+{
+  "name": "CUR Task Tracker",
+  "description": "A simple task tracker for issues/bugs and feature requests. It allows users to create, view, filter, and search for tickets with detailed information for both issue tracking and feature planning.",
+  "requestFramePermissions": []
+}
