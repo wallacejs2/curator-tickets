@@ -47,9 +47,11 @@ interface BaseTicket {
   status: Status;
   priority: Priority;
   submitterName: string;
+  client?: string;
   location: string;
   title: string;
   updates?: Update[];
+  completionNotes?: string;
 }
 
 export interface IssueTicket extends BaseTicket {

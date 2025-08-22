@@ -6,6 +6,7 @@ export const initialTickets: Ticket[] = [
     type: TicketType.Issue,
     productArea: ProductArea.Reynolds,
     title: 'Login button unresponsive on Safari',
+    client: 'ABC Motors',
     pmrNumber: 'PMR-12345',
     fpTicketNumber: 'FP-001',
     ticketThreadId: 'THREAD-ABC-123',
@@ -38,6 +39,7 @@ export const initialTickets: Ticket[] = [
     type: TicketType.FeatureRequest,
     productArea: ProductArea.Fullpath,
     title: 'Implement Dark Mode',
+    client: 'Luxury Auto Group',
     pmrNumber: 'PMR-67890',
     fpTicketNumber: 'FP-002',
     ticketThreadId: 'THREAD-DEF-456',
@@ -65,6 +67,7 @@ export const initialTickets: Ticket[] = [
     type: TicketType.Issue,
     productArea: ProductArea.Reynolds,
     title: 'User profile picture not updating',
+    client: 'Community Cars',
     fpTicketNumber: 'FP-003',
     ticketThreadId: 'THREAD-GHI-789',
     submissionDate: new Date('2024-07-22T09:00:00Z').toISOString(),
@@ -84,6 +87,7 @@ export const initialTickets: Ticket[] = [
     type: TicketType.Issue,
     productArea: ProductArea.Fullpath,
     title: 'Export to CSV functionality is broken on Firefox',
+    client: 'Prestige Imports',
     pmrNumber: 'PMR-55555',
     fpTicketNumber: 'FP-004',
     ticketThreadId: 'THREAD-JKL-101',
@@ -101,6 +105,7 @@ export const initialTickets: Ticket[] = [
         { author: 'QA Team', date: new Date('2024-07-11T09:00:00Z').toISOString(), comment: 'Confirmed and reproduced the issue. Root cause seems to be related to MIME type handling on Firefox.' },
         { author: 'Dev Team', date: new Date('2024-07-12T14:20:00Z').toISOString(), comment: 'Fix has been implemented and deployed to staging for verification.' },
         { author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
-    ]
+    ],
+    completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.'
   }
 ];

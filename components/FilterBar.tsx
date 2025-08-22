@@ -34,7 +34,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
       <aside className={`w-64 bg-gray-800 text-white flex-shrink-0 flex flex-col z-40 transform transition-transform duration-300 ease-in-out md:relative fixed inset-y-0 left-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-5 flex flex-col gap-8 h-full overflow-y-auto">
           <div className="flex justify-between items-center">
-            <h1 className="text-xl font-bold text-white tracking-wide">CUR Task Tracker</h1>
+            <h1 className="text-xl font-bold text-white tracking-wide">Curator Tickets</h1>
             <button onClick={onClose} className="md:hidden p-1 text-gray-400 hover:text-white rounded-full focus:outline-none focus:ring-2 ring-white" aria-label="Close sidebar">
               <XIcon className="w-5 h-5" />
             </button>

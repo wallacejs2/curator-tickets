@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ticket, Status, Priority, TicketType } from '../types.ts';
+import { Ticket, Status, Priority, TicketType, ProductArea } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
@@ -29,6 +29,9 @@ const tagColorStyles: Record<string, string> = {
   // TicketType
   [TicketType.Issue]: 'bg-rose-200 text-rose-800',
   [TicketType.FeatureRequest]: 'bg-teal-200 text-teal-800',
+  // ProductArea
+  [ProductArea.Reynolds]: 'bg-[#10437C] text-white',
+  [ProductArea.Fullpath]: 'bg-[#EADEFF] text-[#242424]',
 };
 
 
@@ -79,132 +82,66 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   }
 
   return (
-    <>
-      {/* Desktop Table View */}
-      <div className="hidden md:block bg-white rounded-md shadow-sm border border-gray-200 overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 border-collapse">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="w-12 px-6 py-3"></th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitter</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {tickets.map(ticket => (
-              <React.Fragment key={ticket.id}>
-                <tr onClick={() => onRowClick(ticket)} className="hover:bg-gray-100 cursor-pointer transition-colors duration-150">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                     <button 
-                      onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedId(expandedId === ticket.id ? null : ticket.id);
-                      }}
-                      className="p-1 rounded-full hover:bg-gray-200"
-                      aria-expanded={expandedId === ticket.id}
-                      aria-label={expandedId === ticket.id ? `Collapse row for ${ticket.title}`: `Expand row for ${ticket.title}`}
-                     >
-                       <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${expandedId === ticket.id ? 'rotate-180' : ''}`} />
-                     </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{ticket.title}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                        value={ticket.status}
-                        onChange={(e) => {
-                            e.stopPropagation();
-                            onStatusChange(ticket.id, e.target.value as Status);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
-                        aria-label={`Change status for ticket ${ticket.title}`}
-                    >
-                        {STATUS_OPTIONS.map(status => (
-                            <option key={status} value={status}>{status}</option>
-                        ))}
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Tag label={ticket.priority} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                     <Tag label={ticket.type} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{ticket.submitterName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{new Date(ticket.submissionDate).toLocaleDateString()}</td>
-                </tr>
-                {expandedId === ticket.id && (
-                    <tr>
-                        <td colSpan={7} className="p-0">
-                           <ExpandedRowContent ticket={ticket} />
-                        </td>
-                    </tr>
-                )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="md:hidden space-y-4">
-        {tickets.map(ticket => (
-          <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200">
-            <div className="p-4 cursor-pointer" onClick={() => onRowClick(ticket)}>
-              <div className="flex justify-between items-start gap-3">
-                <h3 className="font-semibold text-gray-900 flex-1">{ticket.title}</h3>
-                <Tag label={ticket.priority} />
-              </div>
-              <div className="text-sm text-gray-500 mt-2">
-                <span>{ticket.submitterName}</span>
-                <span className="mx-2 text-gray-300">•</span>
-                <span>{new Date(ticket.submissionDate).toLocaleDateString()}</span>
-              </div>
-              <div className="mt-4 flex justify-between items-center">
-                <Tag label={ticket.type} />
-                <select
-                  value={ticket.status}
-                  onChange={(e) => {
-                      e.stopPropagation();
-                      onStatusChange(ticket.id, e.target.value as Status);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
-                  aria-label={`Change status for ticket ${ticket.title}`}
-                >
-                  {STATUS_OPTIONS.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
-              </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {tickets.map(ticket => (
+        <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
+          <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
+            <div className="flex justify-between items-start gap-3">
+              <h3 className="font-semibold text-gray-900 flex-1">{ticket.title}</h3>
+              <Tag label={ticket.priority} />
             </div>
-             <div className="border-t border-gray-200">
-                <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedId(expandedId === ticket.id ? null : ticket.id);
-                    }}
-                    className="w-full flex justify-between items-center p-2 text-sm font-medium text-gray-600 hover:bg-gray-50 focus:outline-none"
-                    aria-expanded={expandedId === ticket.id}
-                    aria-label={expandedId === ticket.id ? `Collapse summary for ${ticket.title}`: `Expand summary for ${ticket.title}`}
-                >
-                    <span>Most Recent Update</span>
-                    <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${expandedId === ticket.id ? 'rotate-180' : ''}`} />
-                </button>
-                {expandedId === ticket.id && (
-                    <ExpandedRowContent ticket={ticket} />
-                )}
+            <div className="text-sm text-gray-500 mt-2 truncate">
+              {ticket.client && (
+                <>
+                  <span className="font-medium text-gray-600">{ticket.client}</span>
+                  <span className="mx-2 text-gray-300">•</span>
+                </>
+              )}
+              <span>{ticket.submitterName}</span>
+              <span className="mx-2 text-gray-300">•</span>
+              <span>{new Date(ticket.submissionDate).toLocaleDateString()}</span>
+            </div>
+            <div className="mt-4 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Tag label={ticket.type} />
+                <Tag label={ticket.productArea} />
+              </div>
+              <select
+                value={ticket.status}
+                onChange={(e) => {
+                    e.stopPropagation();
+                    onStatusChange(ticket.id, e.target.value as Status);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
+                aria-label={`Change status for ticket ${ticket.title}`}
+              >
+                {STATUS_OPTIONS.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
             </div>
           </div>
-        ))}
-      </div>
-    </>
+            <div className="border-t border-gray-200">
+              <button 
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedId(expandedId === ticket.id ? null : ticket.id);
+                  }}
+                  className="w-full flex justify-between items-center p-2 text-sm font-medium text-gray-600 hover:bg-gray-50 focus:outline-none rounded-b-md"
+                  aria-expanded={expandedId === ticket.id}
+                  aria-label={expandedId === ticket.id ? `Collapse summary for ${ticket.title}`: `Expand summary for ${ticket.title}`}
+              >
+                  <span>Most Recent Update</span>
+                  <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${expandedId === ticket.id ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedId === ticket.id && (
+                  <ExpandedRowContent ticket={ticket} />
+              )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 };
 

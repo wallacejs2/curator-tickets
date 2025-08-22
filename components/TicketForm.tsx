@@ -21,6 +21,7 @@ interface FormData {
   status: Status;
   priority: Priority;
   submitterName: string;
+  client: string;
   location: string;
   problem: string;
   duplicationSteps: string;
@@ -30,6 +31,7 @@ interface FormData {
   currentFunctionality: string;
   suggestedSolution: string;
   benefits: string;
+  completionNotes: string;
 }
 
 const defaultState: FormData = {
@@ -44,6 +46,7 @@ const defaultState: FormData = {
   status: Status.NotStarted,
   priority: Priority.P3,
   submitterName: '',
+  client: '',
   location: '',
   problem: '',
   duplicationSteps: '',
@@ -53,6 +56,7 @@ const defaultState: FormData = {
   currentFunctionality: '',
   suggestedSolution: '',
   benefits: '',
+  completionNotes: '',
 };
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols?: number }> = ({ title, children, gridCols = 2 }) => (
@@ -175,6 +179,10 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, initialData }) => {
           <input type="text" name="submitterName" value={formData.submitterName} onChange={handleChange} required className={formElementClasses}/>
         </div>
         <div>
+          <label className={labelClasses}>Client</label>
+          <input type="text" name="client" value={formData.client} onChange={handleChange} placeholder="e.g., ABC Motors" className={formElementClasses}/>
+        </div>
+        <div className="col-span-2">
           <label className={labelClasses}>Location of Feature/Issue</label>
           <input type="text" name="location" value={formData.location} onChange={handleChange} required className={formElementClasses}/>
         </div>
@@ -221,6 +229,23 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, initialData }) => {
       <FormSection title={formData.type === TicketType.Issue ? 'Issue Details' : 'Feature Request Details'}>
         {formData.type === TicketType.Issue ? issueFields : featureRequestFields}
       </FormSection>
+      
+      {formData.status === Status.Completed && (
+        <FormSection title="Completion Summary" gridCols={1}>
+            <div className="col-span-1">
+                <label htmlFor="completionNotes" className={labelClasses}>Explanation of Changes/Updates</label>
+                <textarea 
+                    id="completionNotes"
+                    name="completionNotes" 
+                    value={formData.completionNotes} 
+                    onChange={handleChange} 
+                    rows={4} 
+                    placeholder="Summarize the resolution, what was changed, or any final notes." 
+                    className={formElementClasses}
+                />
+            </div>
+        </FormSection>
+      )}
 
       <div className="mt-8 flex justify-end">
         <button type="submit" className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">

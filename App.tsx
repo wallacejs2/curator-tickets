@@ -20,23 +20,47 @@ const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ labe
   </div>
 );
 
-const TicketDetailView = ({ ticket, onEditRequest, onAddUpdate, onExport }: { ticket: Ticket, onEditRequest: () => void, onAddUpdate: (comment: string) => void, onExport: () => void }) => {
+const TicketDetailView = ({ ticket, onEditRequest, onAddUpdate, onExport, onUpdateCompletionNotes }: { ticket: Ticket, onEditRequest: () => void, onAddUpdate: (comment: string, author: string) => void, onExport: () => void, onUpdateCompletionNotes: (notes: string) => void }) => {
   const [newUpdate, setNewUpdate] = useState('');
-  
+  const [authorName, setAuthorName] = useState('');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [completionNotes, setCompletionNotes] = useState(ticket.completionNotes || '');
+
   const formattedSubmissionDate = new Date(ticket.submissionDate).toLocaleDateString();
   const formattedCompletionDate = ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A';
   const formattedStartDate = ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A';
   
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newUpdate.trim()) {
-      onAddUpdate(newUpdate.trim());
+    if (newUpdate.trim() && authorName.trim()) {
+      onAddUpdate(newUpdate.trim(), authorName.trim());
       setNewUpdate('');
     }
+  };
+  
+  const handleSaveNotes = () => {
+    onUpdateCompletionNotes(completionNotes);
+    setIsEditingNotes(false);
   };
 
   return (
     <div>
+        <div className="flex justify-end items-center gap-3 mb-6">
+             <button
+                onClick={onExport}
+                className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
+            >
+                <DownloadIcon className="w-4 h-4" />
+                <span>Export Ticket</span>
+            </button>
+            <button
+                onClick={onEditRequest}
+                className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
+            >
+                <PencilIcon className="w-4 h-4" />
+                <span>Edit Ticket</span>
+            </button>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
             <DetailField label="Status" value={ticket.status} />
             <DetailField label="Priority" value={ticket.priority} />
@@ -46,6 +70,7 @@ const TicketDetailView = ({ ticket, onEditRequest, onAddUpdate, onExport }: { ti
             <DetailField label="Start Date" value={formattedStartDate} />
             <DetailField label="Est. Completion" value={formattedCompletionDate} />
             <DetailField label="Submitter" value={ticket.submitterName} />
+            <DetailField label="Client" value={ticket.client} />
             <DetailField label="PMR Number" value={ticket.pmrNumber} />
             <DetailField label="FP Ticket #" value={ticket.fpTicketNumber} />
             <DetailField label="Location" value={ticket.location} />
@@ -69,37 +94,97 @@ const TicketDetailView = ({ ticket, onEditRequest, onAddUpdate, onExport }: { ti
             </>
             )}
         </div>
-        <div className="flex justify-end items-center gap-3 pt-5 mt-5 border-t border-gray-200">
-             <button
-                onClick={onExport}
-                className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
-            >
-                <DownloadIcon className="w-4 h-4" />
-                <span>Export as TXT</span>
-            </button>
-            <button
-                onClick={onEditRequest}
-                className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
-            >
-                <PencilIcon className="w-4 h-4" />
-                <span>Edit Ticket</span>
-            </button>
-        </div>
+        
+        {ticket.status === Status.Completed && (
+            <div className="mt-8">
+                <div className="flex justify-between items-center pb-2 mb-4 border-b border-gray-200">
+                    <h3 className="text-md font-semibold text-gray-800">
+                        Completion Summary
+                    </h3>
+                    {!isEditingNotes && (
+                         <button
+                            onClick={() => {
+                                setCompletionNotes(ticket.completionNotes || '');
+                                setIsEditingNotes(true);
+                            }}
+                            className="flex items-center gap-1.5 text-sm text-blue-600 font-semibold hover:text-blue-800 focus:outline-none"
+                            aria-label="Edit completion summary"
+                        >
+                            <PencilIcon className="w-3.5 h-3.5" />
+                            <span>{ticket.completionNotes ? 'Edit' : 'Add'}</span>
+                        </button>
+                    )}
+                </div>
+
+                {isEditingNotes ? (
+                    <form onSubmit={(e) => { e.preventDefault(); handleSaveNotes(); }}>
+                        <textarea
+                            value={completionNotes}
+                            onChange={(e) => setCompletionNotes(e.target.value)}
+                            rows={4}
+                            placeholder="Explain what was changed or updated..."
+                            className="block w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsEditingNotes(false)}
+                                className="bg-white text-gray-700 font-semibold px-4 py-1.5 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
+                            >
+                                Cancel
+                            </button>
+                             <button
+                                type="submit"
+                                className="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
+                            >
+                                Save Summary
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                        {ticket.completionNotes ? (
+                            <p>{ticket.completionNotes}</p>
+                        ) : (
+                            <p className="text-gray-500 italic">No completion summary has been provided.</p>
+                        )}
+                    </div>
+                )}
+            </div>
+        )}
+
          <div className="mt-8">
             <h3 className="text-md font-semibold text-gray-800 pb-2 mb-4 border-b border-gray-200">
                 Activity Log
             </h3>
             <form onSubmit={handleUpdateSubmit} className="mb-6">
-                <label htmlFor="new-update" className="block text-sm font-medium text-gray-700 mb-1">Add an update</label>
-                <textarea
-                    id="new-update"
-                    value={newUpdate}
-                    onChange={(e) => setNewUpdate(e.target.value)}
-                    rows={3}
-                    placeholder="Provide an update on the ticket..."
-                    className="block w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-                <div className="flex justify-end mt-2">
+                <div className="space-y-4 mb-4">
+                    <div>
+                        <label htmlFor="author-name" className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                        <input 
+                            type="text" 
+                            id="author-name" 
+                            value={authorName} 
+                            onChange={(e) => setAuthorName(e.target.value)}
+                            placeholder="Enter your name"
+                            required
+                            className="block w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="new-update" className="block text-sm font-medium text-gray-700 mb-1">Add an update</label>
+                        <textarea
+                            id="new-update"
+                            value={newUpdate}
+                            onChange={(e) => setNewUpdate(e.target.value)}
+                            rows={3}
+                            placeholder="Provide an update on the ticket..."
+                            required
+                            className="block w-full bg-gray-50 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                    </div>
+                </div>
+                <div className="flex justify-end">
                     <button
                         type="submit"
                         className="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
@@ -247,11 +332,11 @@ export default function App() {
     }
   }
 
-  const handleAddUpdate = (comment: string) => {
+  const handleAddUpdate = (comment: string, author: string) => {
     if (!selectedTicket) return;
 
     const newUpdate: Update = {
-      author: 'Current User', // Hardcoded for now
+      author,
       date: new Date().toISOString(),
       comment,
     };
@@ -259,6 +344,18 @@ export default function App() {
     const updatedTicket: Ticket = {
       ...selectedTicket,
       updates: [...(selectedTicket.updates || []), newUpdate],
+    };
+
+    setTickets(prev => prev.map(t => t.id === selectedTicket.id ? updatedTicket : t));
+    setSelectedTicket(updatedTicket);
+  };
+  
+  const handleUpdateCompletionNotes = (notes: string) => {
+    if (!selectedTicket) return;
+
+    const updatedTicket: Ticket = {
+      ...selectedTicket,
+      completionNotes: notes.trim(),
     };
 
     setTickets(prev => prev.map(t => t.id === selectedTicket.id ? updatedTicket : t));
@@ -288,6 +385,7 @@ export default function App() {
     addDetail('Status', selectedTicket.status);
     addDetail('Priority', selectedTicket.priority);
     addDetail('Submitter', selectedTicket.submitterName);
+    addDetail('Client', selectedTicket.client);
     addDetail('Location', selectedTicket.location);
     content += '\n';
     addDetail('Submitted On', new Date(selectedTicket.submissionDate).toLocaleDateString());
@@ -312,6 +410,10 @@ export default function App() {
       addBlockDetail('Suggested Solution', ticket.suggestedSolution);
       addBlockDetail('Benefits', ticket.benefits);
     }
+    
+    if (selectedTicket.status === Status.Completed && selectedTicket.completionNotes) {
+        addBlockDetail('Completion Summary', selectedTicket.completionNotes);
+    }
 
     if (selectedTicket.updates && selectedTicket.updates.length > 0) {
       content += '\n--- ACTIVITY LOG ---\n';
@@ -329,12 +431,12 @@ export default function App() {
 
   const handleExportAll = () => {
     const headers = [
-      'ID', 'Type', 'Title', 'Status', 'Priority', 'Product Area', 'Submitter', 'Location',
+      'ID', 'Type', 'Title', 'Status', 'Priority', 'Product Area', 'Submitter', 'Client', 'Location',
       'Submitted On', 'Start Date', 'Est. Completion', 'Completed On',
       'PMR Number', 'FP Ticket #', 'Ticket Thread ID',
       'Problem', 'Duplication Steps', 'Workaround', 'Frequency',
       'Improvement', 'Current Functionality', 'Suggested Solution', 'Benefits',
-      'Last Update'
+      'Completion Notes', 'Last Update'
     ];
 
     const escapeCsvCell = (cellData: any): string => {
@@ -361,6 +463,7 @@ export default function App() {
         ticket.priority,
         ticket.productArea,
         ticket.submitterName,
+        ticket.client,
         ticket.location,
         ticket.submissionDate ? new Date(ticket.submissionDate).toISOString() : '',
         ticket.startDate ? new Date(ticket.startDate).toISOString() : '',
@@ -379,6 +482,7 @@ export default function App() {
         !isIssue ? featureTicket.currentFunctionality : '',
         !isIssue ? featureTicket.suggestedSolution : '',
         !isIssue ? featureTicket.benefits : '',
+        ticket.completionNotes,
         lastUpdateText
       ];
       return row.map(escapeCsvCell).join(',');
@@ -389,7 +493,7 @@ export default function App() {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `cur-task-tracker-export-${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `curator-tickets-export-${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -420,6 +524,7 @@ export default function App() {
       const searchTermLower = filters.searchTerm.toLowerCase();
       const matchesSearch =
         ticket.title.toLowerCase().includes(searchTermLower) ||
+        (ticket.client && ticket.client.toLowerCase().includes(searchTermLower)) ||
         (ticket.pmrNumber && ticket.pmrNumber.toLowerCase().includes(searchTermLower)) ||
         (ticket.fpTicketNumber && ticket.fpTicketNumber.toLowerCase().includes(searchTermLower)) ||
         (ticket.ticketThreadId && ticket.ticketThreadId.toLowerCase().includes(searchTermLower)) ||
@@ -460,7 +565,7 @@ export default function App() {
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-2 ring-offset-2 ring-blue-500">
                 <MenuIcon className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900 ml-4">CUR Task Tracker</h1>
+            <h1 className="text-xl font-semibold text-gray-900 ml-4">Curator Tickets</h1>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
           <PerformanceInsights {...performanceMetrics} />
@@ -482,7 +587,7 @@ export default function App() {
           <TicketTable tickets={activeTickets} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
 
           {completedTickets.length > 0 && (
-            <details className="mt-12 group">
+            <details className="mt-12 group" open>
                 <summary className="text-xl font-semibold text-gray-800 cursor-pointer hover:text-gray-900 list-none flex items-center gap-2">
                   <svg className="w-5 h-5 text-gray-600 group-open:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                   Completed Tickets ({completedTickets.length})
@@ -517,6 +622,7 @@ export default function App() {
             onEditRequest={handleEditRequest} 
             onAddUpdate={handleAddUpdate}
             onExport={handleExport}
+            onUpdateCompletionNotes={handleUpdateCompletionNotes}
             />
         ) : null}
       </SideView>
