@@ -327,6 +327,75 @@ export default function App() {
     link.click();
   };
 
+  const handleExportAll = () => {
+    const headers = [
+      'ID', 'Type', 'Title', 'Status', 'Priority', 'Product Area', 'Submitter', 'Location',
+      'Submitted On', 'Start Date', 'Est. Completion', 'Completed On',
+      'PMR Number', 'FP Ticket #', 'Ticket Thread ID',
+      'Problem', 'Duplication Steps', 'Workaround', 'Frequency',
+      'Improvement', 'Current Functionality', 'Suggested Solution', 'Benefits',
+      'Last Update'
+    ];
+
+    const escapeCsvCell = (cellData: any): string => {
+      const stringData = String(cellData || '');
+      if (stringData.includes(',') || stringData.includes('"') || stringData.includes('\n')) {
+        return `"${stringData.replace(/"/g, '""')}"`;
+      }
+      return stringData;
+    };
+
+    const rows = tickets.map(ticket => {
+      const lastUpdate = ticket.updates && ticket.updates.length > 0 ? [...ticket.updates].pop() : null;
+      const lastUpdateText = lastUpdate ? `[${new Date(lastUpdate.date).toLocaleString()}] ${lastUpdate.author}: ${lastUpdate.comment.replace(/\n/g, ' ')}` : '';
+      
+      const isIssue = ticket.type === TicketType.Issue;
+      const issueTicket = ticket as IssueTicket;
+      const featureTicket = ticket as FeatureRequestTicket;
+      
+      const row = [
+        ticket.id,
+        ticket.type,
+        ticket.title,
+        ticket.status,
+        ticket.priority,
+        ticket.productArea,
+        ticket.submitterName,
+        ticket.location,
+        ticket.submissionDate ? new Date(ticket.submissionDate).toISOString() : '',
+        ticket.startDate ? new Date(ticket.startDate).toISOString() : '',
+        ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toISOString() : '',
+        ticket.completionDate ? new Date(ticket.completionDate).toISOString() : '',
+        ticket.pmrNumber,
+        ticket.fpTicketNumber,
+        ticket.ticketThreadId,
+        // Issue specific
+        isIssue ? issueTicket.problem : '',
+        isIssue ? issueTicket.duplicationSteps : '',
+        isIssue ? issueTicket.workaround : '',
+        isIssue ? issueTicket.frequency : '',
+        // Feature Request specific
+        !isIssue ? featureTicket.improvement : '',
+        !isIssue ? featureTicket.currentFunctionality : '',
+        !isIssue ? featureTicket.suggestedSolution : '',
+        !isIssue ? featureTicket.benefits : '',
+        lastUpdateText
+      ];
+      return row.map(escapeCsvCell).join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `cur-task-tracker-export-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const handleStatusChange = (ticketId: string, newStatus: Status) => {
     setTickets(prevTickets =>
       prevTickets.map(t => {
@@ -395,11 +464,20 @@ export default function App() {
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
           <PerformanceInsights {...performanceMetrics} />
-          <header className="mb-6">
-            <h1 className="text-3xl font-semibold text-gray-900">Active Tickets</h1>
-            <p className="text-gray-600 mt-1">
-              {activeTickets.length} results found. Click a row to see details.
-            </p>
+          <header className="mb-6 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-semibold text-gray-900">Active Tickets</h1>
+              <p className="text-gray-600 mt-1">
+                {activeTickets.length} results found. Click a row to see details.
+              </p>
+            </div>
+             <button
+                onClick={handleExportAll}
+                className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
+            >
+                <DownloadIcon className="w-4 h-4" />
+                <span>Export All as CSV</span>
+            </button>
           </header>
           <TicketTable tickets={activeTickets} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
 
