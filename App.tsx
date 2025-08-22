@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
@@ -7,7 +7,6 @@ import LeftSidebar from './components/FilterBar.tsx';
 import SideView from './components/common/SideView.tsx';
 import { PencilIcon } from './components/icons/PencilIcon.tsx';
 import PerformanceInsights from './components/PerformanceInsights.tsx';
-import { DownloadIcon } from './components/icons/DownloadIcon.tsx';
 import { PlusIcon } from './components/icons/PlusIcon.tsx';
 import { MenuIcon } from './components/icons/MenuIcon.tsx';
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from './constants.ts';
@@ -15,8 +14,11 @@ import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets } from './mockData.ts';
-import { UploadIcon } from './components/icons/UploadIcon.tsx';
+import { GoogleSheetSetup } from './components/GoogleSheetSetup.tsx';
+import { GoogleIcon } from './components/icons/GoogleIcon.tsx';
+import { RefreshIcon } from './components/icons/RefreshIcon.tsx';
+
+import * as GoogleSheetsService from './services/googleSheetsService.ts';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -78,7 +80,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void }) => {
+const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onEmail, onUpdateCompletionNotes, onDelete }: { ticket: Ticket, onUpdate: (ticket: Ticket) => Promise<void>, onAddUpdate: (comment: string, author: string) => Promise<void>, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => Promise<void>, onDelete: (ticketId: string) => Promise<void> }) => {
   const [newUpdate, setNewUpdate] = useState('');
   const [authorName, setAuthorName] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -92,16 +94,16 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
     setIsEditing(false); // Exit edit mode if the selected ticket changes
   }, [ticket]);
 
-  const handleUpdateSubmit = (e: React.FormEvent) => {
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newUpdate.trim() && authorName.trim()) {
-      onAddUpdate(newUpdate.trim(), authorName.trim());
+      await onAddUpdate(newUpdate.trim(), authorName.trim());
       setNewUpdate('');
     }
   };
   
-  const handleSaveNotes = () => {
-    onUpdateCompletionNotes(completionNotes);
+  const handleSaveNotes = async () => {
+    await onUpdateCompletionNotes(completionNotes);
     setIsEditingNotes(false);
   };
   
@@ -110,13 +112,13 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
     setEditableTicket(prev => ({ ...prev!, [name]: value }));
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     let finalTicket = { ...editableTicket };
     // Handle date conversions
     if (finalTicket.startDate) finalTicket.startDate = new Date(finalTicket.startDate).toISOString();
     if (finalTicket.estimatedCompletionDate) finalTicket.estimatedCompletionDate = new Date(finalTicket.estimatedCompletionDate).toISOString();
 
-    onUpdate(finalTicket);
+    await onUpdate(finalTicket);
     setIsEditing(false);
   };
 
@@ -258,13 +260,6 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
             >
                 <EmailIcon className="w-4 h-4" />
                 <span>Email</span>
-            </button>
-             <button
-                onClick={onExport}
-                className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
-            >
-                <DownloadIcon className="w-4 h-4" />
-                <span>Export</span>
             </button>
             <button
                 onClick={() => setIsEditing(true)}
@@ -512,14 +507,20 @@ const generateTicketText = (ticket: Ticket): string => {
 
 
 export default function App() {
-  const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [ticketForEmailConfirm, setTicketForEmailConfirm] = useState<Ticket | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [ticketsToImport, setTicketsToImport] = useState<Ticket[] | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const [sheetId, setSheetId] = useLocalStorage<string | null>('googleSheetId', null);
+  const [clientId, setClientId] = useLocalStorage<string | null>('googleApiClientId', null);
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
   
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
@@ -528,6 +529,55 @@ export default function App() {
     type: 'all',
     productArea: 'all',
   });
+
+  const fetchTickets = useCallback(async (suppressSyncIndicator = false) => {
+    if (!sheetId) return;
+    if (!suppressSyncIndicator) setIsSyncing(true);
+    setError(null);
+    try {
+      const fetchedTickets = await GoogleSheetsService.listTickets(sheetId);
+      setTickets(fetchedTickets);
+    } catch (err: any) {
+      setError(`Failed to load tickets: ${err.message}. Ensure the Sheet ID is correct and you have permission.`);
+      console.error(err);
+    } finally {
+      if (!suppressSyncIndicator) setIsSyncing(false);
+      setIsLoading(false);
+    }
+  }, [sheetId]);
+
+  useEffect(() => {
+    if (!clientId || !sheetId) {
+      setIsSetupModalOpen(true);
+      setIsLoading(false);
+      return;
+    }
+
+    const initGapi = async () => {
+      try {
+        await GoogleSheetsService.init(clientId, (loggedIn) => {
+          setIsLoggedIn(loggedIn);
+          if (loggedIn) {
+            fetchTickets();
+          } else {
+            setIsLoading(false);
+          }
+        });
+      } catch (err: any) {
+        setError(`Google API initialization failed: ${err.message}`);
+        setIsLoading(false);
+      }
+    };
+    initGapi();
+  }, [clientId, sheetId, fetchTickets]);
+
+  // Polling for updates
+  useEffect(() => {
+    if (isLoggedIn) {
+      const interval = setInterval(() => fetchTickets(true), 30000); // Poll every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn, fetchTickets]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -585,44 +635,62 @@ export default function App() {
         alert('The ticket details are too long for a direct email link. The content has been copied to your clipboard. Please paste it into a new email.');
       } catch (error) {
         console.error('Failed to copy to clipboard', error);
-        alert('The ticket details are too long for a direct email link. Please use the "Export" feature and attach the file to your email instead.');
+        alert('The ticket details are too long for a direct email link. Please try again or copy the content manually.');
       }
     } else {
         window.location.href = mailtoLink;
     }
   };
 
-  const handleCreateTicket = (ticketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
-    const newTicket: Ticket = {
-      ...ticketData,
-      id: crypto.randomUUID(),
-      submissionDate: new Date().toISOString(),
-      updates: [],
-      completionDate: ticketData.status === Status.Completed ? new Date().toISOString() : undefined,
-      onHoldReason: ticketData.status === Status.OnHold ? (ticketData as any).onHoldReason : undefined,
-    } as Ticket;
-    
-    setTickets(prev => [...prev, newTicket].sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()));
-    
-    setIsCreating(false);
-    setSelectedTicket(newTicket);
-    setTicketForEmailConfirm(newTicket);
+  const handleCreateTicket = async (ticketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
+    if (!sheetId) return;
+    setIsSyncing(true);
+    try {
+      const newTicket: Ticket = {
+        ...ticketData,
+        id: crypto.randomUUID(),
+        submissionDate: new Date().toISOString(),
+        updates: [],
+        completionDate: ticketData.status === Status.Completed ? new Date().toISOString() : undefined,
+        onHoldReason: ticketData.status === Status.OnHold ? (ticketData as any).onHoldReason : undefined,
+      } as Ticket;
+      
+      await GoogleSheetsService.createTicket(sheetId, newTicket);
+      await fetchTickets(); // Refresh data
+      
+      setIsCreating(false);
+      setSelectedTicket(newTicket);
+      setTicketForEmailConfirm(newTicket);
+    } catch (err: any) {
+      setError(`Failed to create ticket: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleUpdateTicket = (updatedTicket: Ticket) => {
-    const existingTicket = tickets.find(t => t.id === updatedTicket.id);
-    const finalTicket: Ticket = {
-      ...updatedTicket,
-       onHoldReason: updatedTicket.status === Status.OnHold ? updatedTicket.onHoldReason : undefined,
-       completionDate: (updatedTicket.status === Status.Completed && !existingTicket?.completionDate)
-        ? new Date().toISOString()
-        : (updatedTicket.status !== Status.Completed)
-        ? undefined
-        : existingTicket?.completionDate,
-    };
+  const handleUpdateTicket = async (updatedTicket: Ticket) => {
+    if (!sheetId) return;
+    setIsSyncing(true);
+    try {
+      const existingTicket = tickets.find(t => t.id === updatedTicket.id);
+      const finalTicket: Ticket = {
+        ...updatedTicket,
+        onHoldReason: updatedTicket.status === Status.OnHold ? updatedTicket.onHoldReason : undefined,
+        completionDate: (updatedTicket.status === Status.Completed && !existingTicket?.completionDate)
+          ? new Date().toISOString()
+          : (updatedTicket.status !== Status.Completed)
+          ? undefined
+          : existingTicket?.completionDate,
+      };
 
-    setTickets(prev => prev.map(t => (t.id === finalTicket.id ? finalTicket : t)));
-    setSelectedTicket(finalTicket);
+      await GoogleSheetsService.updateTicket(sheetId, finalTicket);
+      await fetchTickets();
+      setSelectedTicket(finalTicket);
+    } catch (err: any) {
+      setError(`Failed to update ticket: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
   
   const handleRowClick = (ticket: Ticket) => {
@@ -640,7 +708,7 @@ export default function App() {
     setIsCreating(false);
   };
 
-  const handleAddUpdate = (comment: string, author: string) => {
+  const handleAddUpdate = async (comment: string, author: string) => {
     if (!selectedTicket) return;
 
     const newUpdate: Update = {
@@ -654,10 +722,10 @@ export default function App() {
       updates: [...(selectedTicket.updates || []), newUpdate],
     };
     
-    handleUpdateTicket(updatedTicket);
+    await handleUpdateTicket(updatedTicket);
   };
   
-  const handleUpdateCompletionNotes = (notes: string) => {
+  const handleUpdateCompletionNotes = async (notes: string) => {
     if (!selectedTicket) return;
 
     const updatedTicket: Ticket = {
@@ -665,192 +733,34 @@ export default function App() {
       completionNotes: notes.trim(),
     };
 
-    handleUpdateTicket(updatedTicket);
+    await handleUpdateTicket(updatedTicket);
   };
   
-  const handleDeleteTicket = (ticketId: string) => {
-    setTickets(prev => prev.filter(t => t.id !== ticketId));
-    handleClosePanel();
+  const handleDeleteTicket = async (ticketId: string) => {
+    if (!sheetId) return;
+    setIsSyncing(true);
+    try {
+      await GoogleSheetsService.deleteTicket(sheetId, ticketId);
+      await fetchTickets();
+      handleClosePanel();
+    } catch (err: any) {
+      setError(`Failed to delete ticket: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleExport = () => {
-    if (!selectedTicket) return;
-    const content = generateTicketText(selectedTicket);
-    const fileContent = `data:text/plain;charset=utf-8,${encodeURIComponent(content)}`;
-    const link = document.createElement('a');
-    link.href = fileContent;
-    link.download = `ticket-${selectedTicket.id}.txt`;
-    link.click();
-  };
+  const handleStatusChange = async (ticketId: string, newStatus: Status, onHoldReason?: string) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
 
-  const handleExportAll = () => {
-    const sortedTickets = [...tickets].sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
-    const headers = [
-      'ID', 'Type', 'Title', 'Status', 'Priority', 'Product Area', 'Platform', 'Submitter', 'Client', 'Location',
-      'Submitted On', 'Start Date', 'Est. Completion', 'Completed On',
-      'PMR Number', 'FP Ticket #', 'Ticket Thread ID',
-      'Problem', 'Duplication Steps', 'Workaround', 'Frequency',
-      'Improvement', 'Current Functionality', 'Suggested Solution', 'Benefits',
-      'On Hold Reason', 'Completion Notes', 'Last Update'
-    ];
-
-    const escapeCsvCell = (cellData: any): string => {
-      const stringData = String(cellData || '');
-      if (stringData.includes(',') || stringData.includes('"') || stringData.includes('\n')) {
-        return `"${stringData.replace(/"/g, '""')}"`;
-      }
-      return stringData;
+    const updatedTicket = {
+      ...ticket,
+      status: newStatus,
+      onHoldReason: newStatus === Status.OnHold ? onHoldReason : ticket.onHoldReason,
     };
 
-    const rows = sortedTickets.map(ticket => {
-      const lastUpdate = ticket.updates && ticket.updates.length > 0 ? [...ticket.updates].pop() : null;
-      const lastUpdateText = lastUpdate ? `[${new Date(lastUpdate.date).toLocaleString()}] ${lastUpdate.author}: ${lastUpdate.comment.replace(/\n/g, ' ')}` : '';
-      
-      const isIssue = ticket.type === TicketType.Issue;
-      const issueTicket = ticket as IssueTicket;
-      const featureTicket = ticket as FeatureRequestTicket;
-      
-      const row = [
-        ticket.id,
-        ticket.type,
-        ticket.title,
-        ticket.status,
-        ticket.priority,
-        ticket.productArea,
-        ticket.platform,
-        ticket.submitterName,
-        ticket.client,
-        ticket.location,
-        ticket.submissionDate ? new Date(ticket.submissionDate).toISOString() : '',
-        ticket.startDate ? new Date(ticket.startDate).toISOString() : '',
-        ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toISOString() : '',
-        ticket.completionDate ? new Date(ticket.completionDate).toISOString() : '',
-        ticket.pmrNumber,
-        ticket.fpTicketNumber,
-        ticket.ticketThreadId,
-        isIssue ? issueTicket.problem : '',
-        isIssue ? issueTicket.duplicationSteps : '',
-        isIssue ? issueTicket.workaround : '',
-        isIssue ? issueTicket.frequency : '',
-        !isIssue ? featureTicket.improvement : '',
-        !isIssue ? featureTicket.currentFunctionality : '',
-        !isIssue ? featureTicket.suggestedSolution : '',
-        !isIssue ? featureTicket.benefits : '',
-        ticket.onHoldReason,
-        ticket.completionNotes,
-        lastUpdateText
-      ];
-      return row.map(escapeCsvCell).join(',');
-    });
-
-    const csvContent = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `curator-tickets-export-${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-  
-  const handleImportClick = () => {
-      fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-              const text = e.target?.result;
-              if (typeof text === 'string') {
-                  handleImportTickets(text);
-              }
-          };
-          reader.readAsText(file);
-      }
-      // Reset file input value to allow re-uploading the same file
-      if (event.target) {
-        event.target.value = '';
-      }
-  };
-
-  const handleImportTickets = (csvString: string) => {
-    try {
-        const lines = csvString.trim().replace(/\r\n/g, '\n').split('\n');
-        const headers = lines.shift()?.split(',') || [];
-        
-        const headerMapping: { [key: string]: keyof IssueTicket | keyof FeatureRequestTicket | 'Last Update' } = {
-            'ID': 'id', 'Type': 'type', 'Title': 'title', 'Status': 'status', 'Priority': 'priority',
-            'Product Area': 'productArea', 'Platform': 'platform', 'Submitter': 'submitterName', 'Client': 'client',
-            'Location': 'location', 'Submitted On': 'submissionDate', 'Start Date': 'startDate',
-            'Est. Completion': 'estimatedCompletionDate', 'Completed On': 'completionDate',
-            'PMR Number': 'pmrNumber', 'FP Ticket #': 'fpTicketNumber', 'Ticket Thread ID': 'ticketThreadId',
-            'Problem': 'problem', 'Duplication Steps': 'duplicationSteps', 'Workaround': 'workaround',
-            'Frequency': 'frequency', 'Improvement': 'improvement', 'Current Functionality': 'currentFunctionality',
-            'Suggested Solution': 'suggestedSolution', 'Benefits': 'benefits', 'On Hold Reason': 'onHoldReason',
-            'Completion Notes': 'completionNotes', 'Last Update': 'Last Update'
-        };
-
-        const importedTickets: Ticket[] = lines.map(line => {
-            const values = (line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || []).map(v => v.trim());
-            
-            const ticketData: any = {};
-            headers.forEach((header, index) => {
-                const ticketKey = headerMapping[header.trim()];
-                if (ticketKey && ticketKey !== 'Last Update') {
-                    let value = (values[index] || '').trim();
-                    if (value.startsWith('"') && value.endsWith('"')) {
-                        value = value.slice(1, -1).replace(/""/g, '"');
-                    }
-                    if (value) {
-                       ticketData[ticketKey] = value;
-                    }
-                }
-            });
-            ticketData.updates = [];
-            return ticketData as Ticket;
-        }).filter(t => t.id && t.title); 
-
-        if (importedTickets.length > 0) {
-          setTicketsToImport(importedTickets);
-          setIsImportModalOpen(true);
-        } else {
-          alert('Could not find any valid tickets in the imported file.');
-        }
-    } catch (error) {
-        console.error("Error importing CSV:", error);
-        alert("Failed to import tickets. Please check the file format and console for errors.");
-    }
-  };
-
-  const confirmImport = () => {
-    if (ticketsToImport) {
-        setTickets(ticketsToImport);
-    }
-    setIsImportModalOpen(false);
-    setTicketsToImport(null);
-  };
-
-
-  const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
-    setTickets(prevTickets => prevTickets.map(ticket => {
-        if (ticket.id === ticketId) {
-            return {
-                ...ticket,
-                status: newStatus,
-                onHoldReason: newStatus === Status.OnHold ? onHoldReason : ticket.onHoldReason,
-                completionDate: (newStatus === Status.Completed && !ticket.completionDate)
-                    ? new Date().toISOString()
-                    : (newStatus !== Status.Completed)
-                    ? undefined
-                    : ticket.completionDate,
-            };
-        }
-        return ticket;
-    }));
+    await handleUpdateTicket(updatedTicket);
   };
 
   const filteredTickets = useMemo(() => {
@@ -907,43 +817,37 @@ export default function App() {
     return '';
   }
 
-  return (
-    <div className="h-screen bg-gray-100 text-gray-800 flex overflow-hidden relative">
-      <LeftSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} filters={filters} setFilters={setFilters} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex-shrink-0 bg-white/80 backdrop-blur-sm border-b border-gray-200 p-2 sm:p-4 sticky top-0 z-10 flex items-center">
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-2 ring-offset-2 ring-blue-500">
-                <MenuIcon className="w-6 h-6" />
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className="text-center p-10">Loading application...</div>;
+    }
+
+    if (!isLoggedIn) {
+      return (
+        <div className="text-center p-10 flex flex-col items-center">
+            <h2 className="text-2xl font-semibold mb-4">Please sign in to continue</h2>
+            <p className="text-gray-600 mb-6">This application requires access to Google Sheets to store and manage tickets.</p>
+            <button
+                onClick={() => GoogleSheetsService.handleAuthClick()}
+                className="flex items-center gap-3 bg-blue-600 text-white font-semibold px-6 py-3 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+                <GoogleIcon className="w-5 h-5" />
+                <span>Sign in with Google</span>
             </button>
-            <h1 className="text-xl font-semibold text-gray-900 ml-4">Curator Tickets</h1>
-        </header>
-        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+        </div>
+      );
+    }
+
+    return (
+       <>
           <PerformanceInsights {...performanceMetrics} />
           <header className="mb-6 flex flex-wrap gap-4 justify-between items-start">
             <div>
               <h1 className="text-3xl font-semibold text-gray-900">Active Tickets</h1>
               <p className="text-gray-600 mt-1">
-                {activeTickets.length} results found. Click a card to see details.
+                {activeTickets.length} results found. Synced with Google Sheets.
               </p>
             </div>
-             <div className="flex items-center gap-3">
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
-                <button
-                    onClick={handleImportClick}
-                    className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
-                >
-                    <UploadIcon className="w-4 h-4" />
-                    <span>Import from CSV</span>
-                </button>
-                <button
-                    onClick={handleExportAll}
-                    className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
-                >
-                    <DownloadIcon className="w-4 h-4" />
-                    <span>Export All as CSV</span>
-                </button>
-             </div>
           </header>
           
           <div className="space-y-12">
@@ -976,17 +880,78 @@ export default function App() {
                 </div>
             </details>
           )}
+       </>
+    );
+  };
+
+  return (
+    <div className="h-screen bg-gray-100 text-gray-800 flex overflow-hidden relative">
+      <GoogleSheetSetup
+        isOpen={isSetupModalOpen}
+        onClose={() => setIsSetupModalOpen(false)}
+        onSave={(newClientId, newSheetId) => {
+          setClientId(newClientId);
+          setSheetId(newSheetId);
+          setIsSetupModalOpen(false);
+          window.location.reload(); // Reload to re-initialize with new settings
+        }}
+      />
+      <LeftSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} filters={filters} setFilters={setFilters} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="flex-shrink-0 bg-white/80 backdrop-blur-sm border-b border-gray-200 p-2 sm:p-4 sticky top-0 z-10 flex items-center justify-between">
+            <div className="flex items-center">
+              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-2 ring-offset-2 ring-blue-500">
+                  <MenuIcon className="w-6 h-6" />
+              </button>
+              <h1 className="text-xl font-semibold text-gray-900 ml-4">Curator Tickets</h1>
+            </div>
+            <div className="flex items-center gap-4">
+                {isLoggedIn && (
+                  <button onClick={() => fetchTickets()} disabled={isSyncing} className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-wait">
+                    <RefreshIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Syncing...' : 'Refresh'}</span>
+                  </button>
+                )}
+                {isLoggedIn ? (
+                     <button
+                        onClick={() => GoogleSheetsService.handleSignoutClick()}
+                        className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                    >
+                        Sign Out
+                    </button>
+                ) : (clientId && sheetId && !isLoading) && (
+                    <button
+                        onClick={() => GoogleSheetsService.handleAuthClick()}
+                        className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-md text-sm"
+                    >
+                         <GoogleIcon className="w-4 h-4" />
+                        <span>Sign In</span>
+                    </button>
+                )}
+            </div>
+        </header>
+        <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+            {error && (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
+                    <p className="font-bold">An error occurred</p>
+                    <p>{error}</p>
+                </div>
+            )}
+           {renderContent()}
         </main>
       </div>
 
 
-      <button
-        onClick={handleAddNewClick}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform hover:scale-110 z-20"
-        aria-label="Create new ticket"
-      >
-        <PlusIcon className="w-6 h-6" />
-      </button>
+      {isLoggedIn && (
+          <button
+            onClick={handleAddNewClick}
+            className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform hover:scale-110 z-20"
+            aria-label="Create new ticket"
+          >
+            <PlusIcon className="w-6 h-6" />
+          </button>
+      )}
 
       <SideView
         title={getSidePanelTitle()}
@@ -1000,7 +965,6 @@ export default function App() {
             ticket={selectedTicket} 
             onUpdate={handleUpdateTicket} 
             onAddUpdate={handleAddUpdate}
-            onExport={handleExport}
             onEmail={() => handleSendEmail(selectedTicket)}
             onUpdateCompletionNotes={handleUpdateCompletionNotes}
             onDelete={handleDeleteTicket}
@@ -1026,31 +990,6 @@ export default function App() {
                     className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
                     Yes, Send Email
-                </button>
-            </div>
-        </Modal>
-      )}
-
-      {isImportModalOpen && (
-        <Modal title="Confirm Import" onClose={() => setIsImportModalOpen(false)}>
-            <p className="text-gray-700">
-              Are you sure you want to replace all current tickets with the ones from the imported file? This will overwrite any existing data.
-            </p>
-            <p className="text-gray-700 mt-2">
-                Found <span className="font-semibold">{ticketsToImport?.length || 0}</span> tickets to import.
-            </p>
-            <div className="flex justify-end gap-3 mt-6">
-                <button
-                    onClick={() => setIsImportModalOpen(false)}
-                    className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={confirmImport}
-                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                >
-                    Yes, Replace
                 </button>
             </div>
         </Modal>

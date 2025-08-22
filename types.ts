@@ -40,7 +40,7 @@ export interface Update {
   comment: string;
 }
 
-interface BaseTicket {
+export interface BaseTicket {
   id: string;
   type: TicketType;
   productArea: ProductArea;
