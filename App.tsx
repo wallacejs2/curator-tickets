@@ -574,11 +574,18 @@ export default function App() {
     const cc = 'Tom_McNamee@reyrey.com,Jayden_Wallace@reyrey.com';
     const mailtoLink = `mailto:${to}?cc=${cc}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
     
-    const link = document.createElement('a');
-    link.href = mailtoLink;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // mailto links have a length limit (around 2000 characters in some browsers)
+    if (mailtoLink.length > 2000) {
+      try {
+        navigator.clipboard.writeText(emailBody);
+        alert('The ticket details are too long for a direct email link. The content has been copied to your clipboard. Please paste it into a new email.');
+      } catch (error) {
+        console.error('Failed to copy to clipboard', error);
+        alert('The ticket details are too long for a direct email link. Please use the "Export" feature and attach the file to your email instead.');
+      }
+    } else {
+        window.location.href = mailtoLink;
+    }
   };
 
   const handleCreateTicket = (ticketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
