@@ -552,9 +552,9 @@ export default function App() {
     }).length;
 
     const totalCompletionDays = completedTickets.reduce((sum, t) => {
-      const submission = new Date(t.submissionDate);
+      const start = t.startDate ? new Date(t.startDate) : new Date(t.submissionDate);
       const completion = new Date(t.completionDate!);
-      const diffTime = Math.abs(completion.getTime() - submission.getTime());
+      const diffTime = Math.abs(completion.getTime() - start.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return sum + diffDays;
     }, 0);

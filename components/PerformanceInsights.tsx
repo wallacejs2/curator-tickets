@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface InsightCardProps {
@@ -39,7 +40,7 @@ const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({ openTickets, 
         <InsightCard 
           label="Avg. Completion Time"
           value={avgCompletionDays !== null ? `${avgCompletionDays.toFixed(1)} days` : 'N/A'}
-          description="Average time from submission to completion."
+          description="Average time from start to completion."
         />
       </div>
     </div>

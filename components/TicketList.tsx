@@ -97,18 +97,24 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const calculateDaysActive = (ticket: Ticket): string => {
-    const startDate = new Date(ticket.submissionDate);
-    const endDate = ticket.status === Status.Completed && ticket.completionDate
-      ? new Date(ticket.completionDate)
-      : new Date();
+    const startDate = ticket.startDate ? new Date(ticket.startDate) : null;
+
+    if (ticket.status === Status.Completed && ticket.completionDate) {
+      const completionDate = new Date(ticket.completionDate);
+      const start = startDate || new Date(ticket.submissionDate); // Fallback to submission date for completed tickets if no start date
+      const diffTime = Math.abs(completionDate.getTime() - start.getTime());
+      const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      return `Completed in ${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+    }
+    
+    if (!startDate) {
+        return 'Not started';
+    }
+
+    const endDate = new Date();
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    // Add 1 to make the first day "1 day active" instead of 0
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
-    if (ticket.status === Status.Completed) {
-      const completionDays = Math.max(1, diffDays); // Ensure it's at least 1 day
-      return `Completed in ${completionDays} day${completionDays !== 1 ? 's' : ''}`;
-    }
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
   };
 
@@ -141,7 +147,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                 <span>{ticket.submitterName}</span>
               </div>
               <div className="mt-1">
-                <span>Submitted: {new Date(ticket.submissionDate).toLocaleDateString()}</span>
+                <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'}</span>
                 <span className="mx-2 text-gray-300">•</span>
                 <span>{calculateDaysActive(ticket)}</span>
               </div>
