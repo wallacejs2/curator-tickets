@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ticket, Status, Priority, TicketType, ProductArea } from '../types.ts';
+import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
@@ -41,36 +41,71 @@ const Tag: React.FC<{ label: string }> = ({ label }) => (
     </span>
 );
 
-const ExpandedRowContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
-    const lastUpdate = ticket.updates && ticket.updates.length > 0
+const SummaryField: React.FC<{ label: string; value: string | undefined }> = ({ label, value }) => {
+    if (!value) return null;
+    return (
+        <div className="md:col-span-1">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h4>
+            <p className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">{value}</p>
+        </div>
+    );
+};
+
+const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
+    const mostRecentUpdate = ticket.updates && ticket.updates.length > 0
         ? [...ticket.updates].pop()
         : null;
 
     return (
-        <div className="p-4 bg-gray-50">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Most Recent Update</h4>
-            {lastUpdate ? (
-                <div className="flex gap-3 items-start text-sm">
-                    <div className="flex-shrink-0 w-6 h-6 mt-0.5 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600" title={lastUpdate.author}>
-                        {lastUpdate.author.charAt(0)}
-                    </div>
-                    <div className="flex-grow">
-                        <div className="flex justify-between items-center">
-                            <p className="font-semibold text-gray-800">{lastUpdate.author}</p>
-                            <p className="text-xs text-gray-500">{new Date(lastUpdate.date).toLocaleString()}</p>
-                        </div>
-                        <p className="text-gray-600 mt-1 whitespace-pre-wrap">{lastUpdate.comment}</p>
-                    </div>
-                </div>
-            ) : (
-                <p className="text-sm text-gray-500 italic">No updates have been added to this ticket yet.</p>
+        <div className="p-4 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            {ticket.type === TicketType.Issue && (
+                <>
+                    <SummaryField label="Problem" value={(ticket as IssueTicket).problem} />
+                    <SummaryField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} />
+                    <SummaryField label="Workaround" value={(ticket as IssueTicket).workaround} />
+                    <SummaryField label="Frequency" value={(ticket as IssueTicket).frequency} />
+                </>
             )}
+            {ticket.type === TicketType.FeatureRequest && (
+                <>
+                    <SummaryField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} />
+                    <SummaryField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} />
+                    <SummaryField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} />
+                    <SummaryField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} />
+                </>
+            )}
+            
+            <div className="md:col-span-2 pt-5 mt-5 border-t border-gray-200">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Most Recent Update</h4>
+                <p className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">
+                    {mostRecentUpdate
+                        ? `${new Date(mostRecentUpdate.date).toLocaleString()} - ${mostRecentUpdate.author}:\n${mostRecentUpdate.comment}`
+                        : "No updates have been added yet."
+                    }
+                </p>
+            </div>
         </div>
     );
 }
 
 const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const calculateDaysActive = (ticket: Ticket): string => {
+    const startDate = new Date(ticket.submissionDate);
+    const endDate = ticket.status === Status.Completed && ticket.completionDate
+      ? new Date(ticket.completionDate)
+      : new Date();
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    // Add 1 to make the first day "1 day active" instead of 0
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    
+    if (ticket.status === Status.Completed) {
+      const completionDays = Math.max(1, diffDays); // Ensure it's at least 1 day
+      return `Completed in ${completionDays} day${completionDays !== 1 ? 's' : ''}`;
+    }
+    return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
+  };
 
   if (tickets.length === 0) {
     return (
@@ -82,7 +117,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    <div className="space-y-4">
       {tickets.map(ticket => (
         <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
           <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
@@ -99,8 +134,15 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
               )}
               <span>{ticket.submitterName}</span>
               <span className="mx-2 text-gray-300">•</span>
-              <span>{new Date(ticket.submissionDate).toLocaleDateString()}</span>
+              <span>{calculateDaysActive(ticket)}</span>
             </div>
+            
+             <div className="text-xs text-gray-500 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {ticket.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span></span>}
+                {ticket.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{ticket.fpTicketNumber}</span></span>}
+                {ticket.ticketThreadId && <span>Thread: <span className="font-medium text-gray-700">{ticket.ticketThreadId}</span></span>}
+             </div>
+
             <div className="mt-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Tag label={ticket.type} />
@@ -132,11 +174,11 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   aria-expanded={expandedId === ticket.id}
                   aria-label={expandedId === ticket.id ? `Collapse summary for ${ticket.title}`: `Expand summary for ${ticket.title}`}
               >
-                  <span>Most Recent Update</span>
+                  <span>View Summary</span>
                   <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${expandedId === ticket.id ? 'rotate-180' : ''}`} />
               </button>
               {expandedId === ticket.id && (
-                  <ExpandedRowContent ticket={ticket} />
+                  <ExpandedSummaryContent ticket={ticket} />
               )}
           </div>
         </div>
