@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea } from './types';
+import { Ticket, TicketType, Status, Priority, ProductArea } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {

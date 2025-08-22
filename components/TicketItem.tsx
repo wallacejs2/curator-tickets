@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Ticket, TicketType, Status, Priority } from '../types';
-import { PencilIcon } from './icons/PencilIcon';
-import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import { Ticket, TicketType, Status, Priority } from '../types.ts';
+import { PencilIcon } from './icons/PencilIcon.tsx';
+import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
 interface TicketItemProps {
   ticket: Ticket;

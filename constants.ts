@@ -1,4 +1,4 @@
-import { Status, Priority, TicketType, ProductArea } from './types';
+import { Status, Priority, TicketType, ProductArea } from './types.ts';
 
 export const STATUS_OPTIONS = Object.values(Status);
 export const PRIORITY_OPTIONS = Object.values(Priority);

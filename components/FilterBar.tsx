@@ -1,9 +1,9 @@
 import React from 'react';
-import { FilterState } from '../types';
-import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS } from '../constants';
-import { SearchIcon } from './icons/SearchIcon';
-import { PlusIcon } from './icons/PlusIcon';
-import { XIcon } from './icons/XIcon';
+import { FilterState } from '../types.ts';
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS } from '../constants.ts';
+import { SearchIcon } from './icons/SearchIcon.tsx';
+import { PlusIcon } from './icons/PlusIcon.tsx';
+import { XIcon } from './icons/XIcon.tsx';
 
 interface LeftSidebarProps {
   filters: FilterState;

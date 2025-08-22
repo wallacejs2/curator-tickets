@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status } from './types';
-import TicketTable from './components/TicketList';
-import TicketForm from './components/TicketForm';
-import LeftSidebar from './components/FilterBar';
-import SideView from './components/common/SideView';
-import { useLocalStorage } from './hooks/useLocalStorage';
-import { initialTickets } from './mockData';
-import { PencilIcon } from './components/icons/PencilIcon';
-import PerformanceInsights from './components/PerformanceInsights';
-import { DownloadIcon } from './components/icons/DownloadIcon';
-import { PlusIcon } from './components/icons/PlusIcon';
-import { MenuIcon } from './components/icons/MenuIcon';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status } from './types.ts';
+import TicketTable from './components/TicketList.tsx';
+import TicketForm from './components/TicketForm.tsx';
+import LeftSidebar from './components/FilterBar.tsx';
+import SideView from './components/common/SideView.tsx';
+import { useLocalStorage } from './hooks/useLocalStorage.ts';
+import { initialTickets } from './mockData.ts';
+import { PencilIcon } from './components/icons/PencilIcon.tsx';
+import PerformanceInsights from './components/PerformanceInsights.tsx';
+import { DownloadIcon } from './components/icons/DownloadIcon.tsx';
+import { PlusIcon } from './components/icons/PlusIcon.tsx';
+import { MenuIcon } from './components/icons/MenuIcon.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (

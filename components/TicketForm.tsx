@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea } from '../types';
-import { STATUS_OPTIONS, PRIORITY_OPTIONS } from '../constants';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea } from '../types.ts';
+import { STATUS_OPTIONS, PRIORITY_OPTIONS } from '../constants.ts';
 
 type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => void;
 

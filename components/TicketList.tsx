@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Ticket, Status, Priority, TicketType } from '../types';
-import { STATUS_OPTIONS } from '../constants';
-import { ChevronDownIcon } from './icons/ChevronDownIcon';
+import { Ticket, Status, Priority, TicketType } from '../types.ts';
+import { STATUS_OPTIONS } from '../constants.ts';
+import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
 
 interface TicketTableProps {
