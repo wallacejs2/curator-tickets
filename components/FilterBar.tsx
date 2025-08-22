@@ -17,6 +17,16 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
+
+  const handleClearFilters = () => {
+    setFilters({
+      searchTerm: '',
+      status: 'all',
+      priority: 'all',
+      type: 'all',
+      productArea: 'all',
+    });
+  };
   
   const selectClasses = "w-full p-2 border border-gray-600 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-gray-200 text-sm";
   const labelClasses = "block text-sm font-medium text-gray-400 mb-1";
@@ -41,7 +51,15 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
           </div>
           
           <div>
-            <h2 className="text-base font-semibold text-gray-300 mb-4">Filters</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-base font-semibold text-gray-300">Filters</h2>
+              <button
+                onClick={handleClearFilters}
+                className="text-sm font-medium text-blue-400 hover:text-blue-300 focus:outline-none focus:ring-2 ring-offset-2 ring-offset-gray-800 ring-blue-500 rounded"
+              >
+                Clear All
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label htmlFor="searchTerm" className={labelClasses}>Search</label>

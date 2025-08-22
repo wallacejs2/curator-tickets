@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea } from '../types.ts';
-import { STATUS_OPTIONS, PRIORITY_OPTIONS } from '../constants.ts';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform } from '../types.ts';
+import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 
 type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
-  initialData?: Ticket | null;
 }
 
 interface FormData {
   type: TicketType;
   productArea: ProductArea;
+  platform: Platform;
   title: string;
   pmrNumber: string;
   fpTicketNumber: string;
@@ -32,31 +32,39 @@ interface FormData {
   suggestedSolution: string;
   benefits: string;
   completionNotes: string;
+  onHoldReason: string;
 }
 
-const defaultState: FormData = {
-  type: TicketType.Issue,
-  productArea: ProductArea.Reynolds,
-  title: '',
-  pmrNumber: '',
-  fpTicketNumber: '',
-  ticketThreadId: '',
-  startDate: '',
-  estimatedCompletionDate: '',
-  status: Status.NotStarted,
-  priority: Priority.P3,
-  submitterName: '',
-  client: '',
-  location: '',
-  problem: '',
-  duplicationSteps: '',
-  workaround: '',
-  frequency: '',
-  improvement: '',
-  currentFunctionality: '',
-  suggestedSolution: '',
-  benefits: '',
-  completionNotes: '',
+const getInitialState = (): FormData => {
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  
+  return {
+    type: TicketType.Issue,
+    productArea: ProductArea.Reynolds,
+    platform: Platform.Curator,
+    title: '',
+    pmrNumber: '',
+    fpTicketNumber: '',
+    ticketThreadId: '',
+    startDate: '',
+    estimatedCompletionDate: nextWeek.toISOString().split('T')[0],
+    status: Status.NotStarted,
+    priority: Priority.P3,
+    submitterName: '',
+    client: '',
+    location: '',
+    problem: '',
+    duplicationSteps: '',
+    workaround: '',
+    frequency: '',
+    improvement: '',
+    currentFunctionality: '',
+    suggestedSolution: '',
+    benefits: '',
+    completionNotes: '',
+    onHoldReason: '',
+  };
 };
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols?: number }> = ({ title, children, gridCols = 2 }) => (
@@ -71,28 +79,19 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
 );
 
 
-const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, initialData }) => {
-  const [formData, setFormData] = useState<FormData>(defaultState);
-
-  useEffect(() => {
-    if (initialData) {
-      const mergedData = { ...defaultState, ...initialData };
-      setFormData(mergedData);
-    } else {
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      
-      setFormData({
-        ...defaultState,
-        estimatedCompletionDate: nextWeek.toISOString().split('T')[0],
-      });
-    }
-  }, [initialData]);
-
+const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
+  const [formData, setFormData] = useState<FormData>(getInitialState());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value as any }));
+    setFormData(prev => {
+        const newState = { ...prev, [name]: value as any };
+        if (name === 'type') {
+          // Reset priority when type changes
+          newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P5;
+        }
+        return newState;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -186,6 +185,17 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, initialData }) => {
           <label className={labelClasses}>Location of Feature/Issue</label>
           <input type="text" name="location" value={formData.location} onChange={handleChange} required className={formElementClasses}/>
         </div>
+        <div className="col-span-2">
+          <label className={labelClasses}>Platform</label>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2">
+            {PLATFORM_OPTIONS.map(opt => (
+              <label key={opt} className="flex items-center text-sm">
+                <input type="radio" name="platform" value={opt} checked={formData.platform === opt} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
+                <span className="ml-2 text-gray-800">{opt}</span>
+              </label>
+            ))}
+          </div>
+        </div>
       </FormSection>
 
       <FormSection title="Tracking & Ownership">
@@ -208,11 +218,17 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, initialData }) => {
           </select>
         </div>
         <div>
-          <label className={labelClasses}>Priority</label>
-          <select name="priority" value={formData.priority} onChange={handleChange} className={formElementClasses}>
-            {PRIORITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-          </select>
+            <label className={labelClasses}>Priority</label>
+            <select name="priority" value={formData.priority} onChange={handleChange} className={formElementClasses}>
+              {(formData.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
         </div>
+        {formData.status === Status.OnHold && (
+          <div className="col-span-2">
+            <label htmlFor="onHoldReason" className={labelClasses}>Reason for On Hold Status</label>
+            <textarea id="onHoldReason" name="onHoldReason" value={formData.onHoldReason} onChange={handleChange} rows={2} required className={formElementClasses} placeholder="Explain why this ticket is on hold..."/>
+          </div>
+        )}
       </FormSection>
       
       <FormSection title="Dates">
@@ -249,7 +265,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, initialData }) => {
 
       <div className="mt-8 flex justify-end">
         <button type="submit" className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-          {initialData ? 'Update Ticket' : 'Create Ticket'}
+          Create Ticket
         </button>
       </div>
     </form>

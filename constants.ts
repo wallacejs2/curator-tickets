@@ -1,6 +1,19 @@
-import { Status, Priority, TicketType, ProductArea } from './types.ts';
+import { Status, Priority, TicketType, ProductArea, Platform } from './types.ts';
 
-export const STATUS_OPTIONS = Object.values(Status);
+export const STATUS_OPTIONS = [
+  Status.NotStarted,
+  Status.InProgress,
+  Status.InReview,
+  Status.DevReview,
+  Status.PmdReview,
+  Status.OnHold,
+  Status.Testing,
+  Status.Completed,
+];
 export const PRIORITY_OPTIONS = Object.values(Priority);
 export const TICKET_TYPE_OPTIONS = Object.values(TicketType);
 export const PRODUCT_AREA_OPTIONS = Object.values(ProductArea);
+export const PLATFORM_OPTIONS = Object.values(Platform);
+
+export const ISSUE_PRIORITY_OPTIONS = [Priority.P1, Priority.P2, Priority.P3, Priority.P4];
+export const FEATURE_REQUEST_PRIORITY_OPTIONS = [Priority.P5, Priority.P8];

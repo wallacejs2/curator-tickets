@@ -1,10 +1,11 @@
-import { Ticket, TicketType, Status, Priority, ProductArea } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
     id: '1',
     type: TicketType.Issue,
     productArea: ProductArea.Reynolds,
+    platform: Platform.Curator,
     title: 'Login button unresponsive on Safari',
     client: 'ABC Motors',
     pmrNumber: 'PMR-12345',
@@ -38,6 +39,7 @@ export const initialTickets: Ticket[] = [
     id: '2',
     type: TicketType.FeatureRequest,
     productArea: ProductArea.Fullpath,
+    platform: Platform.UCP,
     title: 'Implement Dark Mode',
     client: 'Luxury Auto Group',
     pmrNumber: 'PMR-67890',
@@ -47,7 +49,7 @@ export const initialTickets: Ticket[] = [
     startDate: new Date('2024-07-18T09:00:00Z').toISOString(),
     estimatedCompletionDate: new Date('2024-08-15T17:00:00Z').toISOString(),
     status: Status.InReview,
-    priority: Priority.P3,
+    priority: Priority.P5,
     submitterName: 'Bob Williams',
     location: 'Entire Application',
     improvement: 'Add a user-selectable dark mode theme to the application.',
@@ -66,6 +68,7 @@ export const initialTickets: Ticket[] = [
     id: '3',
     type: TicketType.Issue,
     productArea: ProductArea.Reynolds,
+    platform: Platform.FOCUS,
     title: 'User profile picture not updating',
     client: 'Community Cars',
     fpTicketNumber: 'FP-003',
@@ -86,6 +89,7 @@ export const initialTickets: Ticket[] = [
     id: '4',
     type: TicketType.Issue,
     productArea: ProductArea.Fullpath,
+    platform: Platform.Curator,
     title: 'Export to CSV functionality is broken on Firefox',
     client: 'Prestige Imports',
     pmrNumber: 'PMR-55555',
@@ -107,5 +111,24 @@ export const initialTickets: Ticket[] = [
         { author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
     ],
     completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.'
+  },
+  {
+    id: '5',
+    type: TicketType.Issue,
+    productArea: ProductArea.Fullpath,
+    platform: Platform.UCP,
+    title: 'API endpoint timing out',
+    client: 'Global Auto',
+    submissionDate: new Date('2024-07-28T10:00:00Z').toISOString(),
+    status: Status.OnHold,
+    onHoldReason: 'Waiting for dependency on external API to be resolved by their team. ETA: 2 weeks.',
+    priority: Priority.P2,
+    submitterName: 'Edward Snowden',
+    location: 'Backend API service',
+    problem: 'The /api/v2/inventory endpoint is frequently timing out under moderate load.',
+    duplicationSteps: '1. Send 10 concurrent requests to the endpoint. 2. Observe 504 Gateway Timeout errors.',
+    workaround: 'None.',
+    frequency: 'During peak hours.',
+    updates: []
   }
 ];

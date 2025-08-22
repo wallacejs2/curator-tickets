@@ -13,13 +13,14 @@ const priorityBadgeStyles: Record<Priority, string> = {
   [Priority.P2]: 'bg-orange-100 text-orange-800',
   [Priority.P3]: 'bg-yellow-100 text-yellow-800',
   [Priority.P4]: 'bg-blue-100 text-blue-800',
-  [Priority.Mod5]: 'bg-indigo-100 text-indigo-800',
-  [Priority.Mod8]: 'bg-purple-100 text-purple-800',
+  [Priority.P5]: 'bg-indigo-100 text-indigo-800',
+  [Priority.P8]: 'bg-purple-100 text-purple-800',
 };
 
 const statusBadgeStyles: Record<Status, string> = {
   [Status.NotStarted]: 'bg-gray-200 text-gray-800',
   [Status.InProgress]: 'bg-blue-100 text-blue-800',
+  [Status.OnHold]: 'bg-cyan-100 text-cyan-800',
   [Status.InReview]: 'bg-yellow-100 text-yellow-800',
   [Status.DevReview]: 'bg-purple-100 text-purple-800',
   [Status.PmdReview]: 'bg-pink-100 text-pink-800',

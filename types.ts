@@ -6,6 +6,7 @@ export enum TicketType {
 export enum Status {
   NotStarted = 'Not Started',
   InProgress = 'In Progress',
+  OnHold = 'On Hold',
   InReview = 'In Review',
   DevReview = 'DEV Review',
   PmdReview = 'PMD Review',
@@ -18,13 +19,19 @@ export enum Priority {
   P2 = 'P2',
   P3 = 'P3',
   P4 = 'P4',
-  Mod5 = 'MOD-5',
-  Mod8 = 'MOD-8',
+  P5 = 'P5',
+  P8 = 'P8',
 }
 
 export enum ProductArea {
   Reynolds = 'Reynolds',
   Fullpath = 'Fullpath',
+}
+
+export enum Platform {
+  Curator = 'Curator',
+  UCP = 'UCP',
+  FOCUS = 'FOCUS',
 }
 
 export interface Update {
@@ -37,6 +44,7 @@ interface BaseTicket {
   id: string;
   type: TicketType;
   productArea: ProductArea;
+  platform: Platform;
   pmrNumber?: string;
   fpTicketNumber?: string;
   ticketThreadId?: string;
@@ -52,6 +60,7 @@ interface BaseTicket {
   title: string;
   updates?: Update[];
   completionNotes?: string;
+  onHoldReason?: string;
 }
 
 export interface IssueTicket extends BaseTicket {
