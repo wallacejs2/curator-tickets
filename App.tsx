@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useEffect } from 'react';
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
 import SideView from './components/common/SideView.tsx';
-import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets } from './mockData.ts';
 import { PencilIcon } from './components/icons/PencilIcon.tsx';
 import PerformanceInsights from './components/PerformanceInsights.tsx';
 import { DownloadIcon } from './components/icons/DownloadIcon.tsx';
@@ -15,6 +14,9 @@ import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTION
 import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
+import { useLocalStorage } from './hooks/useLocalStorage.ts';
+import { initialTickets } from './mockData.ts';
+import { UploadIcon } from './components/icons/UploadIcon.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -515,6 +517,9 @@ export default function App() {
   const [isCreating, setIsCreating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [ticketForEmailConfirm, setTicketForEmailConfirm] = useState<Ticket | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [ticketsToImport, setTicketsToImport] = useState<Ticket[] | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [filters, setFilters] = useState<FilterState>({
     searchTerm: '',
@@ -574,7 +579,6 @@ export default function App() {
     const cc = 'Tom_McNamee@reyrey.com,Jayden_Wallace@reyrey.com';
     const mailtoLink = `mailto:${to}?cc=${cc}&subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
     
-    // mailto links have a length limit (around 2000 characters in some browsers)
     if (mailtoLink.length > 2000) {
       try {
         navigator.clipboard.writeText(emailBody);
@@ -591,13 +595,14 @@ export default function App() {
   const handleCreateTicket = (ticketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
     const newTicket: Ticket = {
       ...ticketData,
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       submissionDate: new Date().toISOString(),
       updates: [],
       completionDate: ticketData.status === Status.Completed ? new Date().toISOString() : undefined,
-      onHoldReason: ticketData.status === Status.OnHold ? (ticketData as Ticket).onHoldReason : undefined,
+      onHoldReason: ticketData.status === Status.OnHold ? (ticketData as any).onHoldReason : undefined,
     } as Ticket;
-    setTickets(prevTickets => [newTicket, ...prevTickets]);
+    
+    setTickets(prev => [...prev, newTicket].sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()));
     
     setIsCreating(false);
     setSelectedTicket(newTicket);
@@ -605,25 +610,21 @@ export default function App() {
   };
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
-      const existingTicket = ticketExists(updatedTicket.id);
-      const finalTicket: Ticket = {
-        ...updatedTicket,
-         onHoldReason: updatedTicket.status === Status.OnHold ? updatedTicket.onHoldReason : undefined,
-         completionDate: (updatedTicket.status === Status.Completed && !existingTicket?.completionDate)
-          ? new Date().toISOString()
-          : (updatedTicket.status !== Status.Completed)
-          ? undefined
-          : existingTicket?.completionDate,
-      };
+    const existingTicket = tickets.find(t => t.id === updatedTicket.id);
+    const finalTicket: Ticket = {
+      ...updatedTicket,
+       onHoldReason: updatedTicket.status === Status.OnHold ? updatedTicket.onHoldReason : undefined,
+       completionDate: (updatedTicket.status === Status.Completed && !existingTicket?.completionDate)
+        ? new Date().toISOString()
+        : (updatedTicket.status !== Status.Completed)
+        ? undefined
+        : existingTicket?.completionDate,
+    };
 
-      setTickets(prevTickets =>
-        prevTickets.map(t => (t.id === finalTicket.id ? finalTicket : t))
-      );
-      setSelectedTicket(finalTicket);
+    setTickets(prev => prev.map(t => (t.id === finalTicket.id ? finalTicket : t)));
+    setSelectedTicket(finalTicket);
   };
   
-  const ticketExists = (id: string) => tickets.find(t => t.id === id);
-
   const handleRowClick = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setIsCreating(false);
@@ -652,9 +653,8 @@ export default function App() {
       ...selectedTicket,
       updates: [...(selectedTicket.updates || []), newUpdate],
     };
-
-    setTickets(prev => prev.map(t => t.id === selectedTicket.id ? updatedTicket : t));
-    setSelectedTicket(updatedTicket);
+    
+    handleUpdateTicket(updatedTicket);
   };
   
   const handleUpdateCompletionNotes = (notes: string) => {
@@ -665,8 +665,7 @@ export default function App() {
       completionNotes: notes.trim(),
     };
 
-    setTickets(prev => prev.map(t => t.id === selectedTicket.id ? updatedTicket : t));
-    setSelectedTicket(updatedTicket);
+    handleUpdateTicket(updatedTicket);
   };
   
   const handleDeleteTicket = (ticketId: string) => {
@@ -685,6 +684,7 @@ export default function App() {
   };
 
   const handleExportAll = () => {
+    const sortedTickets = [...tickets].sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
     const headers = [
       'ID', 'Type', 'Title', 'Status', 'Priority', 'Product Area', 'Platform', 'Submitter', 'Client', 'Location',
       'Submitted On', 'Start Date', 'Est. Completion', 'Completed On',
@@ -702,7 +702,7 @@ export default function App() {
       return stringData;
     };
 
-    const rows = tickets.map(ticket => {
+    const rows = sortedTickets.map(ticket => {
       const lastUpdate = ticket.updates && ticket.updates.length > 0 ? [...ticket.updates].pop() : null;
       const lastUpdateText = lastUpdate ? `[${new Date(lastUpdate.date).toLocaleString()}] ${lastUpdate.author}: ${lastUpdate.comment.replace(/\n/g, ' ')}` : '';
       
@@ -728,12 +728,10 @@ export default function App() {
         ticket.pmrNumber,
         ticket.fpTicketNumber,
         ticket.ticketThreadId,
-        // Issue specific
         isIssue ? issueTicket.problem : '',
         isIssue ? issueTicket.duplicationSteps : '',
         isIssue ? issueTicket.workaround : '',
         isIssue ? issueTicket.frequency : '',
-        // Feature Request specific
         !isIssue ? featureTicket.improvement : '',
         !isIssue ? featureTicket.currentFunctionality : '',
         !isIssue ? featureTicket.suggestedSolution : '',
@@ -756,25 +754,103 @@ export default function App() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+  
+  const handleImportClick = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              const text = e.target?.result;
+              if (typeof text === 'string') {
+                  handleImportTickets(text);
+              }
+          };
+          reader.readAsText(file);
+      }
+      // Reset file input value to allow re-uploading the same file
+      if (event.target) {
+        event.target.value = '';
+      }
+  };
+
+  const handleImportTickets = (csvString: string) => {
+    try {
+        const lines = csvString.trim().replace(/\r\n/g, '\n').split('\n');
+        const headers = lines.shift()?.split(',') || [];
+        
+        const headerMapping: { [key: string]: keyof IssueTicket | keyof FeatureRequestTicket | 'Last Update' } = {
+            'ID': 'id', 'Type': 'type', 'Title': 'title', 'Status': 'status', 'Priority': 'priority',
+            'Product Area': 'productArea', 'Platform': 'platform', 'Submitter': 'submitterName', 'Client': 'client',
+            'Location': 'location', 'Submitted On': 'submissionDate', 'Start Date': 'startDate',
+            'Est. Completion': 'estimatedCompletionDate', 'Completed On': 'completionDate',
+            'PMR Number': 'pmrNumber', 'FP Ticket #': 'fpTicketNumber', 'Ticket Thread ID': 'ticketThreadId',
+            'Problem': 'problem', 'Duplication Steps': 'duplicationSteps', 'Workaround': 'workaround',
+            'Frequency': 'frequency', 'Improvement': 'improvement', 'Current Functionality': 'currentFunctionality',
+            'Suggested Solution': 'suggestedSolution', 'Benefits': 'benefits', 'On Hold Reason': 'onHoldReason',
+            'Completion Notes': 'completionNotes', 'Last Update': 'Last Update'
+        };
+
+        const importedTickets: Ticket[] = lines.map(line => {
+            const values = (line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || []).map(v => v.trim());
+            
+            const ticketData: any = {};
+            headers.forEach((header, index) => {
+                const ticketKey = headerMapping[header.trim()];
+                if (ticketKey && ticketKey !== 'Last Update') {
+                    let value = (values[index] || '').trim();
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1).replace(/""/g, '"');
+                    }
+                    if (value) {
+                       ticketData[ticketKey] = value;
+                    }
+                }
+            });
+            ticketData.updates = [];
+            return ticketData as Ticket;
+        }).filter(t => t.id && t.title); 
+
+        if (importedTickets.length > 0) {
+          setTicketsToImport(importedTickets);
+          setIsImportModalOpen(true);
+        } else {
+          alert('Could not find any valid tickets in the imported file.');
+        }
+    } catch (error) {
+        console.error("Error importing CSV:", error);
+        alert("Failed to import tickets. Please check the file format and console for errors.");
+    }
+  };
+
+  const confirmImport = () => {
+    if (ticketsToImport) {
+        setTickets(ticketsToImport);
+    }
+    setIsImportModalOpen(false);
+    setTicketsToImport(null);
+  };
+
 
   const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
-    setTickets(prevTickets =>
-      prevTickets.map(t => {
-        if (t.id === ticketId) {
-          return {
-            ...t,
-            status: newStatus,
-            onHoldReason: newStatus === Status.OnHold ? onHoldReason : undefined,
-            completionDate: (newStatus === Status.Completed && !t.completionDate)
-              ? new Date().toISOString()
-              : (newStatus !== Status.Completed)
-              ? undefined
-              : t.completionDate,
-          };
+    setTickets(prevTickets => prevTickets.map(ticket => {
+        if (ticket.id === ticketId) {
+            return {
+                ...ticket,
+                status: newStatus,
+                onHoldReason: newStatus === Status.OnHold ? onHoldReason : ticket.onHoldReason,
+                completionDate: (newStatus === Status.Completed && !ticket.completionDate)
+                    ? new Date().toISOString()
+                    : (newStatus !== Status.Completed)
+                    ? undefined
+                    : ticket.completionDate,
+            };
         }
-        return t;
-      })
-    );
+        return ticket;
+    }));
   };
 
   const filteredTickets = useMemo(() => {
@@ -799,11 +875,13 @@ export default function App() {
   }, [tickets, filters]);
 
   const activeTickets = useMemo(() => {
-    return filteredTickets.filter(ticket => ticket.status !== Status.Completed);
+    const sorted = filteredTickets.filter(ticket => ticket.status !== Status.Completed);
+    return sorted.sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
   }, [filteredTickets]);
 
   const completedTickets = useMemo(() => {
-    return filteredTickets.filter(ticket => ticket.status === Status.Completed);
+    const sorted = filteredTickets.filter(ticket => ticket.status === Status.Completed);
+    return sorted.sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
   }, [filteredTickets]);
 
   const activeIssues = useMemo(() => {
@@ -830,7 +908,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen bg-gray-100 text-gray-800 flex overflow-hidden">
+    <div className="h-screen bg-gray-100 text-gray-800 flex overflow-hidden relative">
       <LeftSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} filters={filters} setFilters={setFilters} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -842,20 +920,30 @@ export default function App() {
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
           <PerformanceInsights {...performanceMetrics} />
-          <header className="mb-6 flex justify-between items-start">
+          <header className="mb-6 flex flex-wrap gap-4 justify-between items-start">
             <div>
               <h1 className="text-3xl font-semibold text-gray-900">Active Tickets</h1>
               <p className="text-gray-600 mt-1">
                 {activeTickets.length} results found. Click a card to see details.
               </p>
             </div>
-             <button
-                onClick={handleExportAll}
-                className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
-            >
-                <DownloadIcon className="w-4 h-4" />
-                <span>Export All as CSV</span>
-            </button>
+             <div className="flex items-center gap-3">
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
+                <button
+                    onClick={handleImportClick}
+                    className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
+                >
+                    <UploadIcon className="w-4 h-4" />
+                    <span>Import from CSV</span>
+                </button>
+                <button
+                    onClick={handleExportAll}
+                    className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
+                >
+                    <DownloadIcon className="w-4 h-4" />
+                    <span>Export All as CSV</span>
+                </button>
+             </div>
           </header>
           
           <div className="space-y-12">
@@ -938,6 +1026,31 @@ export default function App() {
                     className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
                     Yes, Send Email
+                </button>
+            </div>
+        </Modal>
+      )}
+
+      {isImportModalOpen && (
+        <Modal title="Confirm Import" onClose={() => setIsImportModalOpen(false)}>
+            <p className="text-gray-700">
+              Are you sure you want to replace all current tickets with the ones from the imported file? This will overwrite any existing data.
+            </p>
+            <p className="text-gray-700 mt-2">
+                Found <span className="font-semibold">{ticketsToImport?.length || 0}</span> tickets to import.
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+                <button
+                    onClick={() => setIsImportModalOpen(false)}
+                    className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    onClick={confirmImport}
+                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                    Yes, Replace
                 </button>
             </div>
         </Modal>
