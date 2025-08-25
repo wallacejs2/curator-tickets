@@ -557,28 +557,162 @@ const App: React.FC = () => {
 
   // Export and Import
   const handleExport = () => {
-    const dataToExport = JSON.stringify({ tickets, projects, dealerships }, null, 2);
-    const blob = new Blob([dataToExport], { type: 'application/json' });
+    const convertToCsv = (data: Record<string, any>[]) => {
+        if (!data || data.length === 0) return '';
+        const headers = Object.keys(data[0]);
+        const csvRows = [headers.join(',')];
+
+        for (const row of data) {
+            const values = headers.map(header => {
+                let cell = row[header];
+                if (cell === null || cell === undefined) {
+                    cell = '';
+                }
+                const stringCell = String(cell);
+                const escapedCell = stringCell.replace(/"/g, '""');
+                if (stringCell.includes(',') || stringCell.includes('\n') || stringCell.includes('"')) {
+                    return `"${escapedCell}"`;
+                }
+                return escapedCell;
+            });
+            csvRows.push(values.join(','));
+        }
+        return csvRows.join('\n');
+    };
+
+    let dataToExport: any[] = [];
+    let filename: string = '';
+
+    switch (currentView) {
+      case 'tickets':
+        filename = 'tickets.csv';
+        const ticketKeys = [
+            'id', 'title', 'type', 'productArea', 'platform', 'status', 'priority', 'submitterName', 'client', 'location', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate',
+            'pmrNumber', 'fpTicketNumber', 'ticketThreadId', 'projectId', 'onHoldReason', 'completionNotes',
+            'problem', 'duplicationSteps', 'workaround', 'frequency',
+            'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits',
+            'updates'
+        ];
+        dataToExport = tickets.map(ticket => {
+            const row: Record<string, any> = {};
+            const enrichedTicket = { ...ticket, updates: JSON.stringify(ticket.updates || []) };
+            for (const key of ticketKeys) {
+                row[key] = (enrichedTicket as any)[key] ?? '';
+            }
+            return row;
+        });
+        break;
+      case 'projects':
+        filename = 'projects.csv';
+        dataToExport = projects.map(p => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            status: p.status,
+            creationDate: p.creationDate,
+            ticketIds: p.ticketIds.join(';'),
+            subTasks: JSON.stringify(p.subTasks)
+        }));
+        break;
+      case 'dealerships':
+        filename = 'dealerships.csv';
+        dataToExport = dealerships;
+        break;
+    }
+
+    if (dataToExport.length === 0) {
+      alert(`No ${currentView} to export.`);
+      return;
+    }
+
+    const csvContent = convertToCsv(dataToExport);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'curator-data.json';
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
   
+    const formatTicketAsText = (ticket: Ticket): string => {
+        const issueTicket = ticket as IssueTicket;
+        const featureRequestTicket = ticket as FeatureRequestTicket;
+        
+        const fields = [
+          { label: 'Title', value: ticket.title },
+          { label: 'ID', value: ticket.id },
+          { label: 'Type', value: ticket.type },
+          { label: 'Status', value: ticket.status },
+          { label: 'Priority', value: ticket.priority },
+          { label: 'Product Area', value: ticket.productArea },
+          { label: 'Platform', value: ticket.platform },
+          { label: 'Submitter', value: ticket.submitterName },
+          { label: 'Client', value: ticket.client },
+          { label: 'Submission Date', value: new Date(ticket.submissionDate).toLocaleString() },
+          { label: 'Location', value: ticket.location },
+          { label: 'PMR Number', value: ticket.pmrNumber },
+          { label: 'FP Ticket #', value: ticket.fpTicketNumber },
+          { label: 'Thread ID', value: ticket.ticketThreadId },
+          { label: 'Start Date', value: ticket.startDate ? new Date(ticket.startDate).toLocaleString() : undefined },
+          { label: 'Est. Completion', value: ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleString() : undefined },
+          { label: 'Completion Date', value: ticket.completionDate ? new Date(ticket.completionDate).toLocaleString() : undefined },
+        ];
+
+        let text = 'Ticket Details\n==================================\n';
+        fields.forEach(field => {
+            if (field.value) {
+                text += `${field.label}: ${field.value}\n`;
+            }
+        });
+        
+        if (ticket.status === Status.OnHold && ticket.onHoldReason) {
+          text += `\n--- On Hold Reason ---\n${ticket.onHoldReason}\n`;
+        }
+
+        text += '\n--- Details ---\n';
+        if (ticket.type === TicketType.Issue) {
+            text += `Problem: ${issueTicket.problem}\n`;
+            text += `Duplication Steps: ${issueTicket.duplicationSteps}\n`;
+            text += `Workaround: ${issueTicket.workaround}\n`;
+            text += `Frequency: ${issueTicket.frequency}\n`;
+        } else {
+            text += `Improvement: ${featureRequestTicket.improvement}\n`;
+            text += `Current Functionality: ${featureRequestTicket.currentFunctionality}\n`;
+            text += `Suggested Solution: ${featureRequestTicket.suggestedSolution}\n`;
+            text += `Benefits: ${featureRequestTicket.benefits}\n`;
+        }
+        
+        if (ticket.completionNotes) {
+          text += `\n--- Completion Notes ---\n${ticket.completionNotes}\n`;
+        }
+
+        text += '\n--- Updates ---\n';
+        if (ticket.updates && ticket.updates.length > 0) {
+          [...ticket.updates].reverse().forEach(update => {
+            text += `[${new Date(update.date).toLocaleString()}] ${update.author}:\n${update.comment}\n\n`;
+          });
+        } else {
+          text += 'No updates.\n';
+        }
+
+        return text;
+    };
+
+
   const handleExportTicket = (ticketId: string) => {
     const ticket = tickets.find(t => t.id === ticketId);
     if (!ticket) return;
-    const data = JSON.stringify(ticket, null, 2);
-    const blob = new Blob([data], {type: 'application/json'});
+    const data = formatTicketAsText(ticket);
+    const blob = new Blob([data], { type: 'text/plain;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ticket-${ticket.id}.json`;
+    a.download = `ticket-${ticket.id.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
+
 
   const handleEmailTicket = (ticketId: string) => {
       const ticket = tickets.find(t => t.id === ticketId);
@@ -608,27 +742,104 @@ const App: React.FC = () => {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const content = e.target?.result as string;
-          const data = JSON.parse(content);
-          if (data.tickets && Array.isArray(data.tickets)) {
-            setTickets(data.tickets);
-          }
-           if (data.projects && Array.isArray(data.projects)) {
-            setProjects(data.projects);
-          }
-           if (data.dealerships && Array.isArray(data.dealerships)) {
-            setDealerships(data.dealerships);
-          }
-        } catch (error) {
-          console.error("Error parsing JSON file:", error);
-          alert("Failed to import data. Please check the file format.");
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        
+        const parseCsvRow = (row: string): string[] => {
+            const result: string[] = [];
+            let currentField = '';
+            let inQuotes = false;
+            for (let i = 0; i < row.length; i++) {
+                const char = row[i];
+                if (char === '"') {
+                    if (inQuotes && row[i + 1] === '"') {
+                        currentField += '"';
+                        i++; 
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(currentField);
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+            result.push(currentField);
+            return result;
+        };
+
+        const lines = content.trim().replace(/\r\n/g, '\n').split('\n');
+        if (lines.length < 2) {
+            alert("CSV file is empty or has only headers.");
+            return;
         }
-      };
-      reader.readAsText(file);
+
+        const headers = parseCsvRow(lines[0]);
+        const data: Record<string, string>[] = [];
+        for (let i = 1; i < lines.length; i++) {
+            const values = parseCsvRow(lines[i]);
+            if (values.length === headers.length) {
+                const obj: Record<string, string> = {};
+                for (let j = 0; j < headers.length; j++) {
+                    obj[headers[j]] = values[j];
+                }
+                data.push(obj);
+            }
+        }
+
+        const isTickets = ['id', 'title', 'type', 'status', 'priority'].every(h => headers.includes(h));
+        const isProjects = ['id', 'name', 'status', 'creationDate'].every(h => headers.includes(h));
+        const isDealerships = ['id', 'name', 'accountNumber', 'status'].every(h => headers.includes(h));
+        
+        if (isTickets) {
+            const newTickets = data.map(row => {
+                const ticket: any = {};
+                for (const key in row) {
+                    if (row[key] !== '') ticket[key] = row[key];
+                }
+                if (ticket.updates) ticket.updates = JSON.parse(ticket.updates);
+                return ticket as Ticket;
+            });
+            setTickets(newTickets);
+            alert(`Successfully imported ${newTickets.length} tickets.`);
+        } else if (isProjects) {
+            const newProjects = data.map(row => {
+                const project: any = {};
+                 for (const key in row) {
+                    if (row[key] !== '') project[key] = row[key];
+                }
+                if (project.ticketIds) project.ticketIds = project.ticketIds.split(';');
+                if (project.subTasks) project.subTasks = JSON.parse(project.subTasks);
+                return project as Project;
+            });
+            setProjects(newProjects);
+            alert(`Successfully imported ${newProjects.length} projects.`);
+        } else if (isDealerships) {
+            const newDealerships = data.map(row => {
+                 const dealership: any = {};
+                 for (const key in row) {
+                    if (row[key] !== '') dealership[key] = row[key];
+                }
+                return dealership as Dealership;
+            });
+            setDealerships(newDealerships);
+            alert(`Successfully imported ${newDealerships.length} dealerships.`);
+        } else {
+            alert("Could not determine data type from CSV headers. Please ensure the file contains one of the following sets of columns:\n\nTickets: id, title, type, status, priority\nProjects: id, name, status, creationDate\nDealerships: id, name, accountNumber, status");
+        }
+      } catch (error) {
+        console.error("Error parsing CSV file:", error);
+        alert("Failed to import data. Please check the file format is valid CSV.");
+      }
+    };
+    reader.readAsText(file);
+    if (event.target) {
+        event.target.value = '';
     }
   };
 
@@ -682,7 +893,7 @@ const App: React.FC = () => {
                         <UploadIcon className="w-4 h-4" />
                         <span>Import</span>
                     </button>
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".json" style={{ display: 'none' }} />
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" style={{ display: 'none' }} />
                     <button onClick={handleExport} className="flex items-center gap-2 bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
                         <DownloadIcon className="w-4 h-4" />
                         <span>Export</span>
