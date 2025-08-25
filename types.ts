@@ -103,25 +103,25 @@ export enum ProjectStatus {
   Completed = 'Completed',
 }
 
-export enum SubTaskStatus {
+export enum TaskStatus {
   ToDo = 'To Do',
   InProgress = 'In Progress',
   Done = 'Done',
 }
 
-export enum SubTaskPriority {
+export enum TaskPriority {
   P1 = 'P1',
   P2 = 'P2',
   P3 = 'P3',
   P4 = 'P4',
 }
 
-export interface SubTask {
+export interface Task {
   id: string;
   description: string;
   assignedUser: string;
-  status: SubTaskStatus;
-  priority: SubTaskPriority;
+  status: TaskStatus;
+  priority: TaskPriority;
   type: string;
   dueDate?: string;
 }
@@ -131,14 +131,14 @@ export interface Project {
   name: string;
   description: string;
   status: ProjectStatus;
-  subTasks: SubTask[];
+  tasks: Task[];
   creationDate: string;
   ticketIds: string[];
   updates?: Update[];
 }
 
 // Type for main application view
-export type View = 'tickets' | 'projects' | 'dealerships';
+export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks';
 
 // New types for Dealerships
 export enum DealershipStatus {

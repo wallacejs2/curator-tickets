@@ -19,9 +19,9 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 );
 
 const statusColors: Record<DealershipStatus, string> = {
-  [DealershipStatus.Onboarding]: 'bg-blue-200 text-blue-800',
+  [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
-  [DealershipStatus.Pilot]: 'bg-yellow-200 text-yellow-800',
+  [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
 };
 

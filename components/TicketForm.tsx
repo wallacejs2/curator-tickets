@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
@@ -104,8 +105,8 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
 
     const dataToSubmit = {
       ...rest,
-      estimatedCompletionDate: rest.estimatedCompletionDate ? new Date(rest.estimatedCompletionDate).toISOString() : undefined,
-      startDate: rest.startDate ? new Date(rest.startDate).toISOString() : undefined,
+      estimatedCompletionDate: rest.estimatedCompletionDate ? new Date(`${rest.estimatedCompletionDate}T00:00:00`).toISOString() : undefined,
+      startDate: rest.startDate ? new Date(`${rest.startDate}T00:00:00`).toISOString() : undefined,
       projectId: rest.projectId || undefined,
     }
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Project, ProjectStatus } from '../types.ts';
 
-type FormSubmitCallback = (project: Omit<Project, 'id' | 'creationDate' | 'subTasks' | 'ticketIds'>) => void;
+type FormSubmitCallback = (project: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds'>) => void;
 
 interface ProjectFormProps {
   onSubmit: FormSubmitCallback;

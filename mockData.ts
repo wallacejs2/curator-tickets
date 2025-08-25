@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, SubTaskStatus, Dealership, DealershipStatus, SubTaskPriority } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -149,11 +149,11 @@ export const initialProjects: Project[] = [
         comment: 'Project kickoff complete. Design phase has begun.'
       }
     ],
-    subTasks: [
-      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: SubTaskStatus.Done, priority: SubTaskPriority.P1, type: 'Design', dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
-      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: SubTaskStatus.InProgress, priority: SubTaskPriority.P1, type: 'Development', dueDate: new Date('2024-07-30T17:00:00Z').toISOString() },
-      { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: SubTaskStatus.ToDo, priority: SubTaskPriority.P3, type: 'QA', dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
-      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: SubTaskStatus.ToDo, priority: SubTaskPriority.P3, type: 'Development', dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
+    tasks: [
+      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', dueDate: new Date('2024-07-30T17:00:00Z').toISOString() },
+      { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
+      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
     ],
   },
   {
@@ -164,9 +164,9 @@ export const initialProjects: Project[] = [
     creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
     ticketIds: [],
     updates: [],
-    subTasks: [
-       { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: SubTaskStatus.ToDo, priority: SubTaskPriority.P1, type: 'Documentation' },
-       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: SubTaskStatus.ToDo, priority: SubTaskPriority.P1, type: 'QA', dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
+    tasks: [
+       { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation' },
+       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'QA', dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
     ],
   },
     {
@@ -177,11 +177,31 @@ export const initialProjects: Project[] = [
     creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
     ticketIds: [],
     updates: [],
-    subTasks: [
-       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: SubTaskStatus.Done, priority: SubTaskPriority.P3, type: 'Design' },
-       { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: SubTaskStatus.Done, priority: SubTaskPriority.P3, type: 'Documentation' },
-       { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: SubTaskStatus.Done, priority: SubTaskPriority.P4, type: 'Meeting' },
+    tasks: [
+       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Design' },
+       { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Documentation' },
+       { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P4, type: 'Meeting' },
     ],
+  }
+];
+
+export const initialTasks: Task[] = [
+  {
+    id: 'task-1',
+    description: 'Update the company-wide design system documentation',
+    assignedUser: 'Jane Doe',
+    status: TaskStatus.InProgress,
+    priority: TaskPriority.P2,
+    type: 'Documentation',
+    dueDate: new Date('2024-08-15T17:00:00Z').toISOString(),
+  },
+  {
+    id: 'task-2',
+    description: 'Plan the team offsite for Q4',
+    assignedUser: 'Admin Team',
+    status: TaskStatus.ToDo,
+    priority: TaskPriority.P4,
+    type: 'Planning',
   }
 ];
 

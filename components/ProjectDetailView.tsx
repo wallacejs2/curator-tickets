@@ -1,5 +1,6 @@
+
 import React, { useState, useRef } from 'react';
-import { Project, SubTask, SubTaskStatus, ProjectStatus, Ticket, SubTaskPriority, Update } from '../types.ts';
+import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -14,7 +15,7 @@ interface ProjectDetailViewProps {
   onAddUpdate: (projectId: string, comment: string, author: string) => void;
 }
 
-const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
+const EditTaskForm: React.FC<{ task: Task, onSave: (task: Task) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
     const [editedTask, setEditedTask] = useState(task);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -22,7 +23,7 @@ const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void
     };
     
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditedTask({ ...editedTask, dueDate: e.target.value || undefined });
+        setEditedTask({ ...editedTask, dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : undefined });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -47,7 +48,7 @@ const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void
                  <div>
                     <label className={labelClasses}>Status</label>
                     <select name="status" value={editedTask.status} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(SubTaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
             </div>
@@ -55,7 +56,7 @@ const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void
                 <div>
                     <label className={labelClasses}>Priority</label>
                     <select name="priority" value={editedTask.priority} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(SubTaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                        {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                 </div>
                 <div>
@@ -81,13 +82,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const [isEditing, setIsEditing] = useState(false);
     const [editableProject, setEditableProject] = useState(project);
     const [ticketToAdd, setTicketToAdd] = useState<string>('');
-    const [editingTask, setEditingTask] = useState<SubTask | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
 
     // Form state for new sub-task
     const [newDescription, setNewDescription] = useState('');
     const [newAssignedUser, setNewAssignedUser] = useState('');
     const [newDueDate, setNewDueDate] = useState('');
-    const [newPriority, setNewPriority] = useState<SubTaskPriority>(SubTaskPriority.P3);
+    const [newPriority, setNewPriority] = useState<TaskPriority>(TaskPriority.P3);
     const [newType, setNewType] = useState('');
     
     // Form state for new update
@@ -102,25 +103,25 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const linkedTickets = tickets.filter(t => t.projectId === project.id);
     const unassignedTickets = tickets.filter(t => !t.projectId);
 
-    const handleNewSubTaskSubmit = (e: React.FormEvent) => {
+    const handleNewTaskSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (newDescription.trim() && newAssignedUser.trim() && newType.trim()) {
-            const newTask: SubTask = {
+            const newTask: Task = {
                 id: crypto.randomUUID(),
-                status: SubTaskStatus.ToDo,
+                status: TaskStatus.ToDo,
                 description: newDescription.trim(), 
                 assignedUser: newAssignedUser.trim(),
-                dueDate: newDueDate || undefined,
+                dueDate: newDueDate ? new Date(`${newDueDate}T00:00:00`).toISOString() : undefined,
                 priority: newPriority,
                 type: newType.trim(),
             };
-            const updatedProject = { ...project, subTasks: [...project.subTasks, newTask] };
+            const updatedProject = { ...project, tasks: [...project.tasks, newTask] };
             onUpdate(updatedProject);
             // Reset form
             setNewDescription('');
             setNewAssignedUser('');
             setNewDueDate('');
-            setNewPriority(SubTaskPriority.P3);
+            setNewPriority(TaskPriority.P3);
             setNewType('');
         }
     };
@@ -133,24 +134,24 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
         }
     };
     
-    const handleSubTaskToggleStatus = (taskId: string) => {
-        const updatedSubTasks = project.subTasks.map(task =>
+    const handleTaskToggleStatus = (taskId: string) => {
+        const updatedTasks = project.tasks.map(task =>
             task.id === taskId
-                ? { ...task, status: task.status === SubTaskStatus.Done ? SubTaskStatus.ToDo : SubTaskStatus.Done }
+                ? { ...task, status: task.status === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done }
                 : task
         );
-        onUpdate({ ...project, subTasks: updatedSubTasks });
+        onUpdate({ ...project, tasks: updatedTasks });
     };
 
-    const handleSubTaskUpdate = (updatedTask: SubTask) => {
-        const updatedSubTasks = project.subTasks.map(task => task.id === updatedTask.id ? updatedTask : task);
-        onUpdate({ ...project, subTasks: updatedSubTasks });
+    const handleTaskUpdate = (updatedTask: Task) => {
+        const updatedTasks = project.tasks.map(task => task.id === updatedTask.id ? updatedTask : task);
+        onUpdate({ ...project, tasks: updatedTasks });
         setEditingTask(null);
     };
     
-    const handleSubTaskDelete = (taskId: string) => {
-        const updatedSubTasks = project.subTasks.filter(task => task.id !== taskId);
-        onUpdate({ ...project, subTasks: updatedSubTasks });
+    const handleTaskDelete = (taskId: string) => {
+        const updatedTasks = project.tasks.filter(task => task.id !== taskId);
+        onUpdate({ ...project, tasks: updatedTasks });
     };
     
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -202,14 +203,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             return;
         }
 
-        const subTasksCopy = [...project.subTasks];
-        const dragItemIndex = subTasksCopy.findIndex(task => task.id === dragItem.current);
-        const dragOverItemIndex = subTasksCopy.findIndex(task => task.id === dragOverItem.current);
+        const tasksCopy = [...project.tasks];
+        const dragItemIndex = tasksCopy.findIndex(task => task.id === dragItem.current);
+        const dragOverItemIndex = tasksCopy.findIndex(task => task.id === dragOverItem.current);
 
-        const [reorderedItem] = subTasksCopy.splice(dragItemIndex, 1);
-        subTasksCopy.splice(dragOverItemIndex, 0, reorderedItem);
+        const [reorderedItem] = tasksCopy.splice(dragItemIndex, 1);
+        tasksCopy.splice(dragOverItemIndex, 0, reorderedItem);
 
-        onUpdate({ ...project, subTasks: subTasksCopy });
+        onUpdate({ ...project, tasks: tasksCopy });
         handleDragEnd();
     };
 
@@ -253,7 +254,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             
             {editingTask && (
                 <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-                    <EditSubTaskForm task={editingTask} onSave={handleSubTaskUpdate} onClose={() => setEditingTask(null)} />
+                    <EditTaskForm task={editingTask} onSave={handleTaskUpdate} onClose={() => setEditingTask(null)} />
                 </Modal>
             )}
 
@@ -268,14 +269,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             </div>
 
             <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({project.subTasks.length})</h3>
-                {project.subTasks.length > 0 ? (
+                <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({project.tasks.length})</h3>
+                {project.tasks.length > 0 ? (
                   <div
                       className="space-y-2"
                       onDrop={handleDrop}
                       onDragOver={(e) => e.preventDefault()}
                   >
-                      {project.subTasks.map(task => (
+                      {project.tasks.map(task => (
                           <div
                               key={task.id}
                               draggable
@@ -286,13 +287,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                            >
                               <input
                                   type="checkbox"
-                                  checked={task.status === SubTaskStatus.Done}
-                                  onChange={() => handleSubTaskToggleStatus(task.id)}
+                                  checked={task.status === TaskStatus.Done}
+                                  onChange={() => handleTaskToggleStatus(task.id)}
                                   className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
                                   aria-label={`Mark task ${task.description} as complete`}
                               />
                               <div className="flex-grow">
-                                  <p className={`text-sm font-medium text-gray-800 ${task.status === SubTaskStatus.Done ? 'line-through text-gray-500' : ''}`}>
+                                  <p className={`text-sm font-medium text-gray-800 ${task.status === TaskStatus.Done ? 'line-through text-gray-500' : ''}`}>
                                       {task.description}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-1">
@@ -303,7 +304,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                                   <button onClick={() => setEditingTask(task)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
                                       <PencilIcon className="w-4 h-4" />
                                   </button>
-                                  <button onClick={() => handleSubTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
+                                  <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
                                       <TrashIcon className="w-4 h-4" />
                                   </button>
                               </div>
@@ -316,15 +317,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                 
                 <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
                     <h4 className="font-semibold text-gray-800 mb-3">Add New Task</h4>
-                    <form onSubmit={handleNewSubTaskSubmit} className="space-y-3">
+                    <form onSubmit={handleNewTaskSubmit} className="space-y-3">
                         <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Task description..." required className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assigned to..." required className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                             <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Task Type (e.g. Dev, QA)..." required className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                         </div>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <select value={newPriority} onChange={e => setNewPriority(e.target.value as SubTaskPriority)} className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                                {Object.values(SubTaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                            <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                              <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                         </div>

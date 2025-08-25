@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -15,7 +15,7 @@ import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
@@ -26,6 +26,7 @@ import DealershipInsights from './components/DealershipInsights.tsx';
 import { useToast } from './hooks/useToast.ts';
 import Toast from './components/common/Toast.tsx';
 import DealershipForm from './components/DealershipForm.tsx';
+import TaskList from './components/TaskList.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -132,10 +133,22 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   };
   
   const handleSave = () => {
-    let finalTicket = { ...editableTicket };
-    // Handle date conversions
-    if (finalTicket.startDate) finalTicket.startDate = new Date(finalTicket.startDate).toISOString();
-    if (finalTicket.estimatedCompletionDate) finalTicket.estimatedCompletionDate = new Date(finalTicket.estimatedCompletionDate).toISOString();
+    const toSafeISOString = (dateString: string | undefined) => {
+      if (!dateString) return undefined;
+      // If it's just a date string (from date input), add time to parse as local date
+      if (!dateString.includes('T')) {
+        return new Date(`${dateString}T00:00:00`).toISOString();
+      }
+      // Otherwise, it's likely already an ISO string, just re-parse to be safe
+      return new Date(dateString).toISOString();
+    };
+
+    let finalTicket = {
+      ...editableTicket,
+      startDate: toSafeISOString(editableTicket.startDate),
+      estimatedCompletionDate: toSafeISOString(editableTicket.estimatedCompletionDate),
+    };
+    
     if (finalTicket.projectId === '') finalTicket.projectId = undefined;
 
     onUpdate(finalTicket);
@@ -420,6 +433,7 @@ const App: React.FC = () => {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
+  const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', initialTasks);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
@@ -612,12 +626,12 @@ const App: React.FC = () => {
   };
 
   // Project CRUD
-  const handleAddNewProject = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'subTasks' | 'ticketIds'>) => {
+  const handleAddNewProject = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds'>) => {
     const newProject: Project = {
         ...newProjectData,
         id: crypto.randomUUID(),
         creationDate: new Date().toISOString(),
-        subTasks: [],
+        tasks: [],
         ticketIds: [],
         updates: [],
     };
@@ -729,7 +743,7 @@ const App: React.FC = () => {
             status: p.status,
             creationDate: p.creationDate,
             ticketIds: p.ticketIds.join(';'),
-            subTasks: JSON.stringify(p.subTasks),
+            tasks: JSON.stringify(p.tasks),
             updates: JSON.stringify(p.updates || []),
         }));
         break;
@@ -933,7 +947,7 @@ const App: React.FC = () => {
                     if (row[key] !== '') project[key] = row[key];
                 }
                 if (project.ticketIds) project.ticketIds = project.ticketIds.split(';');
-                if (project.subTasks) project.subTasks = JSON.parse(project.subTasks);
+                if (project.tasks) project.tasks = JSON.parse(project.tasks);
                 if (project.updates) project.updates = JSON.parse(project.updates);
                 return project as Project;
             });
@@ -968,6 +982,7 @@ const App: React.FC = () => {
     switch (currentView) {
         case 'tickets': return 'New Ticket';
         case 'projects': return 'New Project';
+        case 'tasks': return 'Add New Task';
         case 'dealerships': return 'New Account';
         default: return 'New Item';
     }
@@ -984,6 +999,9 @@ const App: React.FC = () => {
     switch (currentView) {
         case 'tickets': setIsTicketFormOpen(true); break;
         case 'projects': setIsProjectFormOpen(true); break;
+        case 'tasks': 
+          document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' });
+          break;
         case 'dealerships': setIsDealershipFormOpen(true); break;
     }
   };
@@ -1036,6 +1054,12 @@ const App: React.FC = () => {
                     </>
                 )}
                 {currentView === 'projects' && <ProjectList projects={projects} onProjectClick={handleProjectClick} tickets={tickets} />}
+                {currentView === 'tasks' && <TaskList 
+                    projects={projects} 
+                    onUpdateProject={handleUpdateProject}
+                    tasks={tasks}
+                    setTasks={setTasks}
+                />}
                 {currentView === 'dealerships' && (
                   <>
                     <DealershipInsights {...dealershipInsights} />

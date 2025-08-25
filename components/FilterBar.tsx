@@ -6,6 +6,7 @@ import { XIcon } from './icons/XIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
@@ -96,6 +97,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <div className="space-y-1">
               <NavItem icon={<TicketIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
               <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
+              <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />
               <NavItem icon={<BuildingStorefrontIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
             </div>
           </nav>

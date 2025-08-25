@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dealership, DealershipStatus } from '../types.ts';
 
@@ -68,9 +69,9 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
     e.preventDefault();
     const submissionData = {
         ...formData,
-        orderReceivedDate: formData.orderReceivedDate ? new Date(formData.orderReceivedDate).toISOString() : undefined,
-        goLiveDate: formData.goLiveDate ? new Date(formData.goLiveDate).toISOString() : undefined,
-        termDate: formData.termDate ? new Date(formData.termDate).toISOString() : undefined,
+        orderReceivedDate: formData.orderReceivedDate ? new Date(`${formData.orderReceivedDate}T00:00:00`).toISOString() : undefined,
+        goLiveDate: formData.goLiveDate ? new Date(`${formData.goLiveDate}T00:00:00`).toISOString() : undefined,
+        termDate: formData.termDate ? new Date(`${formData.termDate}T00:00:00`).toISOString() : undefined,
     };
 
     if (isEditing) {
