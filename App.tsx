@@ -1,6 +1,5 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -15,8 +14,11 @@ import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets } from './mockData.ts';
+import { initialTickets, initialProjects } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
+import ProjectList from './components/ProjectList.tsx';
+import ProjectDetailView from './components/ProjectDetailView.tsx';
+import ProjectForm from './components/ProjectForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -78,7 +80,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void }) => {
+const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void, projects: Project[] }) => {
   const [newUpdate, setNewUpdate] = useState('');
   const [authorName, setAuthorName] = useState('');
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -115,10 +117,13 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
     // Handle date conversions
     if (finalTicket.startDate) finalTicket.startDate = new Date(finalTicket.startDate).toISOString();
     if (finalTicket.estimatedCompletionDate) finalTicket.estimatedCompletionDate = new Date(finalTicket.estimatedCompletionDate).toISOString();
+    if (finalTicket.projectId === '') finalTicket.projectId = undefined;
 
     onUpdate(finalTicket);
     setIsEditing(false);
   };
+  
+  const projectName = ticket.projectId ? (projects.find(p => p.id === ticket.projectId)?.name || 'N/A') : 'None';
 
   if (isEditing) {
     return (
@@ -183,6 +188,13 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                         <label className={labelClasses}>Priority</label>
                         <select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>
                           {(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                    </div>
+                    <div className="col-span-2">
+                        <label className={labelClasses}>Project</label>
+                        <select name="projectId" value={editableTicket.projectId || ''} onChange={handleFormChange} className={formElementClasses}>
+                            <option value="">None</option>
+                            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                     </div>
                  </div>
@@ -291,6 +303,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
         <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
             <DetailField label="Submitter" value={ticket.submitterName} />
             <DetailField label="Client" value={ticket.client} />
+            <DetailField label="Project" value={projectName} />
             <DetailField label="Platform" value={
               <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[ticket.platform] || 'bg-gray-200 text-gray-800'}`}>
                 {ticket.platform}
@@ -512,8 +525,14 @@ const generateTicketText = (ticket: Ticket): string => {
 
 
 export default function App() {
+  // State
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
+  const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
+  const [currentView, setCurrentView] = useState<'tickets' | 'projects'>('tickets');
+  
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  
   const [isCreating, setIsCreating] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 768);
   const [ticketForEmailConfirm, setTicketForEmailConfirm] = useState<Ticket | null>(null);
@@ -538,7 +557,14 @@ export default function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  
+  // Handlers for closing panels and switching views
+  useEffect(() => {
+    // When view changes, close any open panels
+    handleClosePanel();
+  }, [currentView]);
 
+  // Derived State & Memos
   const performanceMetrics = useMemo(() => {
     const completedTickets = tickets.filter(
       t => t.status === Status.Completed && t.completionDate
@@ -569,8 +595,8 @@ export default function App() {
       avgCompletionDays,
     };
   }, [tickets]);
-  
-  const isSidePanelOpen = !!selectedTicket || isCreating;
+
+  const isSidePanelOpen = !!selectedTicket || !!selectedProject || isCreating;
 
   const handleSendEmail = (ticket: Ticket) => {
     const emailBody = generateTicketText(ticket);
@@ -592,6 +618,7 @@ export default function App() {
     }
   };
 
+  // Ticket Handlers
   const handleCreateTicket = (ticketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
     const newTicket: Ticket = {
       ...ticketData,
@@ -602,6 +629,15 @@ export default function App() {
       onHoldReason: ticketData.status === Status.OnHold ? (ticketData as any).onHoldReason : undefined,
     } as Ticket;
     
+    if (newTicket.projectId) {
+      setProjects(prevProjects => prevProjects.map(p => {
+        if (p.id === newTicket.projectId) {
+          return { ...p, ticketIds: [...p.ticketIds, newTicket.id] };
+        }
+        return p;
+      }));
+    }
+    
     setTickets(prev => [...prev, newTicket].sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime()));
     
     setIsCreating(false);
@@ -611,6 +647,32 @@ export default function App() {
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
     const existingTicket = tickets.find(t => t.id === updatedTicket.id);
+    if (!existingTicket) return;
+
+    const oldProjectId = existingTicket.projectId;
+    const newProjectId = updatedTicket.projectId;
+
+    if (oldProjectId !== newProjectId) {
+      let newProjects = [...projects];
+      // Remove from old project
+      if (oldProjectId) {
+        newProjects = newProjects.map(p => 
+          p.id === oldProjectId 
+            ? { ...p, ticketIds: p.ticketIds.filter(tid => tid !== updatedTicket.id) } 
+            : p
+        );
+      }
+      // Add to new project
+      if (newProjectId) {
+        newProjects = newProjects.map(p => 
+          p.id === newProjectId 
+            ? { ...p, ticketIds: p.ticketIds.includes(updatedTicket.id) ? p.ticketIds : [...p.ticketIds, updatedTicket.id] } 
+            : p
+        );
+      }
+      setProjects(newProjects);
+    }
+    
     const finalTicket: Ticket = {
       ...updatedTicket,
        onHoldReason: updatedTicket.status === Status.OnHold ? updatedTicket.onHoldReason : undefined,
@@ -632,11 +694,13 @@ export default function App() {
   
   const handleAddNewClick = () => {
     setSelectedTicket(null);
+    setSelectedProject(null);
     setIsCreating(true);
   };
 
   const handleClosePanel = () => {
     setSelectedTicket(null);
+    setSelectedProject(null);
     setIsCreating(false);
   };
 
@@ -669,6 +733,14 @@ export default function App() {
   };
   
   const handleDeleteTicket = (ticketId: string) => {
+    const ticketToDelete = tickets.find(t => t.id === ticketId);
+    if (ticketToDelete?.projectId) {
+      setProjects(prevProjects => prevProjects.map(p => 
+        p.id === ticketToDelete.projectId
+          ? { ...p, ticketIds: p.ticketIds.filter(tid => tid !== ticketId) }
+          : p
+      ));
+    }
     setTickets(prev => prev.filter(t => t.id !== ticketId));
     handleClosePanel();
   };
@@ -688,7 +760,7 @@ export default function App() {
     const headers = [
       'ID', 'Type', 'Title', 'Status', 'Priority', 'Product Area', 'Platform', 'Submitter', 'Client', 'Location',
       'Submitted On', 'Start Date', 'Est. Completion', 'Completed On',
-      'PMR Number', 'FP Ticket #', 'Ticket Thread ID',
+      'PMR Number', 'FP Ticket #', 'Ticket Thread ID', 'Project ID',
       'Problem', 'Duplication Steps', 'Workaround', 'Frequency',
       'Improvement', 'Current Functionality', 'Suggested Solution', 'Benefits',
       'On Hold Reason', 'Completion Notes', 'Last Update'
@@ -728,6 +800,7 @@ export default function App() {
         ticket.pmrNumber,
         ticket.fpTicketNumber,
         ticket.ticketThreadId,
+        ticket.projectId,
         isIssue ? issueTicket.problem : '',
         isIssue ? issueTicket.duplicationSteps : '',
         isIssue ? issueTicket.workaround : '',
@@ -771,7 +844,6 @@ export default function App() {
           };
           reader.readAsText(file);
       }
-      // Reset file input value to allow re-uploading the same file
       if (event.target) {
         event.target.value = '';
       }
@@ -788,7 +860,7 @@ export default function App() {
             'Location': 'location', 'Submitted On': 'submissionDate', 'Start Date': 'startDate',
             'Est. Completion': 'estimatedCompletionDate', 'Completed On': 'completionDate',
             'PMR Number': 'pmrNumber', 'FP Ticket #': 'fpTicketNumber', 'Ticket Thread ID': 'ticketThreadId',
-            'Problem': 'problem', 'Duplication Steps': 'duplicationSteps', 'Workaround': 'workaround',
+            'Project ID': 'projectId', 'Problem': 'problem', 'Duplication Steps': 'duplicationSteps', 'Workaround': 'workaround',
             'Frequency': 'frequency', 'Improvement': 'improvement', 'Current Functionality': 'currentFunctionality',
             'Suggested Solution': 'suggestedSolution', 'Benefits': 'benefits', 'On Hold Reason': 'onHoldReason',
             'Completion Notes': 'completionNotes', 'Last Update': 'Last Update'
@@ -828,6 +900,16 @@ export default function App() {
 
   const confirmImport = () => {
     if (ticketsToImport) {
+        const newProjects = [...initialProjects]; // Or current projects if you want to keep them
+        ticketsToImport.forEach(ticket => {
+          if (ticket.projectId) {
+            const project = newProjects.find(p => p.id === ticket.projectId);
+            if (project && !project.ticketIds.includes(ticket.id)) {
+              project.ticketIds.push(ticket.id);
+            }
+          }
+        });
+        setProjects(newProjects);
         setTickets(ticketsToImport);
     }
     setIsImportModalOpen(false);
@@ -900,81 +982,149 @@ export default function App() {
     return completedTickets.filter(ticket => ticket.type === TicketType.FeatureRequest);
   }, [completedTickets]);
 
+  // Project Handlers
+  const handleCreateProject = (projectData: Omit<Project, 'id' | 'creationDate' | 'subTasks' | 'ticketIds'>) => {
+    const newProject: Project = {
+      ...projectData,
+      id: crypto.randomUUID(),
+      creationDate: new Date().toISOString(),
+      subTasks: [],
+      ticketIds: [],
+    };
+    setProjects(prev => [newProject, ...prev]);
+    setIsCreating(false);
+    setSelectedProject(newProject);
+  };
+  
+  const handleUpdateProject = (updatedProject: Project) => {
+    setProjects(prev => prev.map(p => (p.id === updatedProject.id ? updatedProject : p)));
+    setSelectedProject(updatedProject);
+  };
+  
+  const handleDeleteProject = (projectId: string) => {
+    // Unlink all tickets from the project being deleted
+    const updatedTickets = tickets.map(t => {
+      if (t.projectId === projectId) {
+        const { projectId, ...rest } = t;
+        return rest as Ticket;
+      }
+      return t;
+    });
+    setTickets(updatedTickets);
+
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    handleClosePanel();
+  };
+
+  const handleProjectClick = (project: Project) => {
+    setSelectedProject(project);
+    setIsCreating(false);
+  };
 
   const getSidePanelTitle = () => {
-    if (isCreating) return 'Create New Ticket';
+    if (isCreating) {
+      return currentView === 'tickets' ? 'Create New Ticket' : 'Create New Project';
+    }
     if (selectedTicket) return selectedTicket.title;
+    if (selectedProject) return selectedProject.name;
     return '';
-  }
+  };
+  
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime());
+  }, [projects]);
 
   return (
     <div className="h-screen bg-gray-100 text-gray-800 flex overflow-hidden relative">
-      <LeftSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} filters={filters} setFilters={setFilters} />
+      <LeftSidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+        filters={filters} 
+        setFilters={setFilters}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+      />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="flex-shrink-0 bg-white/80 backdrop-blur-sm border-b border-gray-200 p-2 sm:p-4 sticky top-0 z-10 flex items-center">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-2 ring-offset-2 ring-blue-500">
                 <MenuIcon className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900 ml-4">Curator Tickets</h1>
+            <h1 className="text-xl font-semibold text-gray-900 ml-4">
+                {currentView === 'tickets' ? 'Curator Tickets' : 'Project Management'}
+            </h1>
         </header>
         <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
-          <PerformanceInsights {...performanceMetrics} />
-          <header className="mb-6 flex flex-wrap gap-4 justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-semibold text-gray-900">Active Tickets</h1>
-              <p className="text-gray-600 mt-1">
-                {activeTickets.length} results found. Click a card to see details.
-              </p>
-            </div>
-             <div className="flex items-center gap-3">
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
-                <button
-                    onClick={handleImportClick}
-                    className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
-                >
-                    <UploadIcon className="w-4 h-4" />
-                    <span>Import from CSV</span>
-                </button>
-                <button
-                    onClick={handleExportAll}
-                    className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
-                >
-                    <DownloadIcon className="w-4 h-4" />
-                    <span>Export All as CSV</span>
-                </button>
-             </div>
-          </header>
-          
-          <div className="space-y-12">
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Issues ({activeIssues.length})</h2>
-              <TicketList tickets={activeIssues} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
-            </section>
-          
-            <section>
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Feature Requests ({activeFeatureRequests.length})</h2>
-              <TicketList tickets={activeFeatureRequests} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
-            </section>
-          </div>
-
-          {completedTickets.length > 0 && (
-            <details className="mt-12 group" open>
-                <summary className="text-xl font-semibold text-gray-800 cursor-pointer hover:text-gray-900 list-none flex items-center gap-2">
-                  <svg className="w-5 h-5 text-gray-600 group-open:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                  Completed Tickets ({completedTickets.length})
-                </summary>
-                <div className="mt-6 space-y-10">
-                    <section>
-                      <h3 className="text-xl font-semibold text-gray-700 mb-4">Completed Issues ({completedIssues.length})</h3>
-                      <TicketList tickets={completedIssues} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
-                    </section>
-                    <section>
-                      <h3 className="text-xl font-semibold text-gray-700 mb-4">Completed Feature Requests ({completedFeatureRequests.length})</h3>
-                      <TicketList tickets={completedFeatureRequests} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
-                    </section>
+          {currentView === 'tickets' ? (
+            <>
+              <PerformanceInsights {...performanceMetrics} />
+              <header className="mb-6 flex flex-wrap gap-4 justify-between items-start">
+                <div>
+                  <h1 className="text-3xl font-semibold text-gray-900">Active Tickets</h1>
+                  <p className="text-gray-600 mt-1">
+                    {activeTickets.length} results found. Click a card to see details.
+                  </p>
                 </div>
-            </details>
+                 <div className="flex items-center gap-3">
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
+                    <button
+                        onClick={handleImportClick}
+                        className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
+                    >
+                        <UploadIcon className="w-4 h-4" />
+                        <span>Import from CSV</span>
+                    </button>
+                    <button
+                        onClick={handleExportAll}
+                        className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors text-sm"
+                    >
+                        <DownloadIcon className="w-4 h-4" />
+                        <span>Export All as CSV</span>
+                    </button>
+                 </div>
+              </header>
+              
+              <div className="space-y-12">
+                <section>
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4">Issues ({activeIssues.length})</h2>
+                  <TicketList tickets={activeIssues} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
+                </section>
+              
+                <section>
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4">Feature Requests ({activeFeatureRequests.length})</h2>
+                  <TicketList tickets={activeFeatureRequests} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
+                </section>
+              </div>
+
+              {completedTickets.length > 0 && (
+                <details className="mt-12 group" open>
+                    <summary className="text-xl font-semibold text-gray-800 cursor-pointer hover:text-gray-900 list-none flex items-center gap-2">
+                      <svg className="w-5 h-5 text-gray-600 group-open:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                      Completed Tickets ({completedTickets.length})
+                    </summary>
+                    <div className="mt-6 space-y-10">
+                        <section>
+                          <h3 className="text-xl font-semibold text-gray-700 mb-4">Completed Issues ({completedIssues.length})</h3>
+                          <TicketList tickets={completedIssues} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
+                        </section>
+                        <section>
+                          <h3 className="text-xl font-semibold text-gray-700 mb-4">Completed Feature Requests ({completedFeatureRequests.length})</h3>
+                          <TicketList tickets={completedFeatureRequests} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
+                        </section>
+                    </div>
+                </details>
+              )}
+            </>
+          ) : (
+             <>
+                <header className="mb-6">
+                    <h1 className="text-3xl font-semibold text-gray-900">Projects</h1>
+                    <p className="text-gray-600 mt-1">
+                        {projects.length} projects found. Click a card to see details.
+                    </p>
+                </header>
+                <ProjectList projects={sortedProjects} onProjectClick={handleProjectClick} />
+            </>
           )}
         </main>
       </div>
@@ -983,7 +1133,7 @@ export default function App() {
       <button
         onClick={handleAddNewClick}
         className="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform hover:scale-110 z-20"
-        aria-label="Create new ticket"
+        aria-label={currentView === 'tickets' ? "Create new ticket" : "Create new project"}
       >
         <PlusIcon className="w-6 h-6" />
       </button>
@@ -994,7 +1144,7 @@ export default function App() {
         isOpen={isSidePanelOpen}
       >
         {isCreating ? (
-          <TicketForm onSubmit={handleCreateTicket} />
+          currentView === 'tickets' ? <TicketForm onSubmit={handleCreateTicket} projects={projects} /> : <ProjectForm onSubmit={handleCreateProject} />
         ) : selectedTicket ? (
           <TicketDetailView 
             ticket={selectedTicket} 
@@ -1004,7 +1154,16 @@ export default function App() {
             onEmail={() => handleSendEmail(selectedTicket)}
             onUpdateCompletionNotes={handleUpdateCompletionNotes}
             onDelete={handleDeleteTicket}
+            projects={projects}
             />
+        ) : selectedProject ? (
+          <ProjectDetailView
+            project={selectedProject}
+            onUpdate={handleUpdateProject}
+            onDelete={handleDeleteProject}
+            tickets={tickets}
+            onUpdateTicket={handleUpdateTicket}
+          />
         ) : null}
       </SideView>
 

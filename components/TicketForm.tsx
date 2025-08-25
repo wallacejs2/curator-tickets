@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform } from '../types.ts';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 
 type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
+  projects: Project[];
 }
 
 interface FormData {
@@ -33,6 +34,7 @@ interface FormData {
   benefits: string;
   completionNotes: string;
   onHoldReason: string;
+  projectId: string;
 }
 
 const getInitialState = (): FormData => {
@@ -64,6 +66,7 @@ const getInitialState = (): FormData => {
     benefits: '',
     completionNotes: '',
     onHoldReason: '',
+    projectId: '',
   };
 };
 
@@ -79,7 +82,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
 );
 
 
-const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
+const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
   const [formData, setFormData] = useState<FormData>(getInitialState());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -103,6 +106,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
       ...rest,
       estimatedCompletionDate: rest.estimatedCompletionDate ? new Date(rest.estimatedCompletionDate).toISOString() : undefined,
       startDate: rest.startDate ? new Date(rest.startDate).toISOString() : undefined,
+      projectId: rest.projectId || undefined,
     }
 
     if (type === TicketType.Issue) {
@@ -221,6 +225,13 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
             <label className={labelClasses}>Priority</label>
             <select name="priority" value={formData.priority} onChange={handleChange} className={formElementClasses}>
               {(formData.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+        </div>
+        <div className="col-span-2">
+            <label className={labelClasses}>Project</label>
+            <select name="projectId" value={formData.projectId} onChange={handleChange} className={formElementClasses}>
+                <option value="">None</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
         </div>
         {formData.status === Status.OnHold && (

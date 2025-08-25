@@ -61,6 +61,7 @@ interface BaseTicket {
   updates?: Update[];
   completionNotes?: string;
   onHoldReason?: string;
+  projectId?: string;
 }
 
 export interface IssueTicket extends BaseTicket {
@@ -87,4 +88,36 @@ export interface FilterState {
   priority: string; // 'all' or a Priority enum value
   type: string; // 'all' or a TicketType enum value
   productArea: string; // 'all' or a ProductArea enum value
+}
+
+// New types for Projects
+export enum ProjectStatus {
+  NotStarted = 'Not Started',
+  InProgress = 'In Progress',
+  OnHold = 'On Hold',
+  Completed = 'Completed',
+}
+
+export enum SubTaskStatus {
+  ToDo = 'To Do',
+  InProgress = 'In Progress',
+  Done = 'Done',
+}
+
+export interface SubTask {
+  id: string;
+  description: string;
+  assignedTo: string;
+  needsFrom: string;
+  status: SubTaskStatus;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  subTasks: SubTask[];
+  creationDate: string;
+  ticketIds: string[];
 }

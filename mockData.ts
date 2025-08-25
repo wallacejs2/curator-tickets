@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, SubTaskStatus } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -56,6 +56,7 @@ export const initialTickets: Ticket[] = [
     currentFunctionality: 'The application currently only has a light theme, which can cause eye strain in low-light environments.',
     suggestedSolution: 'Implement a theme switcher in the user settings that toggles CSS variables for colors across the entire UI.',
     benefits: 'Improved user experience, reduced eye strain, modern look and feel, and better accessibility for some users.',
+    projectId: 'proj-1',
     updates: [
       {
         author: 'Product Team',
@@ -130,5 +131,47 @@ export const initialTickets: Ticket[] = [
     workaround: 'None.',
     frequency: 'During peak hours.',
     updates: []
+  }
+];
+
+export const initialProjects: Project[] = [
+  {
+    id: 'proj-1',
+    name: 'Q3 Feature Rollout: Dark Mode & Performance Boost',
+    description: 'Implement dark mode across the entire application and optimize key performance metrics before the end of Q3.',
+    status: ProjectStatus.InProgress,
+    creationDate: new Date('2024-07-10T10:00:00Z').toISOString(),
+    ticketIds: ['2'],
+    subTasks: [
+      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedTo: 'UX Team', needsFrom: 'Final brand guidelines', status: SubTaskStatus.Done },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedTo: 'John Doe', needsFrom: 'Approved color palette', status: SubTaskStatus.InProgress },
+      { id: 'sub-1-3', description: 'Analyze API response times', assignedTo: 'Backend Team', needsFrom: 'Load testing report', status: SubTaskStatus.ToDo },
+      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedTo: 'Alice Johnson', needsFrom: 'Code review from senior dev', status: SubTaskStatus.ToDo },
+    ],
+  },
+  {
+    id: 'proj-2',
+    name: '2024 Compliance Audit Prep',
+    description: 'Prepare all necessary documentation and system reports for the upcoming annual compliance audit.',
+    status: ProjectStatus.NotStarted,
+    creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
+    ticketIds: [],
+    subTasks: [
+       { id: 'sub-2-1', description: 'Gather all user access logs', assignedTo: 'Security Team', needsFrom: 'List of all production servers', status: SubTaskStatus.ToDo },
+       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedTo: 'DevOps', needsFrom: 'Database configuration files', status: SubTaskStatus.ToDo },
+    ],
+  },
+    {
+    id: 'proj-3',
+    name: 'Mobile App Launch Campaign',
+    description: 'Coordinate marketing efforts for the new mobile application launch in September.',
+    status: ProjectStatus.Completed,
+    creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
+    ticketIds: [],
+    subTasks: [
+       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedTo: 'Marketing', needsFrom: 'Latest build from dev team', status: SubTaskStatus.Done },
+       { id: 'sub-3-2', description: 'Prepare press release', assignedTo: 'PR Team', needsFrom: 'Final feature list', status: SubTaskStatus.Done },
+       { id: 'sub-3-3', description: 'Schedule social media posts', assignedTo: 'Marketing', needsFrom: 'Approved ad copy', status: SubTaskStatus.Done },
+    ],
   }
 ];
