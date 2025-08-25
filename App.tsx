@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -352,10 +352,11 @@ const App: React.FC = () => {
   
   const [isSideViewOpen, setIsSideViewOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
+  const [isTicketFormOpen, setIsTicketFormOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isDealershipFormOpen, setIsDealershipFormOpen] = useState(false);
+  const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
+  const [isDealershipFormOpen, setIsDealershipFormOpen] = useState(false);
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -386,337 +387,383 @@ const App: React.FC = () => {
   
   const performanceInsights = useMemo(() => {
     const openTickets = tickets.filter(t => t.status !== Status.Completed).length;
+    
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
     const completedLast30Days = tickets.filter(t => 
         t.status === Status.Completed && 
         t.completionDate && 
         new Date(t.completionDate) > thirtyDaysAgo
     ).length;
     
-    const completedWithDates = tickets.filter(t => 
-        t.status === Status.Completed && 
-        t.completionDate && 
-        t.startDate
+    const completedTicketsWithDates = tickets.filter(t =>
+        t.status === Status.Completed && t.startDate && t.completionDate
     );
-
-    const totalCompletionDays = completedWithDates.reduce((acc, ticket) => {
-        const start = new Date(ticket.startDate!);
-        const end = new Date(ticket.completionDate!);
-        const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        return acc + diff;
-    }, 0);
-
-    const avgCompletionDays = completedWithDates.length > 0 ? totalCompletionDays / completedWithDates.length : null;
+    
+    const avgCompletionDays = completedTicketsWithDates.length > 0
+        ? completedTicketsWithDates.reduce((acc, t) => {
+            const start = new Date(t.startDate!).getTime();
+            const end = new Date(t.completionDate!).getTime();
+            const diffDays = (end - start) / (1000 * 3600 * 24);
+            return acc + diffDays;
+        }, 0) / completedTicketsWithDates.length
+        : null;
 
     return { openTickets, completedLast30Days, avgCompletionDays };
-  }, [tickets]);
-  
+}, [tickets]);
+
   const dealershipInsights = useMemo(() => {
     const totalDealerships = dealerships.length;
     const liveAccounts = dealerships.filter(d => d.status === DealershipStatus.Live).length;
     const onboardingAccounts = dealerships.filter(d => d.status === DealershipStatus.Onboarding).length;
-
     return { totalDealerships, liveAccounts, onboardingAccounts };
   }, [dealerships]);
 
-  // Ticket Handlers
-  const handleCreateTicket = (ticketData: Omit<IssueTicket, 'id' | 'submissionDate' | 'updates'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'updates'>) => {
-    const newTicket: Ticket = {
-      ...ticketData,
-      id: `T-${Math.random().toString(36).substr(2, 9)}`,
+
+  const closeSideView = () => {
+    setIsSideViewOpen(false);
+    setSelectedTicket(null);
+    setSelectedProject(null);
+    setSelectedDealership(null);
+  };
+
+  // Click handlers for opening side panel
+  const handleTicketClick = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setSelectedProject(null);
+    setSelectedDealership(null);
+    setIsSideViewOpen(true);
+  };
+  
+  const handleProjectClick = (project: Project) => {
+    setSelectedProject(project);
+    setSelectedTicket(null);
+    setSelectedDealership(null);
+    setIsSideViewOpen(true);
+  };
+
+  const handleDealershipClick = (dealership: Dealership) => {
+    setSelectedDealership(dealership);
+    setSelectedTicket(null);
+    setSelectedProject(null);
+    setIsSideViewOpen(true);
+  };
+
+  // Ticket CRUD and actions
+  const handleAddNewTicket = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
+    const newTicket = {
+      ...newTicketData,
+      id: crypto.randomUUID(),
       submissionDate: new Date().toISOString(),
       updates: [],
     };
-    setTickets(prev => [newTicket, ...prev]);
-    setIsSideViewOpen(false);
+    setTickets(prev => [newTicket as Ticket, ...prev]);
+    setIsTicketFormOpen(false);
+  };
+
+  const handleUpdateTicket = (updatedTicket: Ticket) => {
+    setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+    if (selectedTicket && selectedTicket.id === updatedTicket.id) {
+        setSelectedTicket(updatedTicket);
+    }
+  };
+
+  const handleDeleteTicket = (ticketId: string) => {
+      setTickets(prev => prev.filter(t => t.id !== ticketId));
+      closeSideView();
   };
   
-  const handleUpdateTicket = (updatedTicket: Ticket) => {
-     setTickets(prev => prev.map(t => (t.id === updatedTicket.id ? updatedTicket : t)));
-     if (selectedTicket && selectedTicket.id === updatedTicket.id) {
-         setSelectedTicket(updatedTicket);
-     }
+  const handleAddUpdate = (comment: string, author: string) => {
+    if (!selectedTicket) return;
+    const newUpdate: Update = { author, comment, date: new Date().toISOString() };
+    const updatedTicket: Ticket = {
+      ...selectedTicket,
+      updates: [...(selectedTicket.updates || []), newUpdate],
+    };
+    handleUpdateTicket(updatedTicket);
+  };
+
+  const handleUpdateCompletionNotes = (notes: string) => {
+    if (!selectedTicket) return;
+    const updatedTicket = { ...selectedTicket, completionNotes: notes };
+    handleUpdateTicket(updatedTicket);
   };
 
   const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
-      const ticket = tickets.find(t => t.id === ticketId);
-      if (ticket) {
-          const updatedTicket: Ticket = {
-              ...ticket,
-              status: newStatus,
-              onHoldReason: newStatus === Status.OnHold ? onHoldReason : undefined,
-              completionDate: newStatus === Status.Completed && !ticket.completionDate ? new Date().toISOString() : ticket.completionDate,
-          };
-          handleUpdateTicket(updatedTicket);
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (ticket) {
+      const updatedTicket: Ticket = { ...ticket, status: newStatus };
+      if (newStatus === Status.Completed) {
+        updatedTicket.completionDate = new Date().toISOString();
+      } else {
+        updatedTicket.completionDate = undefined;
       }
-  };
-  
-  const handleAddUpdateToTicket = (ticketId: string, comment: string, author: string) => {
-      const ticket = tickets.find(t => t.id === ticketId);
-      if (ticket) {
-          const newUpdate: Update = {
-              author,
-              comment,
-              date: new Date().toISOString(),
-          };
-          const updatedTicket = { ...ticket, updates: [...(ticket.updates || []), newUpdate] };
-          handleUpdateTicket(updatedTicket);
+      if (newStatus === Status.OnHold) {
+          updatedTicket.onHoldReason = onHoldReason;
       }
-  };
-  
-  const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
-      const ticket = tickets.find(t => t.id === ticketId);
-      if (ticket) {
-          const updatedTicket = { ...ticket, completionNotes: notes };
-          handleUpdateTicket(updatedTicket);
-      }
-  };
-  
-  const handleDeleteTicket = (ticketId: string) => {
-      setTickets(prev => prev.filter(t => t.id !== ticketId));
-      setSelectedTicket(null);
+      handleUpdateTicket(updatedTicket);
+    }
   };
 
-  // Project Handlers
-  const handleCreateProject = (projectData: Omit<Project, 'id' | 'creationDate' | 'subTasks' | 'ticketIds'>) => {
-      const newProject: Project = {
-          ...projectData,
-          id: `proj-${crypto.randomUUID()}`,
-          creationDate: new Date().toISOString(),
-          subTasks: [],
-          ticketIds: [],
-      };
-      setProjects(prev => [newProject, ...prev]);
-      setIsProjectFormOpen(false);
+  // Project CRUD
+  const handleAddNewProject = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'subTasks' | 'ticketIds'>) => {
+    const newProject: Project = {
+        ...newProjectData,
+        id: crypto.randomUUID(),
+        creationDate: new Date().toISOString(),
+        subTasks: [],
+        ticketIds: [],
+    };
+    setProjects(prev => [newProject, ...prev]);
+    setIsProjectFormOpen(false);
   };
 
   const handleUpdateProject = (updatedProject: Project) => {
-      setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-      if (selectedProject && selectedProject.id === updatedProject.id) {
-          setSelectedProject(updatedProject);
-      }
+    setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
+    if (selectedProject && selectedProject.id === updatedProject.id) {
+        setSelectedProject(updatedProject);
+    }
   };
 
   const handleDeleteProject = (projectId: string) => {
-      setProjects(prev => prev.filter(p => p.id !== projectId));
-      // Unlink tickets from the deleted project
-      setTickets(prevTickets => prevTickets.map(t => {
-          if (t.projectId === projectId) {
-              const { projectId: _, ...rest } = t;
-              return rest as Ticket;
-          }
-          return t;
-      }));
-      setSelectedProject(null);
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    // Also unlink any tickets associated with this project
+    setTickets(prevTickets => prevTickets.map(t => t.projectId === projectId ? { ...t, projectId: undefined } : t));
+    closeSideView();
   };
-  
-  // Dealership Handlers
-  const handleCreateDealership = (dealershipData: Omit<Dealership, 'id'>) => {
-      const newDealership: Dealership = {
-          ...dealershipData,
-          id: `dealership-${crypto.randomUUID()}`,
-      };
-      setDealerships(prev => [newDealership, ...prev]);
-      setIsDealershipFormOpen(false);
+
+  // Dealership CRUD
+  const handleAddNewDealership = (newDealershipData: Omit<Dealership, 'id'>) => {
+    const newDealership: Dealership = {
+        ...newDealershipData,
+        id: crypto.randomUUID(),
+    };
+    setDealerships(prev => [newDealership, ...prev]);
+    setIsDealershipFormOpen(false);
   };
 
   const handleUpdateDealership = (updatedDealership: Dealership) => {
-      setDealerships(prev => prev.map(d => d.id === updatedDealership.id ? updatedDealership : d));
-      if (selectedDealership && selectedDealership.id === updatedDealership.id) {
-          setSelectedDealership(updatedDealership);
-      }
+    setDealerships(prev => prev.map(d => d.id === updatedDealership.id ? updatedDealership : d));
+     if (selectedDealership && selectedDealership.id === updatedDealership.id) {
+        setSelectedDealership(updatedDealership);
+    }
   };
 
   const handleDeleteDealership = (dealershipId: string) => {
-      setDealerships(prev => prev.filter(d => d.id !== dealershipId));
-      setSelectedDealership(null);
+    setDealerships(prev => prev.filter(d => d.id !== dealershipId));
+    closeSideView();
   };
 
-  const handleRowClick = (ticket: Ticket) => {
-      setSelectedTicket(ticket);
-  };
-
-  const handleCloseSideView = () => {
-      setSelectedTicket(null);
-      setSelectedProject(null);
-      setSelectedDealership(null);
-  }
-
+  // Export and Import
   const handleExport = () => {
-    const dataStr = JSON.stringify({ tickets, projects, dealerships }, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'curator_data.json';
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-  };
-
-  const handleImportClick = () => {
-      fileInputRef.current?.click();
+    const dataToExport = JSON.stringify({ tickets, projects, dealerships }, null, 2);
+    const blob = new Blob([dataToExport], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'curator-data.json';
+    a.click();
+    URL.revokeObjectURL(url);
   };
   
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-              try {
-                  const content = e.target?.result;
-                  if (typeof content === 'string') {
-                      const data = JSON.parse(content);
-                      if (data.tickets) setTickets(data.tickets);
-                      if (data.projects) setProjects(data.projects);
-                      if (data.dealerships) setDealerships(data.dealerships);
-                      alert('Data imported successfully!');
-                  }
-              } catch (error) {
-                  console.error("Failed to parse imported file:", error);
-                  alert('Error importing data. Please check the file format.');
-              }
-          };
-          reader.readAsText(file);
-      }
+  const handleExportTicket = (ticketId: string) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+    const data = JSON.stringify(ticket, null, 2);
+    const blob = new Blob([data], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ticket-${ticket.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-    
-  const renderContent = () => {
-      switch (currentView) {
-          case 'tickets':
-              return (
-                  <>
-                      <PerformanceInsights {...performanceInsights} />
-                      <TicketList tickets={filteredTickets} onRowClick={handleRowClick} onStatusChange={handleStatusChange} />
-                  </>
-              );
-          case 'projects':
-              return <ProjectList projects={projects} onProjectClick={setSelectedProject} />;
-          case 'dealerships':
-              return (
-                  <>
-                      <DealershipInsights {...dealershipInsights} />
-                      <DealershipList dealerships={dealerships} onDealershipClick={setSelectedDealership} />
-                  </>
-              );
-          default:
-              return null;
-      }
-  };
-    
-  const getSideViewContent = () => {
-      if (selectedTicket) {
-          return {
-              title: selectedTicket.title,
-              content: <TicketDetailView 
-                  ticket={selectedTicket} 
-                  onUpdate={handleUpdateTicket}
-                  onAddUpdate={(comment, author) => handleAddUpdateToTicket(selectedTicket.id, comment, author)}
-                  onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
-                  onDelete={handleDeleteTicket}
-                  projects={projects}
-                  onExport={() => { console.log('Exporting', selectedTicket.id)}}
-                  onEmail={() => { console.log('Emailing', selectedTicket.id)}}
-              />
-          }
-      }
-      if (selectedProject) {
-          return {
-              title: selectedProject.name,
-              content: <ProjectDetailView
-                  project={selectedProject}
-                  onUpdate={handleUpdateProject}
-                  onDelete={handleDeleteProject}
-                  tickets={tickets}
-                  onUpdateTicket={handleUpdateTicket}
-               />
-          }
-      }
-      if (selectedDealership) {
-          return {
-              title: selectedDealership.name,
-              content: <DealershipDetailView
-                  dealership={selectedDealership}
-                  onUpdate={handleUpdateDealership}
-                  onDelete={handleDeleteDealership}
-              />
-          }
-      }
-      return null;
-  }
 
-  const sideViewData = getSideViewContent();
-    
-  const getHeaderInfo = () => {
-      switch (currentView) {
-          case 'tickets':
-              return { title: 'Tickets', buttonText: 'New Ticket', action: () => setIsSideViewOpen(true) };
-          case 'projects':
-              return { title: 'Projects', buttonText: 'New Project', action: () => setIsProjectFormOpen(true) };
-          case 'dealerships':
-              return { title: 'Dealerships', buttonText: 'New Account', action: () => setIsDealershipFormOpen(true) };
-          default:
-              return { title: '', buttonText: '', action: () => {} };
-      }
-  };
-  const headerInfo = getHeaderInfo();
+  const handleEmailTicket = (ticketId: string) => {
+      const ticket = tickets.find(t => t.id === ticketId);
+      if (!ticket) return;
 
+      const subject = `Ticket Details: ${ticket.title} (#${ticket.id})`;
+      let body = `Ticket Details:\n`;
+      body += `------------------\n`;
+      body += `Title: ${ticket.title}\n`;
+      body += `ID: ${ticket.id}\n`;
+      body += `Status: ${ticket.status}\n`;
+      body += `Priority: ${ticket.priority}\n`;
+      body += `Submitter: ${ticket.submitterName}\n`;
+      body += `Submitted On: ${new Date(ticket.submissionDate).toLocaleString()}\n`;
+      body += `Link: ${window.location.href}\n\n`;
+      body += `Description:\n`;
+      const description = ticket.type === TicketType.Issue ? (ticket as IssueTicket).problem : (ticket as FeatureRequestTicket).improvement;
+      body += `${description}\n`;
+
+      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.location.href = mailtoLink;
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const data = JSON.parse(content);
+          if (data.tickets && Array.isArray(data.tickets)) {
+            setTickets(data.tickets);
+          }
+           if (data.projects && Array.isArray(data.projects)) {
+            setProjects(data.projects);
+          }
+           if (data.dealerships && Array.isArray(data.dealerships)) {
+            setDealerships(data.dealerships);
+          }
+        } catch (error) {
+          console.error("Error parsing JSON file:", error);
+          alert("Failed to import data. Please check the file format.");
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // UI Helpers
+  const getNewItemButtonText = () => {
+    switch (currentView) {
+        case 'tickets': return 'New Ticket';
+        case 'projects': return 'New Project';
+        case 'dealerships': return 'New Account';
+        default: return 'New Item';
+    }
+  };
+  
+  const getSideViewTitle = () => {
+    if (selectedTicket) return `Ticket: ${selectedTicket.title}`;
+    if (selectedProject) return `Project: ${selectedProject.name}`;
+    if (selectedDealership) return `Account: ${selectedDealership.name}`;
+    return 'Details';
+  };
+
+  const openFormModal = () => {
+    switch (currentView) {
+        case 'tickets': setIsTicketFormOpen(true); break;
+        case 'projects': setIsProjectFormOpen(true); break;
+        case 'dealerships': setIsDealershipFormOpen(true); break;
+    }
+  };
 
   return (
-      <div className="flex h-screen bg-gray-100">
-          <LeftSidebar filters={filters} setFilters={setFilters} isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} currentView={currentView} setCurrentView={setCurrentView} />
-          <main className="flex-1 p-6 sm:p-8 overflow-y-auto">
-              <header className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
-                  <div className="flex items-center gap-3">
-                      <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 text-gray-600 hover:text-gray-900 rounded-full focus:outline-none focus:ring-2 ring-gray-400">
-                          <MenuIcon className="w-6 h-6" />
-                      </button>
-                      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">{headerInfo.title}</h1>
-                  </div>
-                   <div className="flex items-center gap-3 self-end sm:self-center">
-                      <input type="file" ref={fileInputRef} onChange={handleFileImport} style={{ display: 'none' }} accept=".json" />
-                      <button onClick={handleImportClick} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                          <UploadIcon className="w-4 h-4" />
-                          <span>Import</span>
-                      </button>
-                      <button onClick={handleExport} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                          <DownloadIcon className="w-4 h-4" />
-                          <span>Export</span>
-                      </button>
-                      <button onClick={headerInfo.action} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                          <PlusIcon className="w-4 h-4" />
-                          <span>{headerInfo.buttonText}</span>
-                      </button>
-                  </div>
-              </header>
-              {renderContent()}
-          </main>
-
-          {/* Side View for Details */}
-          <SideView isOpen={!!sideViewData} onClose={handleCloseSideView} title={sideViewData?.title || ''}>
-              {sideViewData?.content}
-          </SideView>
-          
-           {/* Side View for New Ticket Form */}
-          <SideView isOpen={isSideViewOpen} onClose={() => setIsSideViewOpen(false)} title="Create New Ticket">
-              <TicketForm onSubmit={handleCreateTicket} projects={projects} />
-          </SideView>
-          
-          {isProjectFormOpen && (
-              <Modal title="Create New Project" onClose={() => setIsProjectFormOpen(false)}>
-                  <ProjectForm onSubmit={handleCreateProject} />
-              </Modal>
-          )}
-
-          {isDealershipFormOpen && (
-              <Modal title="Create New Dealership Account" onClose={() => setIsDealershipFormOpen(false)}>
-                  <DealershipForm
-                      onSubmit={handleCreateDealership}
-                      onUpdate={handleUpdateDealership}
-                      onClose={() => setIsDealershipFormOpen(false)}
-                  />
-              </Modal>
-          )}
-      </div>
+    <div className="flex h-screen bg-gray-100">
+        <LeftSidebar 
+            filters={filters} 
+            setFilters={setFilters} 
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            currentView={currentView}
+            setCurrentView={view => {
+                setCurrentView(view);
+                closeSideView();
+            }}
+        />
+        <main className="flex-1 flex flex-col overflow-hidden">
+            <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center flex-shrink-0">
+                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800 rounded-md focus:outline-none focus:ring-2 ring-blue-500">
+                    <MenuIcon className="w-6 h-6" />
+                </button>
+                <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView}</h1>
+                <div className="flex items-center gap-3">
+                    <button onClick={handleUploadClick} className="flex items-center gap-2 bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                        <UploadIcon className="w-4 h-4" />
+                        <span>Import</span>
+                    </button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".json" style={{ display: 'none' }} />
+                    <button onClick={handleExport} className="flex items-center gap-2 bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                        <DownloadIcon className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+                    <button onClick={openFormModal} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                        <PlusIcon className="w-4 h-4" />
+                        <span>{getNewItemButtonText()}</span>
+                    </button>
+                </div>
+            </header>
+            <div className="flex-1 overflow-y-auto p-6">
+                {currentView === 'tickets' && (
+                    <>
+                        <PerformanceInsights {...performanceInsights} />
+                        <TicketList tickets={filteredTickets} onRowClick={handleTicketClick} onStatusChange={handleStatusChange} />
+                    </>
+                )}
+                {currentView === 'projects' && <ProjectList projects={projects} onProjectClick={handleProjectClick} />}
+                {currentView === 'dealerships' && (
+                  <>
+                    <DealershipInsights {...dealershipInsights} />
+                    <DealershipList dealerships={dealerships} onDealershipClick={handleDealershipClick} />
+                  </>
+                )}
+            </div>
+        </main>
+        
+        {isTicketFormOpen && (
+            <Modal title="Create New Ticket" onClose={() => setIsTicketFormOpen(false)}>
+                <TicketForm onSubmit={handleAddNewTicket} projects={projects}/>
+            </Modal>
+        )}
+        {isProjectFormOpen && (
+            <Modal title="Create New Project" onClose={() => setIsProjectFormOpen(false)}>
+                <ProjectForm onSubmit={handleAddNewProject} />
+            </Modal>
+        )}
+        {isDealershipFormOpen && (
+            <Modal title="Create New Account" onClose={() => setIsDealershipFormOpen(false)}>
+                 <DealershipForm 
+                    onSubmit={handleAddNewDealership} 
+                    onUpdate={handleUpdateDealership}
+                    onClose={() => setIsDealershipFormOpen(false)}
+                />
+            </Modal>
+        )}
+        
+        <SideView 
+            title={getSideViewTitle()}
+            isOpen={isSideViewOpen} 
+            onClose={closeSideView}
+        >
+            {selectedTicket && (
+                <TicketDetailView 
+                    ticket={selectedTicket} 
+                    onUpdate={handleUpdateTicket}
+                    onAddUpdate={handleAddUpdate}
+                    onExport={() => handleExportTicket(selectedTicket.id)}
+                    onEmail={() => handleEmailTicket(selectedTicket.id)}
+                    onUpdateCompletionNotes={handleUpdateCompletionNotes}
+                    onDelete={handleDeleteTicket}
+                    projects={projects}
+                />
+            )}
+            {selectedProject && (
+                <ProjectDetailView 
+                    project={selectedProject} 
+                    onUpdate={handleUpdateProject}
+                    onDelete={handleDeleteProject}
+                    tickets={tickets}
+                    onUpdateTicket={handleUpdateTicket}
+                />
+            )}
+             {selectedDealership && (
+                <DealershipDetailView
+                    dealership={selectedDealership}
+                    onUpdate={handleUpdateDealership}
+                    onDelete={handleDeleteDealership}
+                />
+            )}
+        </SideView>
+    </div>
   );
 };
 
