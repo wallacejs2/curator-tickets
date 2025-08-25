@@ -192,24 +192,6 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                 </div>
              </FormSection>
 
-            <FormSection title={editableTicket.type === TicketType.Issue ? 'Issue Details' : 'Feature Request Details'} gridCols={1}>
-                {editableTicket.type === TicketType.Issue ? (
-                    <div className="space-y-5">
-                        <div><label className={labelClasses}>Problem</label><textarea name="problem" value={issueTicket.problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                        <div><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={issueTicket.duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                        <div><label className={labelClasses}>Workaround</label><textarea name="workaround" value={issueTicket.workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
-                        <div><label className={labelClasses}>Frequency</label><textarea name="frequency" value={issueTicket.frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-                    </div>
-                ) : (
-                    <div className="space-y-5">
-                            <div><label className={labelClasses}>Improvement</label><textarea name="improvement" value={featureRequestTicket.improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                            <div><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={featureRequestTicket.currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                            <div><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={featureRequestTicket.suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                            <div><label className={labelClasses}>Benefits</label><textarea name="benefits" value={featureRequestTicket.benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-                    </div>
-                )}
-            </FormSection>
-             
              <FormSection title="Tracking & Status">
                  <div>
                     <label className={labelClasses}>Status</label>
@@ -259,6 +241,24 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                     <label className={labelClasses}>Ticket Thread ID</label>
                     <input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses} />
                 </div>
+            </FormSection>
+            
+            <FormSection title={editableTicket.type === TicketType.Issue ? 'Issue Details' : 'Feature Request Details'} gridCols={1}>
+                {editableTicket.type === TicketType.Issue ? (
+                    <div className="space-y-5">
+                        <div><label className={labelClasses}>Problem</label><textarea name="problem" value={issueTicket.problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                        <div><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={issueTicket.duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                        <div><label className={labelClasses}>Workaround</label><textarea name="workaround" value={issueTicket.workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
+                        <div><label className={labelClasses}>Frequency</label><textarea name="frequency" value={issueTicket.frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+                    </div>
+                ) : (
+                    <div className="space-y-5">
+                            <div><label className={labelClasses}>Improvement</label><textarea name="improvement" value={featureRequestTicket.improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                            <div><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={featureRequestTicket.currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                            <div><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={featureRequestTicket.suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                            <div><label className={labelClasses}>Benefits</label><textarea name="benefits" value={featureRequestTicket.benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+                    </div>
+                )}
             </FormSection>
         </form>
     );
