@@ -13,83 +13,63 @@ interface ProjectDetailViewProps {
   onUpdateTicket: (ticket: Ticket) => void;
 }
 
-const priorityColors: Record<SubTaskPriority, string> = {
-  [SubTaskPriority.P1]: 'bg-red-200 text-red-800',
-  [SubTaskPriority.P2]: 'bg-orange-200 text-orange-800',
-  [SubTaskPriority.P3]: 'bg-amber-200 text-amber-800',
-  [SubTaskPriority.P4]: 'bg-yellow-200 text-yellow-800',
-};
+const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
+    const [editedTask, setEditedTask] = useState(task);
 
-const statusOptions = Object.values(SubTaskStatus);
-
-const DragHandleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
-  </svg>
-);
-
-
-const AddSubTaskForm: React.FC<{ onAdd: (task: Omit<SubTask, 'id' | 'status'>) => void }> = ({ onAdd }) => {
-    const [description, setDescription] = useState('');
-    const [assignedUser, setAssignedUser] = useState('');
-    const [dueDate, setDueDate] = useState('');
-    const [priority, setPriority] = useState<SubTaskPriority>(SubTaskPriority.P3);
-    const [type, setType] = useState<string>('');
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        setEditedTask({ ...editedTask, [e.target.name]: e.target.value });
+    };
+    
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEditedTask({ ...editedTask, dueDate: e.target.value || undefined });
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (description.trim() && assignedUser.trim() && type.trim()) {
-            onAdd({ 
-                description: description.trim(), 
-                assignedUser: assignedUser.trim(),
-                dueDate: dueDate || undefined,
-                priority,
-                type: type.trim(),
-            });
-            setDescription('');
-            setAssignedUser('');
-            setDueDate('');
-            setPriority(SubTaskPriority.P3);
-            setType('');
-        }
+        onSave(editedTask);
     };
     
-    const formElementClasses = "w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white text-gray-900";
-    const labelClasses = "block text-xs font-medium text-gray-600 mb-1";
+    const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
+    const labelClasses = "block text-sm font-medium text-gray-700";
 
     return (
-        <form onSubmit={handleSubmit} className="p-4 border border-gray-200 rounded-lg mt-4 space-y-4 bg-gray-50">
-            <h4 className="font-semibold text-sm text-gray-800">Add New Task</h4>
+        <form onSubmit={handleSubmit} className="space-y-4">
             <div>
                 <label className={labelClasses}>Description</label>
-                <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Task description..." required className={formElementClasses}/>
+                <textarea name="description" value={editedTask.description} onChange={handleChange} required rows={3} className={formElementClasses} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className={labelClasses}>Assigned To</label>
-                    <input type="text" value={assignedUser} onChange={e => setAssignedUser(e.target.value)} placeholder="User name..." required className={formElementClasses}/>
+                    <label className={labelClasses}>Assigned User</label>
+                    <input type="text" name="assignedUser" value={editedTask.assignedUser} onChange={handleChange} required className={formElementClasses} />
                 </div>
-                <div>
-                    <label className={labelClasses}>Due Date</label>
-                    <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={formElementClasses} />
+                 <div>
+                    <label className={labelClasses}>Status</label>
+                    <select name="status" value={editedTask.status} onChange={handleChange} className={formElementClasses}>
+                        {Object.values(SubTaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className={labelClasses}>Priority</label>
-                    <select value={priority} onChange={e => setPriority(e.target.value as SubTaskPriority)} className={formElementClasses}>
+                    <select name="priority" value={editedTask.priority} onChange={handleChange} className={formElementClasses}>
                         {Object.values(SubTaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                 </div>
                 <div>
                     <label className={labelClasses}>Type</label>
-                    <input type="text" value={type} onChange={e => setType(e.target.value)} placeholder="e.g. Development" required className={formElementClasses}/>
+                    <input type="text" name="type" value={editedTask.type} onChange={handleChange} required className={formElementClasses} />
                 </div>
             </div>
-            <button type="submit" className="w-full flex justify-center items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                <PlusIcon className="w-4 h-4"/>
-                <span>Add Task</span>
-            </button>
+             <div>
+                <label className={labelClasses}>Due Date</label>
+                <input type="date" name="dueDate" value={editedTask.dueDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
+            </div>
         </form>
     );
 };
@@ -100,7 +80,16 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const [isEditing, setIsEditing] = useState(false);
     const [editableProject, setEditableProject] = useState(project);
     const [ticketToAdd, setTicketToAdd] = useState<string>('');
+    const [editingTask, setEditingTask] = useState<SubTask | null>(null);
+
+    // Form state for new sub-task
+    const [newDescription, setNewDescription] = useState('');
+    const [newAssignedUser, setNewAssignedUser] = useState('');
+    const [newDueDate, setNewDueDate] = useState('');
+    const [newPriority, setNewPriority] = useState<SubTaskPriority>(SubTaskPriority.P3);
+    const [newType, setNewType] = useState('');
     
+    // Drag-and-drop state
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
     const [dragging, setDragging] = useState(false);
@@ -108,25 +97,44 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const linkedTickets = tickets.filter(t => t.projectId === project.id);
     const unassignedTickets = tickets.filter(t => !t.projectId);
 
-    const handleSubTaskAdd = (newTaskData: Omit<SubTask, 'id' | 'status'>) => {
-        const newTask: SubTask = {
-            ...newTaskData,
-            id: crypto.randomUUID(),
-            status: SubTaskStatus.ToDo,
-        };
-        const updatedProject = { ...project, subTasks: [...project.subTasks, newTask] };
-        onUpdate(updatedProject);
+    const handleNewSubTaskSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newDescription.trim() && newAssignedUser.trim() && newType.trim()) {
+            const newTask: SubTask = {
+                id: crypto.randomUUID(),
+                status: SubTaskStatus.ToDo,
+                description: newDescription.trim(), 
+                assignedUser: newAssignedUser.trim(),
+                dueDate: newDueDate || undefined,
+                priority: newPriority,
+                type: newType.trim(),
+            };
+            const updatedProject = { ...project, subTasks: [...project.subTasks, newTask] };
+            onUpdate(updatedProject);
+            // Reset form
+            setNewDescription('');
+            setNewAssignedUser('');
+            setNewDueDate('');
+            setNewPriority(SubTaskPriority.P3);
+            setNewType('');
+        }
     };
     
-    const handleSubTaskStatusChange = (taskId: string, newStatus: SubTaskStatus) => {
+    const handleSubTaskToggleStatus = (taskId: string) => {
         const updatedSubTasks = project.subTasks.map(task =>
             task.id === taskId
-                ? { ...task, status: newStatus }
+                ? { ...task, status: task.status === SubTaskStatus.Done ? SubTaskStatus.ToDo : SubTaskStatus.Done }
                 : task
         );
         onUpdate({ ...project, subTasks: updatedSubTasks });
     };
 
+    const handleSubTaskUpdate = (updatedTask: SubTask) => {
+        const updatedSubTasks = project.subTasks.map(task => task.id === updatedTask.id ? updatedTask : task);
+        onUpdate({ ...project, subTasks: updatedSubTasks });
+        setEditingTask(null);
+    };
+    
     const handleSubTaskDelete = (taskId: string) => {
         const updatedSubTasks = project.subTasks.filter(task => task.id !== taskId);
         onUpdate({ ...project, subTasks: updatedSubTasks });
@@ -159,7 +167,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
         }
     };
     
-    const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, id: string) => {
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
         dragItem.current = id;
         e.dataTransfer.effectAllowed = 'move';
         setTimeout(() => setDragging(true), 0);
@@ -229,6 +237,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                     </div>
                 </Modal>
             )}
+            
+            {editingTask && (
+                <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
+                    <EditSubTaskForm task={editingTask} onSave={handleSubTaskUpdate} onClose={() => setEditingTask(null)} />
+                </Modal>
+            )}
 
             <div className="flex justify-end items-center gap-3 mb-6">
                 <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
@@ -243,60 +257,70 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             <div className="mb-8">
                 <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({project.subTasks.length})</h3>
                 {project.subTasks.length > 0 ? (
-                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col" className="w-10"></th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th scope="col" className="relative px-4 py-3"><span className="sr-only">Delete</span></th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
-                            {project.subTasks.map(task => (
-                                <tr 
-                                    key={task.id}
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, task.id)}
-                                    onDragEnter={() => handleDragEnter(task.id)}
-                                    onDragEnd={handleDragEnd}
-                                    className={`transition-opacity ${dragging && dragItem.current === task.id ? 'opacity-50 bg-blue-100' : 'opacity-100'} hover:bg-gray-50 cursor-move`}
-                                >
-                                    <td className="py-4 whitespace-nowrap text-sm text-gray-500 flex justify-center items-center h-full"><DragHandleIcon className="w-5 h-5 text-gray-400"/></td>
-                                    <td className="px-4 py-4"><div className={`text-sm font-medium text-gray-900 ${task.status === SubTaskStatus.Done ? 'line-through text-gray-500' : ''}`}>{task.description}</div></td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{task.assignedUser}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${priorityColors[task.priority]}`}>{task.priority}</span></td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">{task.type}</td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                                        <select 
-                                            value={task.status} 
-                                            onChange={(e) => handleSubTaskStatusChange(task.id, e.target.value as SubTaskStatus)}
-                                            className="text-sm p-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
-                                            onClick={(e) => e.stopPropagation()} // Prevent drag start on click
-                                        >
-                                            {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
-                                    </td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onClick={() => handleSubTaskDelete(task.id)} className="p-1 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-red-500">
-                                            <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                  <div
+                      className="space-y-2"
+                      onDrop={handleDrop}
+                      onDragOver={(e) => e.preventDefault()}
+                  >
+                      {project.subTasks.map(task => (
+                          <div
+                              key={task.id}
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, task.id)}
+                              onDragEnter={() => handleDragEnter(task.id)}
+                              onDragEnd={handleDragEnd}
+                              className={`bg-white rounded-lg p-3 flex items-center gap-3 transition-all border shadow-sm cursor-grab active:cursor-grabbing ${dragging && dragItem.current === task.id ? 'opacity-30' : ''} ${dragOverItem.current === task.id && dragItem.current !== task.id ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200'}`}
+                           >
+                              <input
+                                  type="checkbox"
+                                  checked={task.status === SubTaskStatus.Done}
+                                  onChange={() => handleSubTaskToggleStatus(task.id)}
+                                  className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0"
+                                  aria-label={`Mark task ${task.description} as complete`}
+                              />
+                              <div className="flex-grow">
+                                  <p className={`text-sm font-medium text-gray-800 ${task.status === SubTaskStatus.Done ? 'line-through text-gray-500' : ''}`}>
+                                      {task.description}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                      Assigned to: <span className="font-medium">{task.assignedUser}</span>
+                                  </p>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                  <button onClick={() => setEditingTask(task)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
+                                      <PencilIcon className="w-4 h-4" />
+                                  </button>
+                                  <button onClick={() => handleSubTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
+                                      <TrashIcon className="w-4 h-4" />
+                                  </button>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
                 ) : (
                     <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">No tasks have been added to this project yet.</p>
                 )}
-                <AddSubTaskForm onAdd={handleSubTaskAdd} />
+                
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+                    <h4 className="font-semibold text-gray-800 mb-3">Add New Task</h4>
+                    <form onSubmit={handleNewSubTaskSubmit} className="space-y-3">
+                        <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="Task description..." required className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assigned to..." required className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Task Type (e.g. Dev, QA)..." required className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <select value={newPriority} onChange={e => setNewPriority(e.target.value as SubTaskPriority)} className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                {Object.values(SubTaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                             <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <button type="submit" className="w-full flex justify-center items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2.5 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
+                            <PlusIcon className="w-5 h-5" />
+                            <span>Add Task</span>
+                        </button>
+                    </form>
+                </div>
             </div>
 
             <div className="mt-8 pt-6 border-t border-gray-200">
