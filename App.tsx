@@ -665,9 +665,10 @@ const App: React.FC = () => {
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
             currentView={currentView}
-            setCurrentView={view => {
+            onViewChange={view => {
                 setCurrentView(view);
                 closeSideView();
+                setIsSidebarOpen(false); // Also close sidebar on mobile
             }}
         />
         <main className="flex-1 flex flex-col overflow-hidden">

@@ -13,7 +13,7 @@ interface LeftSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   currentView: View;
-  setCurrentView: (view: View) => void;
+  onViewChange: (view: View) => void;
 }
 
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }> = ({ icon, label, isActive, onClick }) => (
@@ -31,7 +31,7 @@ const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolea
 );
 
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, onClose, currentView, setCurrentView }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, onClose, currentView, onViewChange }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
@@ -72,9 +72,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
           <nav>
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Navigation</h2>
             <div className="space-y-1">
-              <NavItem icon={<TicketIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => setCurrentView('tickets')} />
-              <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => setCurrentView('projects')} />
-              <NavItem icon={<BuildingStorefrontIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => setCurrentView('dealerships')} />
+              <NavItem icon={<TicketIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
+              <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
+              <NavItem icon={<BuildingStorefrontIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
             </div>
           </nav>
           
