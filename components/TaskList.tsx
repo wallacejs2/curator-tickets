@@ -89,7 +89,7 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
 
   const { activeTasks, completedTasks } = useMemo(() => {
     const projectTasks = projects.flatMap(p => 
-      p.tasks.map(st => ({
+      (p.tasks || []).map(st => ({
         ...st,
         projectId: p.id,
         projectName: p.name
