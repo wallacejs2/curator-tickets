@@ -23,6 +23,8 @@ import DealershipList from './components/DealershipList.tsx';
 import DealershipDetailView from './components/DealershipDetailView.tsx';
 import DealershipForm from './components/DealershipForm.tsx';
 import DealershipInsights from './components/DealershipInsights.tsx';
+import { useToast } from './hooks/useToast.ts';
+import Toast from './components/common/Toast.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -357,6 +359,7 @@ const App: React.FC = () => {
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [isDealershipFormOpen, setIsDealershipFormOpen] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -621,7 +624,7 @@ const App: React.FC = () => {
     }
 
     if (dataToExport.length === 0) {
-      alert(`No ${currentView} to export.`);
+      showToast(`No ${currentView} to export.`, 'error');
       return;
     }
 
@@ -775,7 +778,7 @@ const App: React.FC = () => {
 
         const lines = content.trim().replace(/\r\n/g, '\n').split('\n');
         if (lines.length < 2) {
-            alert("CSV file is empty or has only headers.");
+            showToast("CSV file is empty or has only headers.", 'error');
             return;
         }
 
@@ -806,7 +809,7 @@ const App: React.FC = () => {
                 return ticket as Ticket;
             });
             setTickets(newTickets);
-            alert(`Successfully imported ${newTickets.length} tickets.`);
+            showToast(`Successfully imported ${newTickets.length} tickets.`, 'success');
         } else if (isProjects) {
             const newProjects = data.map(row => {
                 const project: any = {};
@@ -818,7 +821,7 @@ const App: React.FC = () => {
                 return project as Project;
             });
             setProjects(newProjects);
-            alert(`Successfully imported ${newProjects.length} projects.`);
+            showToast(`Successfully imported ${newProjects.length} projects.`, 'success');
         } else if (isDealerships) {
             const newDealerships = data.map(row => {
                  const dealership: any = {};
@@ -828,13 +831,13 @@ const App: React.FC = () => {
                 return dealership as Dealership;
             });
             setDealerships(newDealerships);
-            alert(`Successfully imported ${newDealerships.length} dealerships.`);
+            showToast(`Successfully imported ${newDealerships.length} dealerships.`, 'success');
         } else {
-            alert("Could not determine data type from CSV headers. Please ensure the file contains one of the following sets of columns:\n\nTickets: id, title, type, status, priority\nProjects: id, name, status, creationDate\nDealerships: id, name, accountNumber, status");
+            showToast("Could not determine data type. Please check CSV headers.", 'error');
         }
       } catch (error) {
         console.error("Error parsing CSV file:", error);
-        alert("Failed to import data. Please check the file format is valid CSV.");
+        showToast("Failed to import data. Please check file format.", 'error');
       }
     };
     reader.readAsText(file);
@@ -870,6 +873,12 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-100">
+        <Toast 
+            message={toast.message} 
+            type={toast.type}
+            isVisible={toast.isVisible}
+            onClose={hideToast}
+        />
         <LeftSidebar 
             filters={filters} 
             setFilters={setFilters} 
