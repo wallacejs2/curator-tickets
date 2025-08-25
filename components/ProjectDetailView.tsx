@@ -99,6 +99,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
     const [dragging, setDragging] = useState(false);
+
+    const projectTasks = project.tasks || [];
     
     const linkedTickets = tickets.filter(t => t.projectId === project.id);
     const unassignedTickets = tickets.filter(t => !t.projectId);
@@ -115,7 +117,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                 priority: newPriority,
                 type: newType.trim(),
             };
-            const updatedProject = { ...project, tasks: [...project.tasks, newTask] };
+            const updatedProject = { ...project, tasks: [...projectTasks, newTask] };
             onUpdate(updatedProject);
             // Reset form
             setNewDescription('');
@@ -135,7 +137,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     };
     
     const handleTaskToggleStatus = (taskId: string) => {
-        const updatedTasks = project.tasks.map(task =>
+        const updatedTasks = projectTasks.map(task =>
             task.id === taskId
                 ? { ...task, status: task.status === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done }
                 : task
@@ -144,13 +146,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     };
 
     const handleTaskUpdate = (updatedTask: Task) => {
-        const updatedTasks = project.tasks.map(task => task.id === updatedTask.id ? updatedTask : task);
+        const updatedTasks = projectTasks.map(task => task.id === updatedTask.id ? updatedTask : task);
         onUpdate({ ...project, tasks: updatedTasks });
         setEditingTask(null);
     };
     
     const handleTaskDelete = (taskId: string) => {
-        const updatedTasks = project.tasks.filter(task => task.id !== taskId);
+        const updatedTasks = projectTasks.filter(task => task.id !== taskId);
         onUpdate({ ...project, tasks: updatedTasks });
     };
     
@@ -203,7 +205,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             return;
         }
 
-        const tasksCopy = [...project.tasks];
+        const tasksCopy = [...projectTasks];
         const dragItemIndex = tasksCopy.findIndex(task => task.id === dragItem.current);
         const dragOverItemIndex = tasksCopy.findIndex(task => task.id === dragOverItem.current);
 
@@ -269,14 +271,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             </div>
 
             <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({project.tasks.length})</h3>
-                {project.tasks.length > 0 ? (
+                <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({projectTasks.length})</h3>
+                {projectTasks.length > 0 ? (
                   <div
                       className="space-y-2"
                       onDrop={handleDrop}
                       onDragOver={(e) => e.preventDefault()}
                   >
-                      {project.tasks.map(task => (
+                      {projectTasks.map(task => (
                           <div
                               key={task.id}
                               draggable
