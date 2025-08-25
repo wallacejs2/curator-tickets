@@ -52,7 +52,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, onDealersh
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="space-y-4">
       {dealerships.map(dealership => (
         <DealershipCard key={dealership.id} dealership={dealership} onClick={() => onDealershipClick(dealership)} />
       ))}

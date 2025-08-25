@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -93,8 +93,28 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
     );
 }
 
+type TicketView = 'active' | 'completed';
+
 const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [ticketView, setTicketView] = useState<TicketView>('active');
+
+  const { activeTickets, completedTickets } = useMemo(() => {
+    return tickets.reduce<{ activeTickets: Ticket[]; completedTickets: Ticket[] }>(
+      (acc, ticket) => {
+        if (ticket.status === Status.Completed) {
+          acc.completedTickets.push(ticket);
+        } else {
+          acc.activeTickets.push(ticket);
+        }
+        return acc;
+      },
+      { activeTickets: [], completedTickets: [] }
+    );
+  }, [tickets]);
+
+  const ticketsToShow = ticketView === 'active' ? activeTickets : completedTickets;
+
 
   const calculateDaysActive = (ticket: Ticket): string => {
     const startDate = ticket.startDate ? new Date(ticket.startDate) : null;
@@ -117,105 +137,130 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
     
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
   };
-
-  if (tickets.length === 0) {
-    return (
-      <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800">No tickets found</h3>
-        <p className="text-gray-500 mt-2">Try adjusting your filters or creating a new ticket.</p>
-      </div>
-    );
-  }
-
+  
   return (
-    <div className="space-y-4">
-      {tickets.map(ticket => (
-        <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
-          <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
-            <div className="flex justify-between items-start gap-3">
-              <h3 className="font-semibold text-gray-900 flex-1">{ticket.title}</h3>
-              <Tag label={ticket.priority} />
-            </div>
-            <div className="text-sm text-gray-500 mt-2">
-              <div>
-                {ticket.client && (
-                  <>
-                    <span className="font-medium text-gray-600">{ticket.client}</span>
-                    <span className="mx-2 text-gray-300">•</span>
-                  </>
-                )}
-                <span>{ticket.submitterName}</span>
-              </div>
-              <div className="mt-1">
-                <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'}</span>
-                <span className="mx-2 text-gray-300">•</span>
-                <span>{calculateDaysActive(ticket)}</span>
-              </div>
-            </div>
+    <div>
+      <div className="mb-4 flex border-b border-gray-200">
+        <button
+          onClick={() => setTicketView('active')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            ticketView === 'active'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={ticketView === 'active'}
+        >
+          Active ({activeTickets.length})
+        </button>
+        <button
+          onClick={() => setTicketView('completed')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            ticketView === 'completed'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={ticketView === 'completed'}
+        >
+          Completed ({completedTickets.length})
+        </button>
+      </div>
 
-            {ticket.status === Status.OnHold && ticket.onHoldReason && (
-              <div className="mt-3 p-2 bg-[#ffcd85]/20 border border-[#ffcd85] rounded-md text-sm text-stone-800 text-ellipsis overflow-hidden">
-                <span className="font-semibold">On Hold:</span> {ticket.onHoldReason}
-              </div>
-            )}
-            {ticket.status === Status.Completed && ticket.completionNotes && (
-              <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 text-ellipsis overflow-hidden">
-                <span className="font-semibold">Completed:</span> {ticket.completionNotes}
-              </div>
-            )}
-            
-             <div className="text-xs text-gray-500 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                {ticket.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span></span>}
-                {ticket.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{ticket.fpTicketNumber}</span></span>}
-                {ticket.ticketThreadId && <span>Thread: <span className="font-medium text-gray-700">{ticket.ticketThreadId}</span></span>}
-             </div>
-
-            <div className="mt-4 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Tag label={ticket.type} />
-                <Tag label={ticket.productArea} />
-                <Tag label={ticket.platform} />
-              </div>
-              <select
-                value={ticket.status}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  const newStatus = e.target.value as Status;
-                  let reason = ticket.onHoldReason;
-                  if (newStatus === Status.OnHold && !reason) {
-                      reason = 'No reason provided. Click to edit.';
-                  }
-                  onStatusChange(ticket.id, newStatus, reason);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
-                aria-label={`Change status for ticket ${ticket.title}`}
-              >
-                {STATUS_OPTIONS.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-            <div className="border-t border-gray-200">
-              <button 
-                  onClick={(e) => {
-                      e.stopPropagation();
-                      setExpandedId(expandedId === ticket.id ? null : ticket.id);
-                  }}
-                  className="w-full flex justify-between items-center p-2 text-sm font-medium text-gray-600 hover:bg-gray-50 focus:outline-none rounded-b-md"
-                  aria-expanded={expandedId === ticket.id}
-                  aria-label={expandedId === ticket.id ? `Collapse summary for ${ticket.title}`: `Expand summary for ${ticket.title}`}
-              >
-                  <span>View Summary</span>
-                  <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${expandedId === ticket.id ? 'rotate-180' : ''}`} />
-              </button>
-              {expandedId === ticket.id && (
-                  <ExpandedSummaryContent ticket={ticket} />
-              )}
-          </div>
+      {ticketsToShow.length === 0 ? (
+        <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800">No {ticketView} tickets found</h3>
+          <p className="text-gray-500 mt-2">Try adjusting your filters or creating a new ticket.</p>
         </div>
-      ))}
+      ) : (
+        <div className="space-y-4">
+          {ticketsToShow.map(ticket => (
+            <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
+              <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
+                <div className="flex justify-between items-start gap-3">
+                  <h3 className="font-semibold text-gray-900 flex-1">{ticket.title}</h3>
+                  <Tag label={ticket.priority} />
+                </div>
+                <div className="text-sm text-gray-500 mt-2">
+                  <div>
+                    {ticket.client && (
+                      <>
+                        <span className="font-medium text-gray-600">{ticket.client}</span>
+                        <span className="mx-2 text-gray-300">•</span>
+                      </>
+                    )}
+                    <span>{ticket.submitterName}</span>
+                  </div>
+                  <div className="mt-1">
+                    <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'}</span>
+                    <span className="mx-2 text-gray-300">•</span>
+                    <span>{calculateDaysActive(ticket)}</span>
+                  </div>
+                </div>
+
+                {ticket.status === Status.OnHold && ticket.onHoldReason && (
+                  <div className="mt-3 p-2 bg-[#ffcd85]/20 border border-[#ffcd85] rounded-md text-sm text-stone-800 text-ellipsis overflow-hidden">
+                    <span className="font-semibold">On Hold:</span> {ticket.onHoldReason}
+                  </div>
+                )}
+                {ticket.status === Status.Completed && ticket.completionNotes && (
+                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 text-ellipsis overflow-hidden">
+                    <span className="font-semibold">Completed:</span> {ticket.completionNotes}
+                  </div>
+                )}
+                
+                 <div className="text-xs text-gray-500 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {ticket.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span></span>}
+                    {ticket.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{ticket.fpTicketNumber}</span></span>}
+                    {ticket.ticketThreadId && <span>Thread: <span className="font-medium text-gray-700">{ticket.ticketThreadId}</span></span>}
+                 </div>
+
+                <div className="mt-4 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Tag label={ticket.type} />
+                    <Tag label={ticket.productArea} />
+                    <Tag label={ticket.platform} />
+                  </div>
+                  <select
+                    value={ticket.status}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      const newStatus = e.target.value as Status;
+                      let reason = ticket.onHoldReason;
+                      if (newStatus === Status.OnHold && !reason) {
+                          reason = 'No reason provided. Click to edit.';
+                      }
+                      onStatusChange(ticket.id, newStatus, reason);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
+                    aria-label={`Change status for ticket ${ticket.title}`}
+                  >
+                    {STATUS_OPTIONS.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+                <div className="border-t border-gray-200">
+                  <button 
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedId(expandedId === ticket.id ? null : ticket.id);
+                      }}
+                      className="w-full flex justify-between items-center p-2 text-sm font-medium text-gray-600 hover:bg-gray-50 focus:outline-none rounded-b-md"
+                      aria-expanded={expandedId === ticket.id}
+                      aria-label={expandedId === ticket.id ? `Collapse summary for ${ticket.title}`: `Expand summary for ${ticket.title}`}
+                  >
+                      <span>View Summary</span>
+                      <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${expandedId === ticket.id ? 'rotate-180' : ''}`} />
+                  </button>
+                  {expandedId === ticket.id && (
+                      <ExpandedSummaryContent ticket={ticket} />
+                  )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

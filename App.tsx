@@ -228,7 +228,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                 )}
              </FormSection>
 
-            <FormSection title="External Identifiers" gridCols={3}>
+            <FormSection title="External Identifiers" gridCols={2}>
                 <div>
                     <label className={labelClasses}>PMR Number</label>
                     <input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses} />
@@ -237,7 +237,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                     <label className={labelClasses}>FP Ticket Number</label>
                     <input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses} />
                 </div>
-                <div>
+                <div className="col-span-2">
                     <label className={labelClasses}>Ticket Thread ID</label>
                     <input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses} />
                 </div>
