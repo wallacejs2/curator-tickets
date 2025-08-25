@@ -686,10 +686,6 @@ const App: React.FC = () => {
                         <DownloadIcon className="w-4 h-4" />
                         <span>Export</span>
                     </button>
-                    <button onClick={openFormModal} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
-                        <PlusIcon className="w-4 h-4" />
-                        <span>{getNewItemButtonText()}</span>
-                    </button>
                 </div>
             </header>
             <div className="flex-1 overflow-y-auto p-6">
@@ -709,6 +705,15 @@ const App: React.FC = () => {
             </div>
         </main>
         
+        <button
+            onClick={openFormModal}
+            className="fixed bottom-6 right-6 z-40 bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform hover:scale-105"
+            aria-label={getNewItemButtonText()}
+            title={getNewItemButtonText()}
+        >
+            <PlusIcon className="w-7 h-7" />
+        </button>
+
         {isTicketFormOpen && (
             <Modal title="Create New Ticket" onClose={() => setIsTicketFormOpen(false)}>
                 <TicketForm onSubmit={handleAddNewTicket} projects={projects}/>
