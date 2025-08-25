@@ -21,18 +21,19 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
     const mostRecentUpdate = project.updates && project.updates.length > 0
         ? [...project.updates].pop()
         : null;
+    const projectTasks = project.tasks || [];
 
     return (
         <div className="p-5 bg-gray-50 space-y-6">
             {/* Tasks */}
             <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tasks</h4>
-                {project.tasks.length > 0 ? (
+                {projectTasks.length > 0 ? (
                     <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                        {project.tasks.slice(0, 3).map(task => (
+                        {projectTasks.slice(0, 3).map(task => (
                             <li key={task.id} className={task.status === TaskStatus.Done ? 'line-through text-gray-500' : ''}>{task.description}</li>
                         ))}
-                        {project.tasks.length > 3 && <li>...and {project.tasks.length - 3} more.</li>}
+                        {projectTasks.length > 3 && <li>...and {projectTasks.length - 3} more.</li>}
                     </ul>
                 ) : <p className="text-sm text-gray-500 italic">No tasks assigned.</p>}
             </div>
@@ -62,8 +63,9 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
 
 const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ticket[] }> = ({ project, onClick, tickets }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const completedTasks = project.tasks.filter(t => t.status === TaskStatus.Done).length;
-  const totalTasks = project.tasks.length;
+  const projectTasks = project.tasks || [];
+  const completedTasks = projectTasks.filter(t => t.status === TaskStatus.Done).length;
+  const totalTasks = projectTasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const statusColor = statusColors[project.status];
 
