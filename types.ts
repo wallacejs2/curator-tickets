@@ -104,12 +104,21 @@ export enum SubTaskStatus {
   Done = 'Done',
 }
 
+export enum SubTaskPriority {
+  P1 = 'P1',
+  P2 = 'P2',
+  P3 = 'P3',
+  P4 = 'P4',
+}
+
 export interface SubTask {
   id: string;
   description: string;
-  assignedTo: string;
-  needsFrom: string;
+  assignedUser: string;
   status: SubTaskStatus;
+  priority: SubTaskPriority;
+  type: string;
+  dueDate?: string;
 }
 
 export interface Project {

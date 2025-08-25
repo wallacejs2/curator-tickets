@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Dealership, DealershipStatus } from '../types.ts';
 
 interface DealershipListProps {
@@ -40,8 +40,30 @@ const DealershipCard: React.FC<{ dealership: Dealership; onClick: () => void; }>
   );
 };
 
+const statusOrder: DealershipStatus[] = [
+  DealershipStatus.Live,
+  DealershipStatus.Onboarding,
+  DealershipStatus.Pilot,
+  DealershipStatus.Cancelled,
+];
 
 const DealershipList: React.FC<DealershipListProps> = ({ dealerships, onDealershipClick }) => {
+  const groupedDealerships = useMemo(() => {
+    const groups: Record<DealershipStatus, Dealership[]> = {
+      [DealershipStatus.Live]: [],
+      [DealershipStatus.Onboarding]: [],
+      [DealershipStatus.Pilot]: [],
+      [DealershipStatus.Cancelled]: [],
+    };
+    
+    dealerships.forEach(dealership => {
+      if (dealership.status in groups) {
+        groups[dealership.status].push(dealership);
+      }
+    });
+    return groups;
+  }, [dealerships]);
+
   if (dealerships.length === 0) {
     return (
       <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
@@ -52,9 +74,21 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, onDealersh
   }
 
   return (
-    <div className="space-y-4">
-      {dealerships.map(dealership => (
-        <DealershipCard key={dealership.id} dealership={dealership} onClick={() => onDealershipClick(dealership)} />
+    <div className="space-y-8">
+      {statusOrder.map(status => (
+        groupedDealerships[status] && groupedDealerships[status].length > 0 && (
+          <div key={status}>
+            <h2 className="text-lg font-semibold text-gray-700 mb-3 pb-2 border-b border-gray-200">
+              {status} 
+              <span className="text-base font-normal text-gray-500 ml-2">({groupedDealerships[status].length})</span>
+            </h2>
+            <div className="space-y-4">
+              {groupedDealerships[status].map(dealership => (
+                <DealershipCard key={dealership.id} dealership={dealership} onClick={() => onDealershipClick(dealership)} />
+              ))}
+            </div>
+          </div>
+        )
       ))}
     </div>
   );

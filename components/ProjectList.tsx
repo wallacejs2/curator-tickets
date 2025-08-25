@@ -7,10 +7,10 @@ interface ProjectListProps {
 }
 
 const statusColors: Record<ProjectStatus, { bg: string; text: string; progress: string }> = {
-  [ProjectStatus.NotStarted]: { bg: 'bg-gray-200', text: 'text-gray-800', progress: 'bg-gray-400' },
-  [ProjectStatus.InProgress]: { bg: 'bg-blue-200', text: 'text-blue-800', progress: 'bg-blue-500' },
-  [ProjectStatus.OnHold]: { bg: 'bg-yellow-200', text: 'text-yellow-800', progress: 'bg-yellow-500' },
-  [ProjectStatus.Completed]: { bg: 'bg-green-200', text: 'text-green-800', progress: 'bg-green-500' },
+  [ProjectStatus.NotStarted]: { bg: 'bg-gray-200', text: 'text-gray-900', progress: 'bg-gray-400' },
+  [ProjectStatus.InProgress]: { bg: 'bg-blue-200', text: 'text-blue-900', progress: 'bg-blue-500' },
+  [ProjectStatus.OnHold]: { bg: 'bg-yellow-200', text: 'text-yellow-900', progress: 'bg-yellow-500' },
+  [ProjectStatus.Completed]: { bg: 'bg-green-200', text: 'text-green-900', progress: 'bg-green-500' },
 };
 
 const ProjectCard: React.FC<{ project: Project; onClick: () => void; }> = ({ project, onClick }) => {
