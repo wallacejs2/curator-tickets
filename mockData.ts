@@ -142,6 +142,13 @@ export const initialProjects: Project[] = [
     status: ProjectStatus.InProgress,
     creationDate: new Date('2024-07-10T10:00:00Z').toISOString(),
     ticketIds: ['2'],
+    updates: [
+      {
+        author: 'Project Lead',
+        date: new Date('2024-07-12T09:00:00Z').toISOString(),
+        comment: 'Project kickoff complete. Design phase has begun.'
+      }
+    ],
     subTasks: [
       { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: SubTaskStatus.Done, priority: SubTaskPriority.P1, type: 'Design', dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
       { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: SubTaskStatus.InProgress, priority: SubTaskPriority.P1, type: 'Development', dueDate: new Date('2024-07-30T17:00:00Z').toISOString() },
@@ -156,6 +163,7 @@ export const initialProjects: Project[] = [
     status: ProjectStatus.NotStarted,
     creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
     ticketIds: [],
+    updates: [],
     subTasks: [
        { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: SubTaskStatus.ToDo, priority: SubTaskPriority.P1, type: 'Documentation' },
        { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: SubTaskStatus.ToDo, priority: SubTaskPriority.P1, type: 'QA', dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
@@ -168,6 +176,7 @@ export const initialProjects: Project[] = [
     status: ProjectStatus.Completed,
     creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
     ticketIds: [],
+    updates: [],
     subTasks: [
        { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: SubTaskStatus.Done, priority: SubTaskPriority.P3, type: 'Design' },
        { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: SubTaskStatus.Done, priority: SubTaskPriority.P3, type: 'Documentation' },

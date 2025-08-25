@@ -619,6 +619,7 @@ const App: React.FC = () => {
         creationDate: new Date().toISOString(),
         subTasks: [],
         ticketIds: [],
+        updates: [],
     };
     setProjects(prev => [newProject, ...prev]);
     setIsProjectFormOpen(false);
@@ -629,6 +630,18 @@ const App: React.FC = () => {
     if (selectedProject && selectedProject.id === updatedProject.id) {
         setSelectedProject(updatedProject);
     }
+  };
+
+  const handleAddProjectUpdate = (projectId: string, comment: string, author: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const newUpdate: Update = { author, comment, date: new Date().toISOString() };
+    const updatedProject: Project = {
+      ...project,
+      updates: [...(project.updates || []), newUpdate],
+    };
+    handleUpdateProject(updatedProject);
   };
 
   const handleDeleteProject = (projectId: string) => {
@@ -716,7 +729,8 @@ const App: React.FC = () => {
             status: p.status,
             creationDate: p.creationDate,
             ticketIds: p.ticketIds.join(';'),
-            subTasks: JSON.stringify(p.subTasks)
+            subTasks: JSON.stringify(p.subTasks),
+            updates: JSON.stringify(p.updates || []),
         }));
         break;
       case 'dealerships':
@@ -920,6 +934,7 @@ const App: React.FC = () => {
                 }
                 if (project.ticketIds) project.ticketIds = project.ticketIds.split(';');
                 if (project.subTasks) project.subTasks = JSON.parse(project.subTasks);
+                if (project.updates) project.updates = JSON.parse(project.updates);
                 return project as Project;
             });
             setProjects(newProjects);
@@ -1020,7 +1035,7 @@ const App: React.FC = () => {
                         <TicketList tickets={filteredTickets} onRowClick={handleTicketClick} onStatusChange={handleStatusChange} />
                     </>
                 )}
-                {currentView === 'projects' && <ProjectList projects={projects} onProjectClick={handleProjectClick} />}
+                {currentView === 'projects' && <ProjectList projects={projects} onProjectClick={handleProjectClick} tickets={tickets} />}
                 {currentView === 'dealerships' && (
                   <>
                     <DealershipInsights {...dealershipInsights} />
@@ -1083,6 +1098,7 @@ const App: React.FC = () => {
                     onDelete={handleDeleteProject}
                     tickets={tickets}
                     onUpdateTicket={handleUpdateTicket}
+                    onAddUpdate={handleAddProjectUpdate}
                 />
             )}
              {selectedDealership && (

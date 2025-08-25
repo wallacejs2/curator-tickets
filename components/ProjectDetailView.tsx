@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Project, SubTask, SubTaskStatus, ProjectStatus, Ticket, SubTaskPriority } from '../types.ts';
+import { Project, SubTask, SubTaskStatus, ProjectStatus, Ticket, SubTaskPriority, Update } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -11,6 +11,7 @@ interface ProjectDetailViewProps {
   onDelete: (projectId: string) => void;
   tickets: Ticket[];
   onUpdateTicket: (ticket: Ticket) => void;
+  onAddUpdate: (projectId: string, comment: string, author: string) => void;
 }
 
 const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
@@ -75,7 +76,7 @@ const EditSubTaskForm: React.FC<{ task: SubTask, onSave: (task: SubTask) => void
 };
 
 
-const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate, onDelete, tickets, onUpdateTicket }) => {
+const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate, onDelete, tickets, onUpdateTicket, onAddUpdate }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableProject, setEditableProject] = useState(project);
@@ -89,6 +90,10 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const [newPriority, setNewPriority] = useState<SubTaskPriority>(SubTaskPriority.P3);
     const [newType, setNewType] = useState('');
     
+    // Form state for new update
+    const [newUpdate, setNewUpdate] = useState('');
+    const [authorName, setAuthorName] = useState('');
+
     // Drag-and-drop state
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
@@ -117,6 +122,14 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             setNewDueDate('');
             setNewPriority(SubTaskPriority.P3);
             setNewType('');
+        }
+    };
+
+    const handleUpdateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newUpdate.trim() && authorName.trim()) {
+          onAddUpdate(project.id, newUpdate.trim(), authorName.trim());
+          setNewUpdate('');
         }
     };
     
@@ -363,6 +376,52 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                         ))
                     ) : (
                         <p className="text-sm text-gray-500 text-center py-4">No tickets have been linked to this project yet.</p>
+                    )}
+                </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
+                <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Add a new update</h4>
+                    <div className="mb-2">
+                        <input
+                            type="text"
+                            value={authorName}
+                            onChange={(e) => setAuthorName(e.target.value)}
+                            placeholder="Your Name"
+                            required
+                            className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="mb-2">
+                        <textarea
+                            value={newUpdate}
+                            onChange={(e) => setNewUpdate(e.target.value)}
+                            placeholder="Type your comment here..."
+                            required
+                            rows={3}
+                            className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                            Add Update
+                        </button>
+                    </div>
+                </form>
+                <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                    {project.updates && project.updates.length > 0 ? (
+                    [...project.updates].reverse().map((update, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded-md border border-gray-200">
+                        <p className="text-sm text-gray-800">{update.comment}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                            <span className="font-semibold">{update.author}</span> - {new Date(update.date).toLocaleString()}
+                        </p>
+                        </div>
+                    ))
+                    ) : (
+                    <p className="text-sm text-gray-500 italic">No updates have been added yet.</p>
                     )}
                 </div>
             </div>

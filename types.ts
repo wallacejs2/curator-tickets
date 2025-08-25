@@ -134,6 +134,7 @@ export interface Project {
   subTasks: SubTask[];
   creationDate: string;
   ticketIds: string[];
+  updates?: Update[];
 }
 
 // Type for main application view
