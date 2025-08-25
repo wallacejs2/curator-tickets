@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, SubTaskStatus } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, SubTaskStatus, Dealership, DealershipStatus } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -174,4 +174,51 @@ export const initialProjects: Project[] = [
        { id: 'sub-3-3', description: 'Schedule social media posts', assignedTo: 'Marketing', needsFrom: 'Approved ad copy', status: SubTaskStatus.Done },
     ],
   }
+];
+
+export const initialDealerships: Dealership[] = [
+  {
+    id: 'dealership-1',
+    name: 'Prestige Motors',
+    accountNumber: 'CIF-1001',
+    status: DealershipStatus.Live,
+    orderNumber: 'ORD-2024-001',
+    orderReceivedDate: new Date('2024-01-15T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2024-02-01T00:00:00Z').toISOString(),
+    enterprise: 'Luxury Auto Group',
+    storeNumber: 'S-01',
+    branchNumber: 'B-01',
+    eraSystemId: 'ERA-PM-01',
+    ppSysId: 'PPSYS-PM-01',
+    buId: 'BU-PM-01',
+    address: '123 Luxury Lane, Beverly Hills, CA 90210',
+    assignedSpecialist: 'John Smith',
+  },
+  {
+    id: 'dealership-2',
+    name: 'City Cars',
+    accountNumber: 'CIF-1002',
+    status: DealershipStatus.Onboarding,
+    orderNumber: 'ORD-2024-002',
+    orderReceivedDate: new Date('2024-07-01T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2024-08-01T00:00:00Z').toISOString(),
+    enterprise: 'Urban Motors Inc.',
+    storeNumber: 'S-05',
+    branchNumber: 'B-10',
+    address: '456 Main Street, Anytown, USA 12345',
+    assignedSpecialist: 'Jane Doe',
+  },
+  {
+    id: 'dealership-3',
+    name: 'Reliable Rides',
+    accountNumber: 'CIF-1003',
+    status: DealershipStatus.Cancelled,
+    orderNumber: 'ORD-2023-050',
+    orderReceivedDate: new Date('2023-10-01T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2023-11-01T00:00:00Z').toISOString(),
+    termDate: new Date('2024-06-30T00:00:00Z').toISOString(),
+    enterprise: 'Value Vehicles',
+    address: '789 Budget Ave, Thriftyville, TX 75001',
+    assignedSpecialist: 'Peter Jones',
+  },
 ];

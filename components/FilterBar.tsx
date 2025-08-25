@@ -1,18 +1,19 @@
 import React from 'react';
-import { FilterState } from '../types.ts';
+import { FilterState, View } from '../types.ts';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS } from '../constants.ts';
 import { SearchIcon } from './icons/SearchIcon.tsx';
 import { XIcon } from './icons/XIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 
 interface LeftSidebarProps {
   filters: FilterState;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   isOpen: boolean;
   onClose: () => void;
-  currentView: 'tickets' | 'projects';
-  setCurrentView: (view: 'tickets' | 'projects') => void;
+  currentView: View;
+  setCurrentView: (view: View) => void;
 }
 
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }> = ({ icon, label, isActive, onClick }) => (
@@ -73,6 +74,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
             <div className="space-y-1">
               <NavItem icon={<TicketIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => setCurrentView('tickets')} />
               <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => setCurrentView('projects')} />
+              <NavItem icon={<BuildingStorefrontIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => setCurrentView('dealerships')} />
             </div>
           </nav>
           

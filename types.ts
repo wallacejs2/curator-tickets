@@ -42,6 +42,7 @@ export interface Update {
 
 interface BaseTicket {
   id: string;
+  title: string;
   type: TicketType;
   productArea: ProductArea;
   platform: Platform;
@@ -57,7 +58,6 @@ interface BaseTicket {
   submitterName: string;
   client?: string;
   location: string;
-  title: string;
   updates?: Update[];
   completionNotes?: string;
   onHoldReason?: string;
@@ -120,4 +120,34 @@ export interface Project {
   subTasks: SubTask[];
   creationDate: string;
   ticketIds: string[];
+}
+
+// Type for main application view
+export type View = 'tickets' | 'projects' | 'dealerships';
+
+// New types for Dealerships
+export enum DealershipStatus {
+  Onboarding = 'Onboarding',
+  Live = 'Live',
+  Cancelled = 'Cancelled',
+  Pilot = 'Pilot',
+}
+
+export interface Dealership {
+  id: string;
+  name: string;
+  accountNumber: string; // CIF
+  status: DealershipStatus;
+  orderNumber?: string;
+  orderReceivedDate?: string; // Ship Date
+  goLiveDate?: string;
+  termDate?: string;
+  enterprise?: string; // Group Name
+  storeNumber?: string;
+  branchNumber?: string;
+  eraSystemId?: string;
+  ppSysId?: string;
+  buId?: string;
+  address?: string;
+  assignedSpecialist?: string;
 }

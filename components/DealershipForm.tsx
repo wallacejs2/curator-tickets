@@ -1,0 +1,173 @@
+import React, { useState, useEffect } from 'react';
+import { Dealership, DealershipStatus } from '../types.ts';
+
+type FormSubmitCallback = (dealership: Omit<Dealership, 'id'>) => void;
+type FormUpdateCallback = (dealership: Dealership) => void;
+
+interface DealershipFormProps {
+  onSubmit: FormSubmitCallback;
+  onUpdate: FormUpdateCallback;
+  dealershipToEdit?: Dealership | null;
+  onClose: () => void;
+}
+
+const initialFormData: Omit<Dealership, 'id'> = {
+  name: '',
+  accountNumber: '',
+  status: DealershipStatus.Onboarding,
+  orderNumber: '',
+  orderReceivedDate: '',
+  goLiveDate: '',
+  termDate: '',
+  enterprise: '',
+  storeNumber: '',
+  branchNumber: '',
+  eraSystemId: '',
+  ppSysId: '',
+  buId: '',
+  address: '',
+  assignedSpecialist: '',
+};
+
+const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols?: number }> = ({ title, children, gridCols = 2 }) => (
+  <fieldset className="mb-6">
+    <legend className="text-md font-semibold text-gray-800 pb-2 mb-5 border-b border-gray-200 w-full">
+      {title}
+    </legend>
+    <div className={`grid grid-cols-1 sm:grid-cols-${gridCols} gap-x-6 gap-y-5`}>
+      {children}
+    </div>
+  </fieldset>
+);
+
+const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dealershipToEdit, onClose }) => {
+  const [formData, setFormData] = useState(initialFormData);
+  const isEditing = !!dealershipToEdit;
+
+  useEffect(() => {
+    if (dealershipToEdit) {
+      setFormData({
+        ...initialFormData, // Ensure all fields are present
+        ...dealershipToEdit,
+        // Format dates for input type="date"
+        orderReceivedDate: dealershipToEdit.orderReceivedDate?.split('T')[0] || '',
+        goLiveDate: dealershipToEdit.goLiveDate?.split('T')[0] || '',
+        termDate: dealershipToEdit.termDate?.split('T')[0] || '',
+      });
+    } else {
+      setFormData(initialFormData);
+    }
+  }, [dealershipToEdit]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submissionData = {
+        ...formData,
+        orderReceivedDate: formData.orderReceivedDate ? new Date(formData.orderReceivedDate).toISOString() : undefined,
+        goLiveDate: formData.goLiveDate ? new Date(formData.goLiveDate).toISOString() : undefined,
+        termDate: formData.termDate ? new Date(formData.termDate).toISOString() : undefined,
+    };
+
+    if (isEditing) {
+      onUpdate({ id: dealershipToEdit!.id, ...submissionData });
+    } else {
+      onSubmit(submissionData);
+    }
+    onClose();
+  };
+
+  const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
+  const labelClasses = "block text-sm font-medium text-gray-700";
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <FormSection title="Account Information">
+        <div>
+          <label className={labelClasses}>Name</label>
+          <input type="text" name="name" value={formData.name} onChange={handleChange} required className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>Account Number (CIF)</label>
+          <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>Status</label>
+          <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
+            {Object.values(DealershipStatus).map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className={labelClasses}>Assigned Specialist</label>
+          <input type="text" name="assignedSpecialist" value={formData.assignedSpecialist || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+      </FormSection>
+      
+      <FormSection title="Order & Dates" gridCols={3}>
+        <div>
+            <label className={labelClasses}>Order Number</label>
+            <input type="text" name="orderNumber" value={formData.orderNumber || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+         <div>
+            <label className={labelClasses}>Order Received (Ship Date)</label>
+            <input type="date" name="orderReceivedDate" value={formData.orderReceivedDate || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+            <label className={labelClasses}>Go-Live Date</label>
+            <input type="date" name="goLiveDate" value={formData.goLiveDate || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+         <div>
+            <label className={labelClasses}>Term Date</label>
+            <input type="date" name="termDate" value={formData.termDate || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+      </FormSection>
+
+      <FormSection title="Group & Identifiers" gridCols={3}>
+        <div>
+          <label className={labelClasses}>Enterprise (Group Name)</label>
+          <input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>Store Number</label>
+          <input type="text" name="storeNumber" value={formData.storeNumber || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>Branch Number</label>
+          <input type="text" name="branchNumber" value={formData.branchNumber || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>ERA System ID</label>
+          <input type="text" name="eraSystemId" value={formData.eraSystemId || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>PPSysID</label>
+          <input type="text" name="ppSysId" value={formData.ppSysId || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>BU-ID</label>
+          <input type="text" name="buId" value={formData.buId || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+      </FormSection>
+      
+      <FormSection title="Location" gridCols={1}>
+        <div>
+            <label className={labelClasses}>Address</label>
+            <textarea name="address" value={formData.address || ''} onChange={handleChange} rows={3} className={formElementClasses} />
+        </div>
+      </FormSection>
+
+      <div className="mt-8 flex justify-end gap-3">
+        <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+        <button type="submit" className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+          {isEditing ? 'Save Changes' : 'Create Account'}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default DealershipForm;
