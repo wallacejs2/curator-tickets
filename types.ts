@@ -90,6 +90,11 @@ export interface FilterState {
   productArea: string; // 'all' or a ProductArea enum value
 }
 
+export interface DealershipFilterState {
+  searchTerm: string;
+  status: string; // 'all' or a DealershipStatus enum value
+}
+
 // New types for Projects
 export enum ProjectStatus {
   NotStarted = 'Not Started',

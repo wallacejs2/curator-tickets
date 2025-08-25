@@ -1,6 +1,6 @@
 import React from 'react';
-import { FilterState, View } from '../types.ts';
-import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS } from '../constants.ts';
+import { FilterState, View, DealershipFilterState } from '../types.ts';
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 import { SearchIcon } from './icons/SearchIcon.tsx';
 import { XIcon } from './icons/XIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
@@ -8,8 +8,10 @@ import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 
 interface LeftSidebarProps {
-  filters: FilterState;
-  setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
+  ticketFilters: FilterState;
+  setTicketFilters: React.Dispatch<React.SetStateAction<FilterState>>;
+  dealershipFilters: DealershipFilterState;
+  setDealershipFilters: React.Dispatch<React.SetStateAction<DealershipFilterState>>;
   isOpen: boolean;
   onClose: () => void;
   currentView: View;
@@ -31,20 +33,40 @@ const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolea
 );
 
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, onClose, currentView, onViewChange }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ 
+  ticketFilters, 
+  setTicketFilters, 
+  dealershipFilters,
+  setDealershipFilters,
+  isOpen, 
+  onClose, 
+  currentView, 
+  onViewChange 
+}) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    if (currentView === 'tickets') {
+      setTicketFilters(prev => ({ ...prev, [name]: value }));
+    } else if (currentView === 'dealerships') {
+      setDealershipFilters(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleClearFilters = () => {
-    setFilters({
-      searchTerm: '',
-      status: 'all',
-      priority: 'all',
-      type: 'all',
-      productArea: 'all',
-    });
+    if (currentView === 'tickets') {
+      setTicketFilters({
+        searchTerm: '',
+        status: 'all',
+        priority: 'all',
+        type: 'all',
+        productArea: 'all',
+      });
+    } else if (currentView === 'dealerships') {
+      setDealershipFilters({
+        searchTerm: '',
+        status: 'all',
+      });
+    }
   };
   
   const selectClasses = "w-full p-2 border border-gray-600 rounded-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-gray-200 text-sm";
@@ -78,7 +100,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
             </div>
           </nav>
           
-          {currentView === 'tickets' && (
+          {(currentView === 'tickets' || currentView === 'dealerships') && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-base font-semibold text-gray-300">Filters</h2>
@@ -90,78 +112,75 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ filters, setFilters, isOpen, 
                 </button>
               </div>
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="searchTerm" className={labelClasses}>Search</label>
-                  <input
-                    type="text"
-                    id="searchTerm"
-                    name="searchTerm"
-                    value={filters.searchTerm}
-                    onChange={handleInputChange}
-                    placeholder="Search..."
-                    className={inputClasses}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="type" className={labelClasses}>Type</label>
-                  <select
-                    id="type"
-                    name="type"
-                    value={filters.type}
-                    onChange={handleInputChange}
-                    className={selectClasses}
-                  >
-                    <option value="all">All Types</option>
-                    {TICKET_TYPE_OPTIONS.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="productArea" className={labelClasses}>Product Area</label>
-                  <select
-                    id="productArea"
-                    name="productArea"
-                    value={filters.productArea}
-                    onChange={handleInputChange}
-                    className={selectClasses}
-                  >
-                    <option value="all">All Areas</option>
-                    {PRODUCT_AREA_OPTIONS.map(area => (
-                      <option key={area} value={area}>{area}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="status" className={labelClasses}>Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={filters.status}
-                    onChange={handleInputChange}
-                    className={selectClasses}
-                  >
-                    <option value="all">All Statuses</option>
-                    {STATUS_OPTIONS.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="priority" className={labelClasses}>Priority</label>
-                  <select
-                    id="priority"
-                    name="priority"
-                    value={filters.priority}
-                    onChange={handleInputChange}
-                    className={selectClasses}
-                  >
-                    <option value="all">All Priorities</option>
-                    {PRIORITY_OPTIONS.map(priority => (
-                      <option key={priority} value={priority}>{priority}</option>
-                    ))}
-                  </select>
-                </div>
+                {currentView === 'tickets' && (
+                  <>
+                    <div>
+                      <label htmlFor="searchTerm" className={labelClasses}>Search</label>
+                      <input
+                        type="text"
+                        id="searchTerm"
+                        name="searchTerm"
+                        value={ticketFilters.searchTerm}
+                        onChange={handleInputChange}
+                        placeholder="Search..."
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="type" className={labelClasses}>Type</label>
+                      <select id="type" name="type" value={ticketFilters.type} onChange={handleInputChange} className={selectClasses}>
+                        <option value="all">All Types</option>
+                        {TICKET_TYPE_OPTIONS.map(type => <option key={type} value={type}>{type}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="productArea" className={labelClasses}>Product Area</label>
+                      <select id="productArea" name="productArea" value={ticketFilters.productArea} onChange={handleInputChange} className={selectClasses}>
+                        <option value="all">All Areas</option>
+                        {PRODUCT_AREA_OPTIONS.map(area => <option key={area} value={area}>{area}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="status" className={labelClasses}>Status</label>
+                      <select id="status" name="status" value={ticketFilters.status} onChange={handleInputChange} className={selectClasses}>
+                        <option value="all">All Statuses</option>
+                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="priority" className={labelClasses}>Priority</label>
+                      <select id="priority" name="priority" value={ticketFilters.priority} onChange={handleInputChange} className={selectClasses}>
+                        <option value="all">All Priorities</option>
+                        {PRIORITY_OPTIONS.map(priority => <option key={priority} value={priority}>{priority}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
+                {currentView === 'dealerships' && (
+                  <>
+                    <div>
+                      <label htmlFor="searchTerm" className={labelClasses}>Search</label>
+                      <input
+                        type="text"
+                        id="searchTerm"
+                        name="searchTerm"
+                        value={dealershipFilters.searchTerm}
+                        onChange={handleInputChange}
+                        placeholder="Search accounts..."
+                        className={inputClasses}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="status" className={labelClasses}>Status</label>
+                      <select id="status" name="status" value={dealershipFilters.status} onChange={handleInputChange} className={selectClasses}>
+                        <option value="all">All Statuses</option>
+                        {DEALERSHIP_STATUS_OPTIONS.map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

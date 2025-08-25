@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -21,10 +22,10 @@ import ProjectDetailView from './components/ProjectDetailView.tsx';
 import ProjectForm from './components/ProjectForm.tsx';
 import DealershipList from './components/DealershipList.tsx';
 import DealershipDetailView from './components/DealershipDetailView.tsx';
-import DealershipForm from './components/DealershipForm.tsx';
 import DealershipInsights from './components/DealershipInsights.tsx';
 import { useToast } from './hooks/useToast.ts';
 import Toast from './components/common/Toast.tsx';
+import DealershipForm from './components/DealershipForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -420,12 +421,17 @@ const App: React.FC = () => {
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
 
-  const [filters, setFilters] = useState<FilterState>({
+  const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
     status: 'all',
     priority: 'all',
     type: 'all',
     productArea: 'all',
+  });
+  
+  const [dealershipFilters, setDealershipFilters] = useState<DealershipFilterState>({
+    searchTerm: '',
+    status: 'all',
   });
   
   const [currentView, setCurrentView] = useState<View>('tickets');
@@ -446,7 +452,7 @@ const App: React.FC = () => {
   const filteredTickets = useMemo(() => {
     return tickets
       .filter(ticket => {
-        const searchTermLower = filters.searchTerm.toLowerCase();
+        const searchTermLower = ticketFilters.searchTerm.toLowerCase();
         const ticketDescription = ticket.type === TicketType.Issue ? (ticket as IssueTicket).problem : (ticket as FeatureRequestTicket).improvement;
         const matchesSearch =
           ticket.title.toLowerCase().includes(searchTermLower) ||
@@ -457,15 +463,32 @@ const App: React.FC = () => {
           (ticket.pmrNumber && ticket.pmrNumber.toLowerCase().includes(searchTermLower)) ||
           (ticket.fpTicketNumber && ticket.fpTicketNumber.toLowerCase().includes(searchTermLower));
 
-        const matchesStatus = filters.status === 'all' || ticket.status === filters.status;
-        const matchesPriority = filters.priority === 'all' || ticket.priority === filters.priority;
-        const matchesType = filters.type === 'all' || ticket.type === filters.type;
-        const matchesProductArea = filters.productArea === 'all' || ticket.productArea === filters.productArea;
+        const matchesStatus = ticketFilters.status === 'all' || ticket.status === ticketFilters.status;
+        const matchesPriority = ticketFilters.priority === 'all' || ticket.priority === ticketFilters.priority;
+        const matchesType = ticketFilters.type === 'all' || ticket.type === ticketFilters.type;
+        const matchesProductArea = ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea;
 
         return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesProductArea;
       })
       .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
-  }, [tickets, filters]);
+  }, [tickets, ticketFilters]);
+  
+  const filteredDealerships = useMemo(() => {
+    return dealerships
+        .filter(dealership => {
+            const searchTermLower = dealershipFilters.searchTerm.toLowerCase();
+            const matchesSearch =
+                dealership.name.toLowerCase().includes(searchTermLower) ||
+                dealership.accountNumber.toLowerCase().includes(searchTermLower) ||
+                (dealership.enterprise && dealership.enterprise.toLowerCase().includes(searchTermLower)) ||
+                (dealership.assignedSpecialist && dealership.assignedSpecialist.toLowerCase().includes(searchTermLower));
+
+            const matchesStatus = dealershipFilters.status === 'all' || dealership.status === dealershipFilters.status;
+
+            return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+  }, [dealerships, dealershipFilters]);
   
   const performanceInsights = useMemo(() => {
     const openTickets = tickets.filter(t => t.status !== Status.Completed).length;
@@ -959,8 +982,10 @@ const App: React.FC = () => {
             onClose={hideToast}
         />
         <LeftSidebar 
-            filters={filters} 
-            setFilters={setFilters} 
+            ticketFilters={ticketFilters} 
+            setTicketFilters={setTicketFilters}
+            dealershipFilters={dealershipFilters}
+            setDealershipFilters={setDealershipFilters}
             isOpen={isSidebarOpen}
             onClose={() => setIsSidebarOpen(false)}
             currentView={currentView}
@@ -999,7 +1024,7 @@ const App: React.FC = () => {
                 {currentView === 'dealerships' && (
                   <>
                     <DealershipInsights {...dealershipInsights} />
-                    <DealershipList dealerships={dealerships} onDealershipClick={handleDealershipClick} />
+                    <DealershipList dealerships={filteredDealerships} onDealershipClick={handleDealershipClick} />
                   </>
                 )}
             </div>
