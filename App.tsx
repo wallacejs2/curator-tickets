@@ -115,7 +115,19 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setEditableTicket(prev => ({ ...prev!, [name]: value }));
+    setEditableTicket(prev => {
+        const newState = { ...prev!, [name]: value };
+        if (name === 'type') {
+          // If the current priority is not valid for the new type, reset it to a default.
+          const currentPriority = newState.priority;
+          const isIssue = value === TicketType.Issue;
+          const validPriorities = isIssue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS;
+          if (!validPriorities.includes(currentPriority as Priority)) {
+              newState.priority = isIssue ? Priority.P3 : Priority.P5;
+          }
+        }
+        return newState;
+    });
   };
   
   const handleSave = () => {
@@ -132,16 +144,18 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   const projectName = ticket.projectId ? (projects.find(p => p.id === ticket.projectId)?.name || 'N/A') : 'None';
 
   if (isEditing) {
+    const issueTicket = editableTicket as IssueTicket;
+    const featureRequestTicket = editableTicket as FeatureRequestTicket;
     return (
         <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div className="flex justify-end items-center gap-3 mb-6">
                 <button type="button" onClick={() => setIsEditing(false)} className="bg-white text-gray-700 font-semibold px-4 py-1.5 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">Save</button>
+                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">Save Changes</button>
             </div>
              <FormSection title="Core Information">
                 <div className="col-span-2">
                     <label className={labelClasses}>Title</label>
-                    <input type="text" name="title" value={(editableTicket as any).title} onChange={handleFormChange} required className={formElementClasses} />
+                    <input type="text" name="title" value={editableTicket.title} onChange={handleFormChange} required className={formElementClasses} />
                 </div>
                 <div>
                     <label className={labelClasses}>Submitter Name</label>
@@ -151,8 +165,52 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                     <label className={labelClasses}>Client</label>
                     <input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses} />
                 </div>
+                <div className="col-span-2">
+                    <label className={labelClasses}>Location of Feature/Issue</label>
+                    <input type="text" name="location" value={editableTicket.location} onChange={handleFormChange} required className={formElementClasses}/>
+                </div>
              </FormSection>
-             <FormSection title="Tracking">
+
+             <FormSection title="Categorization" gridCols={3}>
+                <div>
+                    <label className={labelClasses}>Type</label>
+                    <select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>
+                        {Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className={labelClasses}>Product Area</label>
+                    <select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>
+                        {Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className={labelClasses}>Platform</label>
+                    <select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>
+                        {Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                </div>
+             </FormSection>
+
+            <FormSection title={editableTicket.type === TicketType.Issue ? 'Issue Details' : 'Feature Request Details'} gridCols={1}>
+                {editableTicket.type === TicketType.Issue ? (
+                    <div className="space-y-5">
+                        <div><label className={labelClasses}>Problem</label><textarea name="problem" value={issueTicket.problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                        <div><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={issueTicket.duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                        <div><label className={labelClasses}>Workaround</label><textarea name="workaround" value={issueTicket.workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
+                        <div><label className={labelClasses}>Frequency</label><textarea name="frequency" value={issueTicket.frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+                    </div>
+                ) : (
+                    <div className="space-y-5">
+                            <div><label className={labelClasses}>Improvement</label><textarea name="improvement" value={featureRequestTicket.improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                            <div><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={featureRequestTicket.currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                            <div><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={featureRequestTicket.suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                            <div><label className={labelClasses}>Benefits</label><textarea name="benefits" value={featureRequestTicket.benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+                    </div>
+                )}
+            </FormSection>
+             
+             <FormSection title="Tracking & Status">
                  <div>
                     <label className={labelClasses}>Status</label>
                     <select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>
@@ -187,8 +245,23 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                     </div>
                 )}
              </FormSection>
+
+            <FormSection title="External Identifiers" gridCols={3}>
+                <div>
+                    <label className={labelClasses}>PMR Number</label>
+                    <input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses} />
+                </div>
+                <div>
+                    <label className={labelClasses}>FP Ticket Number</label>
+                    <input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses} />
+                </div>
+                <div>
+                    <label className={labelClasses}>Ticket Thread ID</label>
+                    <input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses} />
+                </div>
+            </FormSection>
         </form>
-    )
+    );
   }
 
   return (
@@ -269,6 +342,36 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
         {/* Updates Section */}
         <div className="border-t border-gray-200 pt-6">
           <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
+          
+          <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Add a new update</h4>
+            <div className="mb-2">
+                <input
+                    type="text"
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    placeholder="Your Name"
+                    required
+                    className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+            <div className="mb-2">
+                <textarea
+                    value={newUpdate}
+                    onChange={(e) => setNewUpdate(e.target.value)}
+                    placeholder="Type your comment here..."
+                    required
+                    rows={3}
+                    className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+            </div>
+            <div className="flex justify-end">
+                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                    Add Update
+                </button>
+            </div>
+          </form>
+          
           <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
             {ticket.updates && ticket.updates.length > 0 ? (
               [...ticket.updates].reverse().map((update, index) => (
@@ -283,30 +386,6 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
               <p className="text-sm text-gray-500 italic">No updates have been added yet.</p>
             )}
           </div>
-          <form onSubmit={handleUpdateSubmit} className="mt-4 p-3 border border-gray-200 rounded-md">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Add a new update</h4>
-            <textarea
-              value={newUpdate}
-              onChange={(e) => setNewUpdate(e.target.value)}
-              placeholder="Type your comment here..."
-              required
-              rows={3}
-              className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex items-center gap-4 mt-2">
-              <input
-                type="text"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                placeholder="Your Name"
-                required
-                className="flex-grow w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              />
-              <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
-                Add Update
-              </button>
-            </div>
-          </form>
         </div>
         
         {/* Completion Notes Section */}
