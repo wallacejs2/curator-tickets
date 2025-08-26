@@ -429,6 +429,57 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   );
 };
 
+const ImportSection: React.FC<{
+    title: string;
+    onImport: (file: File, mode: 'append' | 'replace') => void;
+    showToast: (message: string, type: 'success' | 'error') => void;
+}> = ({ title, onImport, showToast }) => {
+    const [file, setFile] = useState<File | null>(null);
+    const [mode, setMode] = useState<'append' | 'replace'>('append');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setFile(e.target.files[0]);
+        }
+    };
+
+    const handleImportClick = () => {
+        if (file) {
+            onImport(file, mode);
+            setFile(null); // Reset after import
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        } else {
+            showToast('Please select a file to import.', 'error');
+        }
+    };
+
+    return (
+        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <h4 className="font-semibold text-gray-800">{title}</h4>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr,auto,auto] gap-3 items-center">
+                <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileChange}
+                    ref={fileInputRef}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                    aria-label={`Upload CSV for ${title}`}
+                />
+                <select value={mode} onChange={e => setMode(e.target.value as 'append' | 'replace')} className="bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 h-full">
+                    <option value="append">Append</option>
+                    <option value="replace">Replace</option>
+                </select>
+                <button onClick={handleImportClick} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm h-full flex items-center justify-center gap-2">
+                   <UploadIcon className="w-4 h-4" />
+                   <span>Import</span>
+                </button>
+            </div>
+        </div>
+    );
+};
 
 function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
@@ -445,6 +496,8 @@ function App() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
@@ -854,6 +907,130 @@ function App() {
         onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
     }), [dealerships]);
 
+    const handleExport = (data: any[], fileName: string) => {
+        if (data.length === 0) {
+            showToast('No data to export.', 'error');
+            return;
+        }
+
+        const allKeys = new Set<string>();
+        data.forEach(row => {
+            Object.keys(row).forEach(key => allKeys.add(key));
+        });
+        const headers = Array.from(allKeys);
+        const csvRows = [headers.join(',')];
+
+        data.forEach(row => {
+            const values = headers.map(header => {
+                let value = row[header];
+                if (value === null || value === undefined) {
+                    return '';
+                }
+                if (typeof value === 'object') {
+                    value = JSON.stringify(value);
+                }
+                const stringValue = String(value);
+                if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                return stringValue;
+            });
+            csvRows.push(values.join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast(`${fileName} exported successfully!`, 'success');
+    };
+
+    const handleImport = (file: File, setter: React.Dispatch<React.SetStateAction<any[]>>, mode: 'append' | 'replace') => {
+        if (!file) {
+            showToast('No file selected.', 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const csvString = event.target?.result as string;
+
+                const parseCsvLine = (line: string): string[] => {
+                    const result: string[] = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            if (inQuotes && line[i+1] === '"') {
+                                current += '"';
+                                i++;
+                            } else {
+                                inQuotes = !inQuotes;
+                            }
+                        } else if (char === ',' && !inQuotes) {
+                            result.push(current);
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current);
+                    return result;
+                };
+
+                const lines = csvString.trim().split(/\r?\n/);
+                if (lines.length < 2) {
+                    showToast('CSV file is empty or has no data.', 'error');
+                    return;
+                }
+                const headers = parseCsvLine(lines[0]);
+                
+                const data = lines.slice(1).map(line => {
+                    if (!line.trim()) return null;
+                    const values = parseCsvLine(line);
+                    const obj: { [key: string]: any } = {};
+                    headers.forEach((header, index) => {
+                        let value: any = values[index];
+                        try {
+                           if (typeof value === 'string' && ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']')))) {
+                               obj[header] = JSON.parse(value);
+                           } else {
+                               obj[header] = value === '' ? undefined : value;
+                           }
+                        } catch (e) {
+                           obj[header] = value === '' ? undefined : value;
+                        }
+                    });
+                    return obj;
+                }).filter(Boolean);
+
+                if (mode === 'replace') {
+                    setter(data as any[]);
+                } else { // append
+                    const dataWithNewIds = data.map(item => ({ ...item, id: crypto.randomUUID() }));
+                    setter((currentData: any[]) => [...currentData, ...dataWithNewIds]);
+                }
+                showToast(`Data imported from ${file.name} successfully.`, 'success');
+                setIsImportModalOpen(false);
+            } catch (error) {
+                console.error("Error parsing CSV:", error);
+                showToast(`Failed to parse ${file.name}. Check console for details.`, 'error');
+            }
+        };
+        reader.onerror = () => {
+            showToast(`Error reading file ${file.name}.`, 'error');
+        };
+        reader.readAsText(file);
+    };
+
     const getFormTitle = () => {
         switch (currentView) {
             case 'tickets': return 'Create New Ticket';
@@ -908,6 +1085,8 @@ function App() {
         onClose={() => setIsSidebarOpen(false)}
         currentView={currentView}
         onViewChange={handleViewChange}
+        onImportClick={() => setIsImportModalOpen(true)}
+        onExportClick={() => setIsExportModalOpen(true)}
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200">
@@ -964,6 +1143,55 @@ function App() {
             />
         </Modal>
       )}
+
+      {isExportModalOpen && (
+        <Modal title="Export Data" onClose={() => setIsExportModalOpen(false)}>
+            <div className="space-y-4">
+                <p className="text-gray-600">Download your data as CSV files. Each file corresponds to a data type in the application.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {[
+                        { data: tickets, name: 'Tickets', filename: 'tickets.csv' },
+                        { data: projects, name: 'Projects', filename: 'projects.csv' },
+                        { data: dealerships, name: 'Dealerships', filename: 'dealerships.csv' },
+                        { data: tasks, name: 'Standalone Tasks', filename: 'tasks.csv' },
+                        { data: features, name: 'Features', filename: 'features.csv' },
+                        { data: meetings, name: 'Meetings', filename: 'meetings.csv' },
+                    ].map(item => (
+                         <button
+                            key={item.name}
+                            onClick={() => handleExport(item.data, item.filename)}
+                            className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold px-4 py-2.5 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm transition-colors"
+                        >
+                            <DownloadIcon className="w-4 h-4"/>
+                            <span>Export {item.name} ({item.data.length})</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </Modal>
+      )}
+
+       {isImportModalOpen && (
+          <Modal title="Import Data" onClose={() => setIsImportModalOpen(false)}>
+              <div className="space-y-6">
+                  <div>
+                    <p className="text-sm text-gray-700">Import data from CSV files. Please ensure the CSV format matches the export format for best results.</p>
+                    <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm">
+                        <p><strong>Append:</strong> Adds new records. New IDs will be generated, which may break relationships (e.g., ticket-to-project links).</p>
+                        <p className="mt-1"><strong>Replace:</strong> Deletes all current data and replaces it with the file's content.</p>
+                    </div>
+                  </div>
+
+                  <ImportSection title="Tickets" onImport={(file, mode) => handleImport(file, setTickets, mode)} showToast={showToast} />
+                  <ImportSection title="Projects" onImport={(file, mode) => handleImport(file, setProjects, mode)} showToast={showToast} />
+                  <ImportSection title="Dealerships" onImport={(file, mode) => handleImport(file, setDealerships, mode)} showToast={showToast} />
+                  <ImportSection title="Standalone Tasks" onImport={(file, mode) => handleImport(file, setTasks, mode)} showToast={showToast} />
+                  <ImportSection title="Features" onImport={(file, mode) => handleImport(file, setFeatures, mode)} showToast={showToast} />
+                  <ImportSection title="Meetings" onImport={(file, mode) => handleImport(file, setMeetings, mode)} showToast={showToast} />
+              </div>
+          </Modal>
+      )}
+
 
       <SideView 
         title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || ''}
