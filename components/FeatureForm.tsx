@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform } from '../types.ts';
 
@@ -53,6 +52,7 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
     } else {
       onSubmit(submissionData);
     }
+    onClose();
   };
 
   const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";

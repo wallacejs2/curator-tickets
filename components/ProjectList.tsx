@@ -80,6 +80,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
         <div className="flex justify-between items-start gap-3">
             <div className="flex items-center gap-2">
                  <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+                 {/* FIX: Replaced invalid 'title' prop on component with a wrapper span that has a valid title attribute for tooltips. */}
                  {hasLinkedTasks && <span title="This project has linked tasks"><LinkIcon className="w-4 h-4 text-gray-500 flex-shrink-0" /></span>}
             </div>
           <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColor.bg} ${statusColor.text}`}>

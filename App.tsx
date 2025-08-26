@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
+import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
 import SideView from './components/common/SideView.tsx';
 import { PencilIcon } from './components/icons/PencilIcon.tsx';
@@ -13,10 +14,13 @@ import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTION
 import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
+import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
 import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings } from './mockData.ts';
+import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
+import ProjectForm from './components/ProjectForm.tsx';
 import DealershipList from './components/DealershipList.tsx';
 import DealershipDetailView from './components/DealershipDetailView.tsx';
 import DealershipInsights from './components/DealershipInsights.tsx';
@@ -28,7 +32,7 @@ import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
 import MeetingList from './components/MeetingList.tsx';
 import MeetingDetailView from './components/MeetingDetailView.tsx';
-import AddSideView from './components/common/AddSideView.tsx';
+import MeetingForm from './components/MeetingForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -122,7 +126,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
     if (isEditing && ticket.id !== editableTicket.id) {
         setIsEditing(false);
     }
-  }, [ticket, isEditing]);
+  }, [ticket]);
 
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,12 +191,14 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   };
 
   const handleUnlinkProject = () => {
-    const { projectId, ...rest } = ticket;
-    onUpdate(rest as Ticket);
+    const updatedTicket = { ...ticket, projectId: undefined };
+    onUpdate(updatedTicket);
   };
 
   const projectName = ticket.projectId ? projects.find(p => p.id === ticket.projectId)?.name : 'N/A';
-  const linkedTickets = (ticket.linkedTicketIds || []).map(id => tickets.find(t => t.id === id)).filter(Boolean) as Ticket[];
+  const linkedTickets = (ticket.linkedTicketIds || [])
+    .map(id => tickets.find(t => t.id === id))
+    .filter((t): t is Ticket => Boolean(t));
 
   const renderViewMode = () => (
     <>
@@ -258,7 +264,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
         </FormSection>
         
         <FormSection title="Dates" gridCols={3}>
-            <div><label className={labelClasses}>Submission Date</label><input type="date" name="submissionDate" value={editableTicket.submissionDate?.split('T')[0] || ''} onChange={handleDateChange} required className={formElementClasses} /></div>
+            <div><label className={labelClasses}>Submission Date</label><input type="date" name="submissionDate" value={editableTicket.submissionDate.split('T')[0] || ''} onChange={handleDateChange} required className={formElementClasses} /></div>
             <div><label className={labelClasses}>Start Date</label><input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
             <div><label className={labelClasses}>Est. Completion Date</label><input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
             {editableTicket.status === Status.Completed && (<div><label className={labelClasses}>Completion Date</label><input type="date" name="completionDate" value={editableTicket.completionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>)}
@@ -412,7 +418,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
             </form>
           <div className="space-y-4">
           {[...(ticket.updates || [])].reverse().map((update, index) => (
-              <div key={`${update.date}-${index}`} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+              <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
                   <p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleString()}</span></p>
                   <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
               </div>
@@ -437,7 +443,7 @@ function App() {
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
 
-  const [isAddViewOpen, setIsAddViewOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
@@ -456,6 +462,7 @@ function App() {
   const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
   
   const [currentView, setCurrentView] = useState<View>('tickets');
+  const [editingDealership, setEditingDealership] = useState<Dealership | null>(null);
   const [editingFeature, setEditingFeature] = useState<FeatureAnnouncement | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
@@ -474,18 +481,6 @@ function App() {
     }));
     return [...projectTasks, ...standaloneTasks];
   }, [projects, tasks]);
-
-  // Centralized state update handler to prevent data desync
-  const handleUpdateTicketsAndSelection = (updater: (prevTickets: Ticket[]) => Ticket[]) => {
-      setTickets(prevTickets => {
-          const newTickets = updater(prevTickets);
-          if (selectedTicket) {
-              const newSelectedTicket = newTickets.find(t => t.id === selectedTicket.id);
-              setSelectedTicket(newSelectedTicket || null);
-          }
-          return newTickets;
-      });
-  };
   
   const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
     const newTicket = {
@@ -550,9 +545,11 @@ function App() {
   };
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
-    const updater = (prev: Ticket[]) => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t);
-    handleUpdateTicketsAndSelection(updater);
+    setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
     showToast('Ticket updated successfully!', 'success');
+    if (selectedTicket?.id === updatedTicket.id) {
+        setSelectedTicket(updatedTicket);
+    }
   };
   
   const handleUpdateProject = (updatedProject: Project) => {
@@ -585,7 +582,7 @@ function App() {
     const ticketToDelete = tickets.find(t => t.id === ticketId);
     if (!ticketToDelete) return;
 
-    handleUpdateTicketsAndSelection(prev => prev.filter(t => t.id !== ticketId));
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
 
     if (ticketToDelete.projectId) {
         setProjects(prev => prev.map(p => {
@@ -603,14 +600,13 @@ function App() {
       const projectToDelete = projects.find(p => p.id === projectId);
       if (!projectToDelete) return;
       
-      const updater = (prevTickets: Ticket[]) => prevTickets.map(t => {
+      setTickets(prevTickets => prevTickets.map(t => {
           if (t.projectId === projectId) {
               const { projectId, ...rest } = t;
               return rest as Ticket;
           }
           return t;
-      });
-      handleUpdateTicketsAndSelection(updater);
+      }));
 
       setProjects(prev => prev.filter(p => p.id !== projectId));
       showToast('Project deleted successfully!', 'success');
@@ -642,35 +638,35 @@ function App() {
   };
   
   const handleAddUpdate = (id: string, comment: string, author: string, date: string) => {
-    if (currentView === 'tickets') {
-        const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
-        const updater = (prev: Ticket[]) => prev.map(t => 
-            t.id === id ? { ...t, updates: [...(t.updates || []), newUpdate] } : t
-        );
-        handleUpdateTicketsAndSelection(updater);
-        showToast('Update added to ticket!', 'success');
+    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
+    
+    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+        const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate] };
+        setSelectedTicket(updatedTicket);
+        setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
     } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
-        const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
         const updatedProject = { ...selectedProject, updates: [...(selectedProject.updates || []), newUpdate] };
         setSelectedProject(updatedProject);
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
-        showToast('Update added to project!', 'success');
     }
+    showToast('Update added!', 'success');
   };
   
   const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
-      const updater = (prev: Ticket[]) => prev.map(t => t.id === ticketId ? { ...t, completionNotes: notes } : t);
-      handleUpdateTicketsAndSelection(updater);
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, completionNotes: notes } : t));
+      if (selectedTicket?.id === ticketId) {
+          setSelectedTicket(prev => prev ? { ...prev, completionNotes: notes } : null);
+      }
       showToast('Completion notes updated!', 'success');
   };
   
   const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
-      const updater = (prev: Ticket[]) => prev.map(t => {
+      setTickets(prev => prev.map(t => {
           if (t.id === ticketId) {
               const updatedTicket: Ticket = { ...t, status: newStatus };
               if (newStatus === Status.OnHold) {
                   updatedTicket.onHoldReason = onHoldReason;
-              } else if (updatedTicket.onHoldReason) {
+              } else {
                   delete updatedTicket.onHoldReason;
               }
               if (newStatus === Status.Completed && !t.completionDate) {
@@ -679,8 +675,7 @@ function App() {
               return updatedTicket;
           }
           return t;
-      });
-      handleUpdateTicketsAndSelection(updater);
+      }));
   };
 
     const handleExportTicket = (ticket: Ticket) => {
@@ -720,38 +715,47 @@ function App() {
     };
 
     const handleLinkTicket = (fromTicketId: string, toTicketId: string) => {
-        const updater = (prevTickets: Ticket[]) => {
-            const newTickets = [...prevTickets];
-            const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
-            const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
+    setTickets(prevTickets => {
+        const newTickets = [...prevTickets];
+        const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
+        const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
 
-            if (fromTicketIndex === -1 || toTicketIndex === -1) return prevTickets;
-            
-            const fromTicket = { ...newTickets[fromTicketIndex] };
-            if (!(fromTicket.linkedTicketIds || []).includes(toTicketId)) {
-                fromTicket.linkedTicketIds = [...(fromTicket.linkedTicketIds || []), toTicketId];
-            }
-            newTickets[fromTicketIndex] = fromTicket;
+        if (fromTicketIndex === -1 || toTicketIndex === -1) {
+            console.error("One or both tickets not found for linking");
+            return prevTickets;
+        }
+        
+        const fromTicket = { ...newTickets[fromTicketIndex] };
+        if (!(fromTicket.linkedTicketIds || []).includes(toTicketId)) {
+            fromTicket.linkedTicketIds = [...(fromTicket.linkedTicketIds || []), toTicketId];
+        }
+        newTickets[fromTicketIndex] = fromTicket;
 
-            const toTicket = { ...newTickets[toTicketIndex] };
-            if (!(toTicket.linkedTicketIds || []).includes(fromTicketId)) {
-                toTicket.linkedTicketIds = [...(toTicket.linkedTicketIds || []), fromTicketId];
-            }
-            newTickets[toTicketIndex] = toTicket;
-            
-            return newTickets;
-        };
-        handleUpdateTicketsAndSelection(updater);
-        showToast('Tickets linked successfully!', 'success');
+        const toTicket = { ...newTickets[toTicketIndex] };
+        if (!(toTicket.linkedTicketIds || []).includes(fromTicketId)) {
+            toTicket.linkedTicketIds = [...(toTicket.linkedTicketIds || []), fromTicketId];
+        }
+        newTickets[toTicketIndex] = toTicket;
+
+        if (selectedTicket?.id === fromTicketId) {
+            setSelectedTicket(fromTicket);
+        }
+        
+        return newTickets;
+    });
+    showToast('Tickets linked successfully!', 'success');
   };
 
   const handleUnlinkTicket = (fromTicketId: string, toTicketId: string) => {
-      const updater = (prevTickets: Ticket[]) => {
+      setTickets(prevTickets => {
           const newTickets = [...prevTickets];
           const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
           const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
 
-          if (fromTicketIndex === -1 || toTicketIndex === -1) return prevTickets;
+          if (fromTicketIndex === -1 || toTicketIndex === -1) {
+              console.error("One or both tickets not found for unlinking");
+              return prevTickets;
+          }
 
           const fromTicket = { ...newTickets[fromTicketIndex] };
           fromTicket.linkedTicketIds = (fromTicket.linkedTicketIds || []).filter(id => id !== toTicketId);
@@ -760,10 +764,13 @@ function App() {
           const toTicket = { ...newTickets[toTicketIndex] };
           toTicket.linkedTicketIds = (toTicket.linkedTicketIds || []).filter(id => id !== fromTicketId);
           newTickets[toTicketIndex] = toTicket;
+
+          if (selectedTicket?.id === fromTicketId) {
+              setSelectedTicket(fromTicket);
+          }
           
           return newTickets;
-      };
-      handleUpdateTicketsAndSelection(updater);
+      });
       showToast('Ticket unlinked successfully!', 'success');
   };
 
@@ -844,6 +851,40 @@ function App() {
         onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
     }), [dealerships]);
 
+    const getFormTitle = () => {
+        switch (currentView) {
+            case 'tickets': return 'Create New Ticket';
+            case 'projects': return 'Create New Project';
+            case 'dealerships': return 'Create New Account';
+            case 'features': return 'Add Feature Announcement';
+            case 'meetings': return 'Add New Meeting Note';
+            default: return 'Create New Item';
+        }
+    }
+    
+    const renderForm = () => {
+        switch (currentView) {
+            case 'tickets': return <TicketForm onSubmit={data => { handleTicketSubmit(data); setIsFormOpen(false); }} projects={projects} />;
+            case 'projects': return <ProjectForm onSubmit={data => { handleProjectSubmit(data); setIsFormOpen(false); }} />;
+            case 'dealerships': return <DealershipForm onSubmit={data => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)}/>;
+            case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
+            case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
+            default: return null;
+        }
+    }
+
+    const getNewButtonText = () => {
+        switch (currentView) {
+            case 'tickets': return 'New Ticket';
+            case 'projects': return 'New Project';
+            case 'dealerships': return 'New Account';
+            case 'features': return 'New Feature';
+            case 'meetings': return 'New Note';
+            case 'tasks': return ''; // No main "new" button for tasks view
+            default: return 'New Item';
+        }
+    }
+    
     const handleViewChange = (view: View) => {
         setCurrentView(view);
         setSelectedTicket(null);
@@ -871,6 +912,12 @@ function App() {
             <MenuIcon className="w-6 h-6" />
           </button>
           <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView} Dashboard</h1>
+          {getNewButtonText() && (
+            <button onClick={() => setIsFormOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                <PlusIcon className="w-5 h-5" />
+                <span>{getNewButtonText()}</span>
+            </button>
+          )}
         </header>
 
         <div className="flex-1 p-6 overflow-y-auto">
@@ -898,6 +945,12 @@ function App() {
         </div>
       </main>
       
+      {isFormOpen && (
+          <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
+              {renderForm()}
+          </Modal>
+      )}
+
       {editingFeature && (
         <Modal title="Edit Feature Announcement" onClose={() => setEditingFeature(null)}>
             <FeatureForm 
@@ -938,25 +991,6 @@ function App() {
         {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} />}
         {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} projects={projects} tickets={tickets} onUpdateProject={handleUpdateProject} onUpdateTicket={handleUpdateTicket}/>}
       </SideView>
-
-      <AddSideView
-        isOpen={isAddViewOpen}
-        onClose={() => setIsAddViewOpen(false)}
-        projects={projects}
-        onTicketSubmit={handleTicketSubmit}
-        onProjectSubmit={handleProjectSubmit}
-        onDealershipSubmit={handleDealershipSubmit}
-        onFeatureSubmit={handleFeatureSubmit}
-        onMeetingSubmit={handleMeetingSubmit}
-      />
-      
-      <button
-        onClick={() => setIsAddViewOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 z-40 transition-transform hover:scale-105"
-        aria-label="Add New Item"
-      >
-        <PlusIcon className="w-6 h-6" />
-      </button>
     </div>
   );
 }

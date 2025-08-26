@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Meeting } from '../types.ts';
 
@@ -16,11 +15,13 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ onSubmit, onClose }) => {
     const [attendees, setAttendees] = useState('');
     const [notes, setNotes] = useState('');
     const notesEditorRef = useRef<HTMLDivElement>(null);
+    // FIX: Add state to manage the placeholder for the contentEditable div
     const [isNotesEmpty, setIsNotesEmpty] = useState(true);
 
     const handleNotesInput = () => {
         if (notesEditorRef.current) {
             setNotes(notesEditorRef.current.innerHTML);
+            // FIX: Update placeholder visibility based on content
             setIsNotesEmpty(!notesEditorRef.current.textContent?.trim());
         }
     };
@@ -42,6 +43,7 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ onSubmit, onClose }) => {
             projectIds: [],
             ticketIds: [],
         });
+        onClose();
     };
 
     const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
@@ -84,6 +86,7 @@ const MeetingForm: React.FC<MeetingFormProps> = ({ onSubmit, onClose }) => {
                         aria-multiline="true"
                         aria-label="Meeting notes"
                     />
+                    {/* FIX: Removed invalid 'placeholder' attribute and implemented a custom placeholder */}
                     {isNotesEmpty && (
                         <div className="absolute top-[49px] left-2 text-sm text-gray-500 pointer-events-none select-none">
                             Type your notes here...
