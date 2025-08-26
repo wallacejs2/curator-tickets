@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -250,4 +250,36 @@ export const initialDealerships: Dealership[] = [
     address: '789 Budget Ave, Thriftyville, TX 75001',
     assignedSpecialist: 'Peter Jones',
   },
+];
+
+export const initialFeatures: FeatureAnnouncement[] = [
+  {
+    id: 'feat-1',
+    title: 'Dark Mode',
+    location: 'Entire Application',
+    description: 'A new dark mode theme has been introduced to reduce eye strain in low-light environments. You can enable it from your user settings.',
+    launchDate: new Date('2024-08-15T00:00:00Z').toISOString(),
+    version: 'v3.0.0',
+    platform: Platform.UCP,
+    status: FeatureStatus.Launched,
+  },
+  {
+    id: 'feat-2',
+    title: 'Project Task Drag & Drop',
+    location: 'Project Detail View',
+    description: 'You can now reorder tasks within a project by simply dragging and dropping them. This makes organizing your project workflow more intuitive.',
+    launchDate: new Date('2024-08-01T00:00:00Z').toISOString(),
+    version: 'v2.9.0',
+    platform: Platform.Curator,
+    status: FeatureStatus.Launched,
+  },
+  {
+    id: 'feat-3',
+    title: 'Advanced Reporting Filters',
+    location: 'Reports Page',
+    description: 'We are adding more granular filtering options to the reporting suite, allowing you to create more specific and insightful reports. This will include filtering by custom date ranges and additional ticket properties.',
+    launchDate: new Date('2024-09-01T00:00:00Z').toISOString(),
+    platform: Platform.Curator,
+    status: FeatureStatus.Upcoming,
+  }
 ];

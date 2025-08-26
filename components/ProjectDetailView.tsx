@@ -12,7 +12,7 @@ interface ProjectDetailViewProps {
   onDelete: (projectId: string) => void;
   tickets: Ticket[];
   onUpdateTicket: (ticket: Ticket) => void;
-  onAddUpdate: (projectId: string, comment: string, author: string) => void;
+  onAddUpdate: (projectId: string, comment: string, author: string, date: string) => void;
 }
 
 const EditTaskForm: React.FC<{ task: Task, onSave: (task: Task) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
@@ -94,6 +94,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     // Form state for new update
     const [newUpdate, setNewUpdate] = useState('');
     const [authorName, setAuthorName] = useState('');
+    const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
+
 
     // Drag-and-drop state
     const dragItem = useRef<string | null>(null);
@@ -130,8 +132,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
 
     const handleUpdateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newUpdate.trim() && authorName.trim()) {
-          onAddUpdate(project.id, newUpdate.trim(), authorName.trim());
+        if (newUpdate.trim() && authorName.trim() && updateDate) {
+          onAddUpdate(project.id, newUpdate.trim(), authorName.trim(), updateDate);
           setNewUpdate('');
         }
     };
@@ -385,7 +387,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
 
             <div className="mt-8 pt-6 border-t border-gray-200">
                 <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
-                <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4">
+                 <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4">
                     <h4 className="text-sm font-semibold text-gray-700 mb-2">Add a new update</h4>
                     <div className="mb-2">
                         <input
@@ -393,6 +395,15 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                             value={authorName}
                             onChange={(e) => setAuthorName(e.target.value)}
                             placeholder="Your Name"
+                            required
+                            className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="mb-2">
+                        <input
+                            type="date"
+                            value={updateDate}
+                            onChange={(e) => setUpdateDate(e.target.value)}
                             required
                             className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                         />

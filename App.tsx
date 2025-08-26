@@ -1,6 +1,7 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -15,7 +16,7 @@ import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
@@ -27,6 +28,8 @@ import { useToast } from './hooks/useToast.ts';
 import Toast from './components/common/Toast.tsx';
 import DealershipForm from './components/DealershipForm.tsx';
 import TaskList from './components/TaskList.tsx';
+import FeatureList from './components/FeatureList.tsx';
+import FeatureForm from './components/FeatureForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -88,25 +91,54 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void, projects: Project[] }) => {
+const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string, date: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void, projects: Project[] }) => {
   const [newUpdate, setNewUpdate] = useState('');
   const [authorName, setAuthorName] = useState('');
+  const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [completionNotes, setCompletionNotes] = useState(ticket.completionNotes || '');
   const [isEditing, setIsEditing] = useState(false);
   const [editableTicket, setEditableTicket] = useState<Ticket>(ticket);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  
+  const commentEditorRef = useRef<HTMLDivElement>(null);
+  const MAX_COMMENT_LENGTH = 2000;
+  const [textContentLength, setTextContentLength] = useState(0);
+  const [isCommentEmpty, setIsCommentEmpty] = useState(true);
 
   useEffect(() => {
     setEditableTicket(ticket);
     setIsEditing(false); // Exit edit mode if the selected ticket changes
   }, [ticket]);
 
+  const handleCommentInput = () => {
+    if (commentEditorRef.current) {
+        const textLength = commentEditorRef.current.textContent?.length || 0;
+        setNewUpdate(commentEditorRef.current.innerHTML);
+        setTextContentLength(textLength);
+        setIsCommentEmpty(!commentEditorRef.current.textContent?.trim());
+    }
+  };
+
+  const handleFormat = (command: string) => {
+      document.execCommand(command, false, undefined);
+      commentEditorRef.current?.focus();
+      handleCommentInput();
+  };
+  
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newUpdate.trim() && authorName.trim()) {
-      onAddUpdate(newUpdate.trim(), authorName.trim());
+    const commentText = commentEditorRef.current?.textContent?.trim() || '';
+    const commentHtml = commentEditorRef.current?.innerHTML || '';
+
+    if (commentText && authorName.trim() && updateDate && textContentLength <= MAX_COMMENT_LENGTH) {
+      onAddUpdate(commentHtml, authorName.trim(), updateDate);
       setNewUpdate('');
+      setTextContentLength(0);
+      setIsCommentEmpty(true);
+      if (commentEditorRef.current) {
+        commentEditorRef.current.innerHTML = '';
+      }
     }
   };
   
@@ -364,23 +396,56 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                     type="text"
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="Your Name"
+                    placeholder="Jayden"
                     required
                     className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
             </div>
-            <div className="mb-2">
-                <textarea
-                    value={newUpdate}
-                    onChange={(e) => setNewUpdate(e.target.value)}
-                    placeholder="Type your comment here..."
+             <div className="mb-2">
+                <input
+                    type="date"
+                    value={updateDate}
+                    onChange={(e) => setUpdateDate(e.target.value)}
                     required
-                    rows={3}
                     className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 />
             </div>
-            <div className="flex justify-end">
-                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+            
+            {/* Fix: Replaced invalid 'placeholder' attribute with a custom placeholder implementation for contentEditable div */}
+            <div className="relative border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500">
+                <div className="p-1 border-b border-gray-300 bg-gray-50 flex items-center gap-1 rounded-t-md">
+                    <button type="button" onClick={() => handleFormat('bold')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 font-bold text-sm w-8 h-8 flex items-center justify-center" aria-label="Bold">B</button>
+                    <button type="button" onClick={() => handleFormat('italic')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 italic text-sm w-8 h-8 flex items-center justify-center" aria-label="Italic">I</button>
+                    <button type="button" onClick={() => handleFormat('insertUnorderedList')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 text-sm w-8 h-8 flex items-center justify-center" aria-label="Bulleted List">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                            <path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div
+                    ref={commentEditorRef}
+                    contentEditable
+                    onInput={handleCommentInput}
+                    className="w-full text-sm p-2 min-h-[80px] focus:outline-none"
+                    role="textbox"
+                    aria-multiline="true"
+                    aria-label="Update comment"
+                />
+                {isCommentEmpty && (
+                    <div className="absolute top-[49px] left-2 text-sm text-gray-500 pointer-events-none select-none">
+                        Type your comment here...
+                    </div>
+                )}
+            </div>
+            <div className={`text-right text-xs mt-1 ${textContentLength > MAX_COMMENT_LENGTH ? 'text-red-500 font-semibold' : 'text-gray-500'}`}>
+                {textContentLength} / {MAX_COMMENT_LENGTH}
+            </div>
+
+            <div className="flex justify-end mt-2">
+                <button 
+                    type="submit"
+                    disabled={isCommentEmpty || textContentLength > MAX_COMMENT_LENGTH}
+                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm disabled:bg-blue-300 disabled:cursor-not-allowed">
                     Add Update
                 </button>
             </div>
@@ -390,10 +455,10 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
             {ticket.updates && ticket.updates.length > 0 ? (
               [...ticket.updates].reverse().map((update, index) => (
                 <div key={index} className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                  <p className="text-sm text-gray-800">{update.comment}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    <span className="font-semibold">{update.author}</span> - {new Date(update.date).toLocaleString()}
-                  </p>
+                    <p className="text-xs text-gray-500 mb-2">
+                        <span className="font-semibold text-gray-700">{update.author}</span> - {new Date(update.date).toLocaleString()}
+                    </p>
+                    <div className="text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }} />
                 </div>
               ))
             ) : (
@@ -434,6 +499,7 @@ const App: React.FC = () => {
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', initialTasks);
+  const [features, setFeatures] = useLocalStorage<FeatureAnnouncement[]>('features', initialFeatures);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
@@ -458,6 +524,8 @@ const App: React.FC = () => {
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [isDealershipFormOpen, setIsDealershipFormOpen] = useState(false);
+  const [isFeatureFormOpen, setIsFeatureFormOpen] = useState(false);
+  const [featureToEdit, setFeatureToEdit] = useState<FeatureAnnouncement | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
 
@@ -593,9 +661,14 @@ const App: React.FC = () => {
       closeSideView();
   };
   
-  const handleAddUpdate = (comment: string, author: string) => {
+  const handleAddUpdate = (comment: string, author: string, date: string) => {
     if (!selectedTicket) return;
-    const newUpdate: Update = { author, comment, date: new Date().toISOString() };
+    
+    const selectedDate = new Date(date); // This is UTC midnight
+    const now = new Date();
+    const finalDate = new Date(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate(), now.getHours(), now.getMinutes(), now.getSeconds());
+
+    const newUpdate: Update = { author, comment, date: finalDate.toISOString() };
     const updatedTicket: Ticket = {
       ...selectedTicket,
       updates: [...(selectedTicket.updates || []), newUpdate],
@@ -646,11 +719,15 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddProjectUpdate = (projectId: string, comment: string, author: string) => {
+  const handleAddProjectUpdate = (projectId: string, comment: string, author: string, date: string) => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return;
+    
+    const selectedDate = new Date(date); // This is UTC midnight
+    const now = new Date();
+    const finalDate = new Date(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate(), now.getHours(), now.getMinutes(), now.getSeconds());
 
-    const newUpdate: Update = { author, comment, date: new Date().toISOString() };
+    const newUpdate: Update = { author, comment, date: finalDate.toISOString() };
     const updatedProject: Project = {
       ...project,
       updates: [...(project.updates || []), newUpdate],
@@ -685,6 +762,33 @@ const App: React.FC = () => {
   const handleDeleteDealership = (dealershipId: string) => {
     setDealerships(prev => prev.filter(d => d.id !== dealershipId));
     closeSideView();
+  };
+  
+  // Feature CRUD
+  const handleAddNewFeature = (newFeatureData: Omit<FeatureAnnouncement, 'id'>) => {
+    const newFeature: FeatureAnnouncement = {
+        ...newFeatureData,
+        id: crypto.randomUUID(),
+    };
+    setFeatures(prev => [newFeature, ...prev]);
+    setIsFeatureFormOpen(false);
+  };
+
+  const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
+    setFeatures(prev => prev.map(f => f.id === updatedFeature.id ? updatedFeature : f));
+    setIsFeatureFormOpen(false);
+    setFeatureToEdit(null);
+  };
+
+  const handleDeleteFeature = (featureId: string) => {
+    if (window.confirm('Are you sure you want to delete this feature announcement?')) {
+        setFeatures(prev => prev.filter(f => f.id !== featureId));
+    }
+  };
+  
+  const handleEditFeature = (feature: FeatureAnnouncement) => {
+      setFeatureToEdit(feature);
+      setIsFeatureFormOpen(true);
   };
 
   // Export and Import
@@ -750,6 +854,10 @@ const App: React.FC = () => {
       case 'dealerships':
         filename = 'dealerships.csv';
         dataToExport = dealerships;
+        break;
+      case 'features':
+        filename = 'features.csv';
+        dataToExport = features;
         break;
     }
 
@@ -823,7 +931,10 @@ const App: React.FC = () => {
         text += '\n--- Updates ---\n';
         if (ticket.updates && ticket.updates.length > 0) {
           [...ticket.updates].reverse().forEach(update => {
-            text += `[${new Date(update.date).toLocaleString()}] ${update.author}:\n${update.comment}\n\n`;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = update.comment;
+            const plainTextComment = tempDiv.textContent || tempDiv.innerText || "";
+            text += `[${new Date(update.date).toLocaleString()}] ${update.author}:\n${plainTextComment}\n\n`;
           });
         } else {
           text += 'No updates.\n';
@@ -928,6 +1039,7 @@ const App: React.FC = () => {
         const isTickets = ['id', 'title', 'type', 'status', 'priority'].every(h => headers.includes(h));
         const isProjects = ['id', 'name', 'status', 'creationDate'].every(h => headers.includes(h));
         const isDealerships = ['id', 'name', 'accountNumber', 'status'].every(h => headers.includes(h));
+        const isFeatures = ['id', 'title', 'launchDate', 'status'].every(h => headers.includes(h));
         
         if (isTickets) {
             const newTickets = data.map(row => {
@@ -963,6 +1075,16 @@ const App: React.FC = () => {
             });
             setDealerships(newDealerships);
             showToast(`Successfully imported ${newDealerships.length} dealerships.`, 'success');
+        } else if (isFeatures) {
+            const newFeatures = data.map(row => {
+                 const feature: any = {};
+                 for (const key in row) {
+                    if (row[key] !== '') feature[key] = row[key];
+                }
+                return feature as FeatureAnnouncement;
+            });
+            setFeatures(newFeatures);
+            showToast(`Successfully imported ${newFeatures.length} features.`, 'success');
         } else {
             showToast("Could not determine data type. Please check CSV headers.", 'error');
         }
@@ -984,6 +1106,7 @@ const App: React.FC = () => {
         case 'projects': return 'New Project';
         case 'tasks': return 'Add New Task';
         case 'dealerships': return 'New Account';
+        case 'features': return 'New Feature';
         default: return 'New Item';
     }
   };
@@ -1003,6 +1126,10 @@ const App: React.FC = () => {
           document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' });
           break;
         case 'dealerships': setIsDealershipFormOpen(true); break;
+        case 'features': 
+          setFeatureToEdit(null);
+          setIsFeatureFormOpen(true); 
+          break;
     }
   };
 
@@ -1066,6 +1193,7 @@ const App: React.FC = () => {
                     <DealershipList dealerships={filteredDealerships} onDealershipClick={handleDealershipClick} />
                   </>
                 )}
+                {currentView === 'features' && <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={handleEditFeature} />}
             </div>
         </main>
         
@@ -1094,6 +1222,19 @@ const App: React.FC = () => {
                     onSubmit={handleAddNewDealership} 
                     onUpdate={handleUpdateDealership}
                     onClose={() => setIsDealershipFormOpen(false)}
+                />
+            </Modal>
+        )}
+        {isFeatureFormOpen && (
+            <Modal title={featureToEdit ? 'Edit Feature' : 'Add New Feature'} onClose={() => setIsFeatureFormOpen(false)}>
+                 <FeatureForm 
+                    onSubmit={handleAddNewFeature} 
+                    onUpdate={handleUpdateFeature}
+                    featureToEdit={featureToEdit}
+                    onClose={() => {
+                        setIsFeatureFormOpen(false);
+                        setFeatureToEdit(null);
+                    }}
                 />
             </Modal>
         )}

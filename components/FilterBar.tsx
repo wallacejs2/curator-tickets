@@ -9,6 +9,7 @@ import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { ArrowPathIcon } from './icons/ArrowPathIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
@@ -79,6 +80,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     window.localStorage.removeItem('projects');
     window.localStorage.removeItem('dealerships');
     window.localStorage.removeItem('tasks');
+    window.localStorage.removeItem('features');
     window.location.reload();
   };
   
@@ -121,6 +123,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
               <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />
               <NavItem icon={<BuildingStorefrontIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
+              <NavItem icon={<SparklesIcon className="w-6 h-6"/>} label="New Features" isActive={currentView === 'features'} onClick={() => onViewChange('features')} />
             </div>
           </nav>
           

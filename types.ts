@@ -34,6 +34,23 @@ export enum Platform {
   FOCUS = 'FOCUS',
 }
 
+// New types for Feature Announcements
+export enum FeatureStatus {
+  Upcoming = 'Upcoming',
+  Launched = 'Launched',
+}
+
+export interface FeatureAnnouncement {
+  id: string;
+  title: string;
+  location: string;
+  description: string;
+  launchDate: string;
+  version?: string;
+  platform: Platform;
+  status: FeatureStatus;
+}
+
 export interface Update {
   author: string;
   date: string;
@@ -138,7 +155,7 @@ export interface Project {
 }
 
 // Type for main application view
-export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks';
+export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features';
 
 // New types for Dealerships
 export enum DealershipStatus {
