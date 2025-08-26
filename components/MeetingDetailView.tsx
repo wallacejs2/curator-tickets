@@ -44,11 +44,11 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
         }
     }, [isEditing]);
 
-    const linkedProjects = projects.filter(p => meeting.projectIds.includes(p.id));
-    const unlinkedProjects = projects.filter(p => !meeting.projectIds.includes(p.id));
+    const linkedProjects = projects.filter(p => (meeting.projectIds || []).includes(p.id));
+    const unlinkedProjects = projects.filter(p => !(meeting.projectIds || []).includes(p.id));
     
-    const linkedTickets = tickets.filter(t => meeting.ticketIds.includes(t.id));
-    const unlinkedTickets = tickets.filter(t => !meeting.ticketIds.includes(t.id));
+    const linkedTickets = tickets.filter(t => (meeting.ticketIds || []).includes(t.id));
+    const unlinkedTickets = tickets.filter(t => !(meeting.ticketIds || []).includes(t.id));
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEditableMeeting({ ...editableMeeting, [e.target.name]: e.target.value });
@@ -77,7 +77,7 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
 
     const handleLinkProject = () => {
         if (!projectToLink) return;
-        const updatedMeeting = { ...meeting, projectIds: [...meeting.projectIds, projectToLink] };
+        const updatedMeeting = { ...meeting, projectIds: [...(meeting.projectIds || []), projectToLink] };
         onUpdate(updatedMeeting);
         
         // also update the project
@@ -90,7 +90,7 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     };
 
     const handleUnlinkProject = (projectId: string) => {
-        const updatedMeeting = { ...meeting, projectIds: meeting.projectIds.filter(id => id !== projectId) };
+        const updatedMeeting = { ...meeting, projectIds: (meeting.projectIds || []).filter(id => id !== projectId) };
         onUpdate(updatedMeeting);
         
         const project = projects.find(p => p.id === projectId);
@@ -102,13 +102,13 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     
     const handleLinkTicket = () => {
         if (!ticketToLink) return;
-        const updatedMeeting = { ...meeting, ticketIds: [...meeting.ticketIds, ticketToLink] };
+        const updatedMeeting = { ...meeting, ticketIds: [...(meeting.ticketIds || []), ticketToLink] };
         onUpdate(updatedMeeting);
         setTicketToLink('');
     };
 
     const handleUnlinkTicket = (ticketId: string) => {
-        const updatedMeeting = { ...meeting, ticketIds: meeting.ticketIds.filter(id => id !== ticketId) };
+        const updatedMeeting = { ...meeting, ticketIds: (meeting.ticketIds || []).filter(id => id !== ticketId) };
         onUpdate(updatedMeeting);
     };
 
