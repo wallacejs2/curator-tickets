@@ -22,6 +22,7 @@ export const initialTickets: Ticket[] = [
     duplicationSteps: '1. Open Safari 15.2+. 2. Navigate to the login page. 3. Enter credentials. 4. Click the "Log In" button. Nothing happens.',
     workaround: 'Users can press the Enter key after filling in the password field to log in successfully.',
     frequency: 'Occurs 100% of the time for affected users.',
+    linkedTicketIds: ['5'],
     updates: [
       {
         author: 'Dev Team',
@@ -130,6 +131,7 @@ export const initialTickets: Ticket[] = [
     duplicationSteps: '1. Send 10 concurrent requests to the endpoint. 2. Observe 504 Gateway Timeout errors.',
     workaround: 'None.',
     frequency: 'During peak hours.',
+    linkedTicketIds: ['1'],
     updates: []
   }
 ];
@@ -153,7 +155,7 @@ export const initialProjects: Project[] = [
     ],
     tasks: [
       { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
-      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', dueDate: new Date('2024-07-30T17:00:00Z').toISOString() },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', dueDate: new Date('2024-07-30T17:00:00Z').toISOString(), linkedTaskIds: ['sub-1-4'] },
       { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
       { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
     ],

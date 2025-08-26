@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -15,6 +14,7 @@ import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTION
 import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
+import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
 import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
@@ -94,7 +94,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string, date: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void, projects: Project[] }) => {
+const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects, tickets }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string, date: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void, projects: Project[], tickets: Ticket[] }) => {
   const [newUpdate, setNewUpdate] = useState('');
   const [authorName, setAuthorName] = useState('');
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
@@ -103,6 +103,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   const [isEditing, setIsEditing] = useState(false);
   const [editableTicket, setEditableTicket] = useState<Ticket>(ticket);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [ticketToLink, setTicketToLink] = useState('');
   
   const commentEditorRef = useRef<HTMLDivElement>(null);
   const MAX_COMMENT_LENGTH = 2000;
@@ -131,188 +132,64 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const commentText = commentEditorRef.current?.textContent?.trim() || '';
-    const commentHtml = commentEditorRef.current?.innerHTML || '';
-
-    if (commentText && authorName.trim() && updateDate && textContentLength <= MAX_COMMENT_LENGTH) {
-      onAddUpdate(commentHtml, authorName.trim(), updateDate);
-      setNewUpdate('');
-      setAuthorName('');
-      setTextContentLength(0);
-      setIsCommentEmpty(true);
-      if (commentEditorRef.current) {
-        commentEditorRef.current.innerHTML = '';
-      }
+    if (newUpdate.trim() && authorName.trim() && updateDate) {
+      onAddUpdate(newUpdate, authorName, updateDate);
+       if (commentEditorRef.current) {
+            commentEditorRef.current.innerHTML = '';
+        }
+        setNewUpdate('');
+        setTextContentLength(0);
+        setIsCommentEmpty(true);
     }
   };
   
-  const handleSaveNotes = () => {
+  const handleNotesSave = () => {
     onUpdateCompletionNotes(completionNotes);
     setIsEditingNotes(false);
+  };
+  
+  const handleSave = () => {
+      onUpdate(editableTicket);
+      setIsEditing(false);
   };
   
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditableTicket(prev => {
-        const newState = { ...prev!, [name]: value };
+        const newState = { ...prev, [name]: value };
         if (name === 'type') {
-          // If the current priority is not valid for the new type, reset it to a default.
-          const currentPriority = newState.priority;
-          const isIssue = value === TicketType.Issue;
-          const validPriorities = isIssue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS;
-          if (!validPriorities.includes(currentPriority as Priority)) {
-              newState.priority = isIssue ? Priority.P3 : Priority.P5;
-          }
+            newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P5;
         }
         return newState;
     });
   };
   
-  const handleSave = () => {
-    const toSafeISOString = (dateString: string | undefined) => {
-      if (!dateString) return undefined;
-      // If it's just a date string (from date input), add time to parse as local date
-      if (!dateString.includes('T')) {
-        return new Date(`${dateString}T00:00:00`).toISOString();
-      }
-      // Otherwise, it's likely already an ISO string, just re-parse to be safe
-      return new Date(dateString).toISOString();
-    };
-
-    let finalTicket = {
-      ...editableTicket,
-      startDate: toSafeISOString(editableTicket.startDate),
-      estimatedCompletionDate: toSafeISOString(editableTicket.estimatedCompletionDate),
-    };
-    
-    if (finalTicket.projectId === '') finalTicket.projectId = undefined;
-
-    onUpdate(finalTicket);
-    setIsEditing(false);
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditableTicket(prev => ({
+      ...prev,
+      [name]: value ? new Date(`${value}T00:00:00`).toISOString() : undefined,
+    }));
   };
   
-  const projectName = ticket.projectId ? (projects.find(p => p.id === ticket.projectId)?.name || 'N/A') : 'None';
+  const handleLinkTicket = () => {
+    if (!ticketToLink) return;
+    setEditableTicket(prev => ({
+      ...prev,
+      linkedTicketIds: [...(prev.linkedTicketIds || []), ticketToLink]
+    }));
+    setTicketToLink('');
+  };
 
-  if (isEditing) {
-    const issueTicket = editableTicket as IssueTicket;
-    const featureRequestTicket = editableTicket as FeatureRequestTicket;
-    return (
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-            <div className="flex justify-end items-center gap-3 mb-6">
-                <button type="button" onClick={() => setIsEditing(false)} className="bg-white text-gray-700 font-semibold px-4 py-1.5 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-1.5 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">Save Changes</button>
-            </div>
-             <FormSection title="Core Information">
-                <div className="col-span-2">
-                    <label className={labelClasses}>Title</label>
-                    <input type="text" name="title" value={editableTicket.title} onChange={handleFormChange} required className={formElementClasses} />
-                </div>
-                <div>
-                    <label className={labelClasses}>Submitter Name</label>
-                    <input type="text" name="submitterName" value={editableTicket.submitterName} onChange={handleFormChange} required className={formElementClasses} />
-                </div>
-                <div>
-                    <label className={labelClasses}>Client</label>
-                    <input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses} />
-                </div>
-                <div className="col-span-2">
-                    <label className={labelClasses}>Location of Feature/Issue</label>
-                    <input type="text" name="location" value={editableTicket.location} onChange={handleFormChange} required className={formElementClasses}/>
-                </div>
-             </FormSection>
+  const handleUnlinkTicket = (ticketIdToUnlink: string) => {
+    setEditableTicket(prev => ({
+      ...prev,
+      linkedTicketIds: (prev.linkedTicketIds || []).filter(id => id !== ticketIdToUnlink)
+    }));
+  };
 
-             <FormSection title="Categorization" gridCols={3}>
-                <div>
-                    <label className={labelClasses}>Type</label>
-                    <select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>
-                        {Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClasses}>Product Area</label>
-                    <select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>
-                        {Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClasses}>Platform</label>
-                    <select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>
-                        {Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-             </FormSection>
-
-             <FormSection title="Tracking & Status">
-                 <div>
-                    <label className={labelClasses}>Status</label>
-                    <select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>
-                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClasses}>Priority</label>
-                    <select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>
-                        {(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label className={labelClasses}>Start Date</label>
-                    <input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleFormChange} className={formElementClasses} />
-                </div>
-                 <div>
-                    <label className={labelClasses}>Est. Completion</label>
-                    <input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleFormChange} className={formElementClasses} />
-                </div>
-                <div className="col-span-2">
-                    <label className={labelClasses}>Project</label>
-                    <select name="projectId" value={editableTicket.projectId || ''} onChange={handleFormChange} className={formElementClasses}>
-                        <option value="">None</option>
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                </div>
-                 {editableTicket.status === Status.OnHold && (
-                    <div className="col-span-2">
-                        <label htmlFor="onHoldReason" className={labelClasses}>Reason for On Hold Status</label>
-                        <textarea id="onHoldReason" name="onHoldReason" value={editableTicket.onHoldReason || ''} onChange={handleFormChange} rows={2} required className={formElementClasses} placeholder="Explain why this ticket is on hold..." />
-                    </div>
-                )}
-             </FormSection>
-
-            <FormSection title="External Identifiers" gridCols={2}>
-                <div>
-                    <label className={labelClasses}>PMR Number</label>
-                    <input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses} />
-                </div>
-                <div>
-                    <label className={labelClasses}>FP Ticket Number</label>
-                    <input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses} />
-                </div>
-                <div className="col-span-2">
-                    <label className={labelClasses}>Ticket Thread ID</label>
-                    <input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses} />
-                </div>
-            </FormSection>
-            
-            <FormSection title={editableTicket.type === TicketType.Issue ? 'Issue Details' : 'Feature Request Details'} gridCols={1}>
-                {editableTicket.type === TicketType.Issue ? (
-                    <div className="space-y-5">
-                        <div><label className={labelClasses}>Problem</label><textarea name="problem" value={issueTicket.problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                        <div><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={issueTicket.duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                        <div><label className={labelClasses}>Workaround</label><textarea name="workaround" value={issueTicket.workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
-                        <div><label className={labelClasses}>Frequency</label><textarea name="frequency" value={issueTicket.frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-                    </div>
-                ) : (
-                    <div className="space-y-5">
-                            <div><label className={labelClasses}>Improvement</label><textarea name="improvement" value={featureRequestTicket.improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                            <div><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={featureRequestTicket.currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                            <div><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={featureRequestTicket.suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                            <div><label className={labelClasses}>Benefits</label><textarea name="benefits" value={featureRequestTicket.benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-                    </div>
-                )}
-            </FormSection>
-        </form>
-    );
-  }
+  const projectName = ticket.projectId ? projects.find(p => p.id === ticket.projectId)?.name : 'N/A';
+  const linkedTickets = ticket.linkedTicketIds?.map(id => tickets.find(t => t.id === id)).filter(Boolean) as Ticket[];
 
   return (
     <div>
@@ -321,190 +198,322 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
             <p className="text-gray-700">Are you sure you want to delete this ticket? This action cannot be undone.</p>
             <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setIsDeleteModalOpen(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                <button onClick={() => { onDelete(ticket.id); setIsDeleteModalOpen(false); }} className="bg-red-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-red-700">Delete Ticket</button>
+                <button onClick={() => onDelete(ticket.id)} className="bg-red-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-red-700">Delete Ticket</button>
             </div>
         </Modal>
       )}
 
       <div className="flex justify-end items-center gap-3 mb-6">
-        <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-        <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><EmailIcon className="w-4 h-4"/><span>Email</span></button>
-        <button onClick={onExport} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
-        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+          <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><EmailIcon className="w-4 h-4"/><span>Email</span></button>
+          <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
+          <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
+          <button onClick={() => { setEditableTicket(ticket); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
       </div>
       
-      <div className="space-y-8">
-        {/* Core Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <DetailTag label="Status" value={ticket.status} />
-          <DetailTag label="Priority" value={ticket.priority} />
-          <DetailTag label="Type" value={ticket.type} />
-          <DetailTag label="Product Area" value={ticket.productArea} />
-          <DetailTag label="Platform" value={ticket.platform} />
-          <DetailField label="Project" value={projectName} />
+      {isEditing ? (
+        <div className="space-y-6">
+            <FormSection title="Core Information">
+                 <div className="col-span-2">
+                    <label className={labelClasses}>Title</label>
+                    <input type="text" name="title" value={editableTicket.title} onChange={handleFormChange} required className={formElementClasses}/>
+                </div>
+                 <div>
+                    <label className={labelClasses}>Type</label>
+                    <select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>
+                        {Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
+                 <div>
+                    <label className={labelClasses}>Product Area</label>
+                    <select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>
+                        {Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}
+                    </select>
+                </div>
+                 <div>
+                    <label className={labelClasses}>Platform</label>
+                    <select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>
+                        {Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                </div>
+                 <div>
+                    <label className={labelClasses}>Client</label>
+                    <input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses}/>
+                </div>
+                 <div>
+                    <label className={labelClasses}>Location</label>
+                    <input type="text" name="location" value={editableTicket.location} onChange={handleFormChange} required className={formElementClasses}/>
+                </div>
+            </FormSection>
+             <FormSection title="Tracking & Ownership">
+                <div>
+                    <label className={labelClasses}>PMR Number</label>
+                    <input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses}/>
+                </div>
+                <div>
+                    <label className={labelClasses}>FP Ticket Number</label>
+                    <input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses}/>
+                </div>
+                <div className="col-span-2">
+                    <label className={labelClasses}>Ticket Thread ID</label>
+                    <input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses}/>
+                </div>
+                <div>
+                    <label className={labelClasses}>Status</label>
+                    <select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>
+                        {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className={labelClasses}>Priority</label>
+                    <select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>
+                        {(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                </div>
+                <div className="col-span-2">
+                    <label className={labelClasses}>Project</label>
+                    <select name="projectId" value={editableTicket.projectId || ''} onChange={handleFormChange} className={formElementClasses}>
+                        <option value="">None</option>
+                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                </div>
+                {editableTicket.status === Status.OnHold && (
+                    <div className="col-span-2">
+                        <label className={labelClasses}>Reason for On Hold Status</label>
+                        <textarea name="onHoldReason" value={editableTicket.onHoldReason || ''} onChange={handleFormChange} rows={2} required className={formElementClasses}/>
+                    </div>
+                )}
+            </FormSection>
+            <FormSection title="Dates">
+                <div>
+                    <label className={labelClasses}>Start Date</label>
+                    <input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+                </div>
+                <div>
+                    <label className={labelClasses}>Est. Time of Completion</label>
+                    <input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+                </div>
+                {editableTicket.status === Status.Completed && (
+                    <div>
+                        <label className={labelClasses}>Completion Date</label>
+                        <input type="date" name="completionDate" value={editableTicket.completionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+                    </div>
+                )}
+            </FormSection>
+            {editableTicket.type === TicketType.Issue && (
+                <FormSection title="Issue Details">
+                    <div className="col-span-2"><label className={labelClasses}>Problem</label><textarea name="problem" value={(editableTicket as IssueTicket).problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                    <div className="col-span-2"><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={(editableTicket as IssueTicket).duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                    <div className="col-span-2"><label className={labelClasses}>Workaround</label><textarea name="workaround" value={(editableTicket as IssueTicket).workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
+                    <div className="col-span-2"><label className={labelClasses}>Frequency</label><textarea name="frequency" value={(editableTicket as IssueTicket).frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+                </FormSection>
+            )}
+            {editableTicket.type === TicketType.FeatureRequest && (
+                 <FormSection title="Feature Request Details">
+                    <div className="col-span-2"><label className={labelClasses}>Improvement</label><textarea name="improvement" value={(editableTicket as FeatureRequestTicket).improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                    <div className="col-span-2"><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={(editableTicket as FeatureRequestTicket).currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                    <div className="col-span-2"><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={(editableTicket as FeatureRequestTicket).suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+                    <div className="col-span-2"><label className={labelClasses}>Benefits</label><textarea name="benefits" value={(editableTicket as FeatureRequestTicket).benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+                </FormSection>
+            )}
+             <FormSection title="Linked Tickets" gridCols={1}>
+              <div className="flex items-center gap-2">
+                  <select value={ticketToLink} onChange={e => setTicketToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
+                      <option value="">Select a ticket to link...</option>
+                      {tickets.filter(t => t.id !== editableTicket.id && !(editableTicket.linkedTicketIds || []).includes(t.id)).map(t => (
+                          <option key={t.id} value={t.id}>{t.title}</option>
+                      ))}
+                  </select>
+                  <button type="button" onClick={handleLinkTicket} disabled={!ticketToLink} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link Ticket</button>
+              </div>
+              <div className="mt-3 space-y-2">
+                  {(editableTicket.linkedTicketIds || []).length > 0 ? editableTicket.linkedTicketIds!.map(linkedId => {
+                      const linkedTicket = tickets.find(t => t.id === linkedId);
+                      if (!linkedTicket) return null;
+                      return (
+                          <div key={linkedId} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md text-sm">
+                              <span className="text-gray-800">{linkedTicket.title}</span>
+                              <button type="button" onClick={() => handleUnlinkTicket(linkedId)} className="p-1 text-gray-400 hover:text-red-600 rounded-full" aria-label={`Unlink ticket ${linkedTicket.title}`}>
+                                  <XIcon className="w-4 h-4" />
+                              </button>
+                          </div>
+                      );
+                  }) : <p className="text-sm text-gray-500 italic mt-2">No tickets are linked yet.</p>}
+              </div>
+            </FormSection>
+             <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setIsEditing(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={handleSave} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
+            </div>
         </div>
-
-        {/* Detailed Info */}
-        <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+      ) : (
+      <div className="space-y-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5">
+            <DetailTag label="Type" value={ticket.type} />
+            <DetailTag label="Status" value={ticket.status} />
+            <DetailTag label="Priority" value={ticket.priority} />
+            <DetailTag label="Product Area" value={ticket.productArea} />
+            <DetailTag label="Platform" value={ticket.platform} />
+        </div>
+        
+        <FormSection title="Details" className="pt-6 border-t border-gray-200">
+          <DetailField label="Project" value={projectName} />
           <DetailField label="Submitter" value={ticket.submitterName} />
           <DetailField label="Client" value={ticket.client} />
           <DetailField label="Location" value={ticket.location} />
-          <DetailField label="PMR Number" value={ticket.pmrNumber} />
-          <DetailField label="FP Ticket #" value={ticket.fpTicketNumber} />
-          <DetailField label="Thread ID" value={ticket.ticketThreadId} />
-        </div>
+        </FormSection>
 
-        {/* Dates */}
-        <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <DetailField label="Submitted On" value={new Date(ticket.submissionDate).toLocaleString()} />
-            <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleString() : 'N/A'} />
-            <DetailField label="Est. Completion" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleString() : 'N/A'} />
-        </div>
+        {ticket.type === TicketType.Issue && (
+          <FormSection title="Issue Information" className="pt-6 border-t border-gray-200">
+            <div className="col-span-2"><DetailField label="Problem" value={(ticket as IssueTicket).problem} /></div>
+            <div className="col-span-2"><DetailField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} /></div>
+            <DetailField label="Workaround" value={(ticket as IssueTicket).workaround} />
+            <DetailField label="Frequency" value={(ticket as IssueTicket).frequency} />
+          </FormSection>
+        )}
+
+        {ticket.type === TicketType.FeatureRequest && (
+          <FormSection title="Feature Request Information" className="pt-6 border-t border-gray-200">
+            <div className="col-span-2"><DetailField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} /></div>
+            <div className="col-span-2"><DetailField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} /></div>
+            <div className="col-span-2"><DetailField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} /></div>
+            <div className="col-span-2"><DetailField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} /></div>
+          </FormSection>
+        )}
+
+        <FormSection title="Tracking" className="pt-6 border-t border-gray-200">
+            <DetailField label="PMR Number" value={ticket.pmrNumber} />
+            <DetailField label="FP Ticket Number" value={ticket.fpTicketNumber} />
+            <DetailField label="Ticket Thread ID" value={ticket.ticketThreadId} />
+        </FormSection>
         
-        {ticket.status === Status.OnHold && ticket.onHoldReason && (
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-md font-semibold text-gray-800 mb-2">On Hold Reason</h3>
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">
-                {ticket.onHoldReason}
-            </div>
+        <FormSection title="Timeline" className="pt-6 border-t border-gray-200" gridCols={3}>
+            <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString()} />
+            <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'} />
+            <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A'} />
+            {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : 'N/A'} />}
+        </FormSection>
+
+        {linkedTickets && linkedTickets.length > 0 && (
+          <div className="pt-6 border-t border-gray-200">
+              <h3 className="text-md font-semibold text-gray-800 mb-2">Linked Tickets</h3>
+              <div className="space-y-2">
+                  {linkedTickets.map(linked => (
+                      <div key={linked.id} className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+                          <p className="text-sm font-medium text-gray-800">{linked.title}</p>
+                          <div className="text-xs text-gray-500 mt-1">
+                              <span>{linked.type}</span>
+                              <span className="mx-1.5">•</span>
+                              <span>{linked.status}</span>
+                              <span className="mx-1.5">•</span>
+                              <span>{linked.priority}</span>
+                          </div>
+                      </div>
+                  ))}
+              </div>
           </div>
         )}
 
-        {/* Specific Fields */}
-        <div className="border-t border-gray-200 pt-6">
-          {ticket.type === TicketType.Issue ? (
-            <div className="space-y-6">
-              <DetailField label="Problem" value={(ticket as IssueTicket).problem} />
-              <DetailField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} />
-              <DetailField label="Workaround" value={(ticket as IssueTicket).workaround} />
-              <DetailField label="Frequency" value={(ticket as IssueTicket).frequency} />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <DetailField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} />
-              <DetailField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} />
-              <DetailField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} />
-              <DetailField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} />
-            </div>
-          )}
-        </div>
+        {ticket.onHoldReason && ticket.status === Status.OnHold && (
+             <div className="pt-6 border-t border-gray-200">
+                <h3 className="text-md font-semibold text-gray-800 mb-2">Reason for 'On Hold'</h3>
+                <p className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">{ticket.onHoldReason}</p>
+             </div>
+        )}
 
-        {/* Updates Section */}
-        <div className="border-t border-gray-200 pt-6">
-          <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
-          
-          <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-2">Add a new update</h4>
-            <div className="mb-2">
-                <input
-                    type="text"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="Jayden"
-                    required
-                    className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                />
-            </div>
-             <div className="mb-2">
-                <input
-                    type="date"
-                    value={updateDate}
-                    onChange={(e) => setUpdateDate(e.target.value)}
-                    required
-                    className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                />
-            </div>
-            
-            {/* Fix: Replaced invalid 'placeholder' attribute with a custom placeholder implementation for contentEditable div */}
-            <div className="relative border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500">
-                <div className="p-1 border-b border-gray-300 bg-gray-50 flex items-center gap-1 rounded-t-md">
-                    <button type="button" onClick={() => handleFormat('bold')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 font-bold text-sm w-8 h-8 flex items-center justify-center" aria-label="Bold">B</button>
-                    <button type="button" onClick={() => handleFormat('italic')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 italic text-sm w-8 h-8 flex items-center justify-center" aria-label="Italic">I</button>
-                    <button type="button" onClick={() => handleFormat('insertUnorderedList')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 text-sm w-8 h-8 flex items-center justify-center" aria-label="Bulleted List">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
-                            <path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
-                        </svg>
-                    </button>
+        {ticket.completionNotes && ticket.status === Status.Completed && (
+            <div className="pt-6 border-t border-gray-200">
+                <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-md font-semibold text-gray-800">Completion Notes</h3>
+                     <button onClick={() => setIsEditingNotes(true)} className="text-sm text-blue-600 hover:underline font-semibold flex items-center gap-1.5"><PencilIcon className="w-3.5 h-3.5"/> Edit</button>
                 </div>
-                <div
-                    ref={commentEditorRef}
-                    contentEditable
-                    onInput={handleCommentInput}
-                    className="w-full text-sm p-2 min-h-[80px] focus:outline-none"
-                    role="textbox"
-                    aria-multiline="true"
-                    aria-label="Update comment"
-                />
-                {isCommentEmpty && (
-                    <div className="absolute top-[49px] left-2 text-sm text-gray-500 pointer-events-none select-none">
-                        Type your comment here...
+                {isEditingNotes ? (
+                    <div>
+                        <textarea value={completionNotes} onChange={(e) => setCompletionNotes(e.target.value)} rows={4} className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"></textarea>
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={() => setIsEditingNotes(false)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
+                            <button onClick={handleNotesSave} className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm">Save</button>
+                        </div>
                     </div>
+                ) : (
+                    <p className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 whitespace-pre-wrap">{ticket.completionNotes}</p>
                 )}
             </div>
-            <div className={`text-right text-xs mt-1 ${textContentLength > MAX_COMMENT_LENGTH ? 'text-red-500 font-semibold' : 'text-gray-500'}`}>
-                {textContentLength} / {MAX_COMMENT_LENGTH}
-            </div>
+        )}
 
-            <div className="flex justify-end mt-2">
-                <button 
-                    type="submit"
-                    disabled={isCommentEmpty || textContentLength > MAX_COMMENT_LENGTH}
-                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm disabled:bg-blue-300 disabled:cursor-not-allowed">
-                    Add Update
-                </button>
-            </div>
-          </form>
-          
-          <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
-            {ticket.updates && ticket.updates.length > 0 ? (
-              [...ticket.updates].reverse().map((update, index) => (
-                <div key={index} className="p-3 bg-gray-50 rounded-md border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-2">
-                        <span className="font-semibold text-gray-700">{update.author}</span> - {new Date(update.date).toLocaleString()}
+        <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
+             <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
+                <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
+                
+                <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+                <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+
+                 <div className="relative border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500">
+                    <div className="p-1 border-b border-gray-300 bg-gray-50 flex items-center gap-1 rounded-t-md">
+                        <button type="button" onClick={() => handleFormat('bold')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 font-bold text-sm w-8 h-8 flex items-center justify-center" aria-label="Bold">B</button>
+                        <button type="button" onClick={() => handleFormat('italic')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 italic text-sm w-8 h-8 flex items-center justify-center" aria-label="Italic">I</button>
+                        <button type="button" onClick={() => handleFormat('insertUnorderedList')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 text-sm w-8 h-8 flex items-center justify-center" aria-label="Bulleted List">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+                        </button>
+                    </div>
+                    <div
+                        ref={commentEditorRef}
+                        contentEditable
+                        onInput={handleCommentInput}
+                        className="w-full text-sm p-2 min-h-[90px] focus:outline-none rich-text-content"
+                        role="textbox"
+                        aria-multiline="true"
+                        aria-label="New update comment"
+                        aria-describedby="char-count"
+                    ></div>
+                    {/* FIX: Use a conditional div to simulate a placeholder for the contentEditable div. */}
+                    {isCommentEmpty && (
+                        <div className="absolute top-[49px] left-2 text-sm text-gray-500 pointer-events-none select-none">
+                            Type your comment here...
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex justify-between items-center">
+                    <p id="char-count" className="text-xs text-gray-500">{textContentLength} / {MAX_COMMENT_LENGTH}</p>
+                    <button type="submit" disabled={isCommentEmpty || !authorName.trim() || textContentLength > MAX_COMMENT_LENGTH} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">Add Update</button>
+                </div>
+            </form>
+            <div className="space-y-4">
+            {[...(ticket.updates || [])].reverse().map((update, index) => (
+                <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                    <p className="text-xs text-gray-500 font-medium">
+                        <span className="font-semibold text-gray-700">{update.author}</span>
+                        <span className="mx-1.5">•</span>
+                        <span>{new Date(update.date).toLocaleString()}</span>
                     </p>
-                    <div className="text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }} />
+                    <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500 italic">No updates have been added yet.</p>
-            )}
-          </div>
-        </div>
-        
-        {/* Completion Notes Section */}
-        <div className="border-t border-gray-200 pt-6">
-            <div className="flex justify-between items-center mb-2">
-                <h3 className="text-md font-semibold text-gray-800">Completion Notes</h3>
-                {!isEditingNotes && ticket.status === Status.Completed && (
-                    <button onClick={() => setIsEditingNotes(true)} className="text-sm font-semibold text-blue-600 hover:underline">Edit Notes</button>
-                )}
+            ))}
             </div>
-            {isEditingNotes ? (
-                <div>
-                    <textarea value={completionNotes} onChange={e => setCompletionNotes(e.target.value)} rows={4} className="w-full text-sm p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" />
-                    <div className="flex justify-end gap-2 mt-2">
-                         <button onClick={() => setIsEditingNotes(false)} className="text-sm font-semibold text-gray-600 px-3 py-1 rounded-md hover:bg-gray-100">Cancel</button>
-                        <button onClick={handleSaveNotes} className="text-sm font-semibold text-white bg-blue-600 px-3 py-1 rounded-md hover:bg-blue-700">Save</button>
-                    </div>
-                </div>
-            ) : (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{ticket.completionNotes || 'No completion notes added.'}</p>
-            )}
         </div>
-
       </div>
+      )}
     </div>
   );
 };
 
 
-const App: React.FC = () => {
+function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', initialTasks);
   const [features, setFeatures] = useLocalStorage<FeatureAnnouncement[]>('features', initialFeatures);
   const [meetings, setMeetings] = useLocalStorage<Meeting[]>('meetings', initialMeetings);
+  
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
@@ -519,763 +528,484 @@ const App: React.FC = () => {
     status: 'all',
   });
   
-  const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({
-    searchTerm: '',
-  });
-
-  const [currentView, setCurrentView] = useState<View>('tickets');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
   
-  const [isSideViewOpen, setIsSideViewOpen] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [isTicketFormOpen, setIsTicketFormOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
-  const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
-  const [isDealershipFormOpen, setIsDealershipFormOpen] = useState(false);
-  const [isFeatureFormOpen, setIsFeatureFormOpen] = useState(false);
-  const [featureToEdit, setFeatureToEdit] = useState<FeatureAnnouncement | null>(null);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [isMeetingFormOpen, setIsMeetingFormOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<View>('tickets');
+  const [editingDealership, setEditingDealership] = useState<Dealership | null>(null);
+  const [editingFeature, setEditingFeature] = useState<FeatureAnnouncement | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const filteredTickets = useMemo(() => {
-    return tickets
-      .filter(ticket => {
-        const searchTermLower = ticketFilters.searchTerm.toLowerCase();
-        const ticketDescription = ticket.type === TicketType.Issue ? (ticket as IssueTicket).problem : (ticket as FeatureRequestTicket).improvement;
-        const matchesSearch =
-          ticket.title.toLowerCase().includes(searchTermLower) ||
-          ticketDescription.toLowerCase().includes(searchTermLower) ||
-          ticket.submitterName.toLowerCase().includes(searchTermLower) ||
-          (ticket.client && ticket.client.toLowerCase().includes(searchTermLower)) ||
-          ticket.id.toLowerCase().includes(searchTermLower) ||
-          (ticket.pmrNumber && ticket.pmrNumber.toLowerCase().includes(searchTermLower)) ||
-          (ticket.fpTicketNumber && ticket.fpTicketNumber.toLowerCase().includes(searchTermLower));
-
-        const matchesStatus = ticketFilters.status === 'all' || ticket.status === ticketFilters.status;
-        const matchesPriority = ticketFilters.priority === 'all' || ticket.priority === ticketFilters.priority;
-        const matchesType = ticketFilters.type === 'all' || ticket.type === ticketFilters.type;
-        const matchesProductArea = ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea;
-
-        return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesProductArea;
-      })
-      .sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
-  }, [tickets, ticketFilters]);
-  
-  const filteredDealerships = useMemo(() => {
-    return dealerships
-        .filter(dealership => {
-            const searchTermLower = dealershipFilters.searchTerm.toLowerCase();
-            const matchesSearch =
-                dealership.name.toLowerCase().includes(searchTermLower) ||
-                dealership.accountNumber.toLowerCase().includes(searchTermLower) ||
-                (dealership.enterprise && dealership.enterprise.toLowerCase().includes(searchTermLower)) ||
-                (dealership.assignedSpecialist && dealership.assignedSpecialist.toLowerCase().includes(searchTermLower));
-
-            const matchesStatus = dealershipFilters.status === 'all' || dealership.status === dealershipFilters.status;
-
-            return matchesSearch && matchesStatus;
-        })
-        .sort((a, b) => a.name.localeCompare(b.name));
-  }, [dealerships, dealershipFilters]);
-  
-  const filteredMeetings = useMemo(() => {
-    return meetings
-      .filter(meeting => {
-        const searchTermLower = meetingFilters.searchTerm.toLowerCase();
-        if (!searchTermLower) return true;
-
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = meeting.notes;
-        const notesText = tempDiv.textContent || tempDiv.innerText || "";
-
-        const matchesSearch =
-          meeting.name.toLowerCase().includes(searchTermLower) ||
-          new Date(meeting.meetingDate).toLocaleDateString().includes(searchTermLower) ||
-          notesText.toLowerCase().includes(searchTermLower) ||
-          meeting.attendees.some(attendee => attendee.toLowerCase().includes(searchTermLower));
-        
-        return matchesSearch;
-      })
-      .sort((a,b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
-  }, [meetings, meetingFilters]);
-
-  const performanceInsights = useMemo(() => {
-    const openTickets = tickets.filter(t => t.status !== Status.Completed).length;
-    
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const completedLast30Days = tickets.filter(t => 
-        t.status === Status.Completed && 
-        t.completionDate && 
-        new Date(t.completionDate) > thirtyDaysAgo
-    ).length;
-    
-    const completedTicketsWithDates = tickets.filter(t =>
-        t.status === Status.Completed && t.startDate && t.completionDate
+  const allTasks = useMemo(() => {
+    const projectTasks = projects.flatMap(p => 
+      (p.tasks || []).map(st => ({
+        ...st,
+        projectId: p.id,
+        projectName: p.name
+      }))
     );
-    
-    const avgCompletionDays = completedTicketsWithDates.length > 0
-        ? completedTicketsWithDates.reduce((acc, t) => {
-            const start = new Date(t.startDate!).getTime();
-            const end = new Date(t.completionDate!).getTime();
-            const diffDays = (end - start) / (1000 * 3600 * 24);
-            return acc + diffDays;
-        }, 0) / completedTicketsWithDates.length
-        : null;
-
-    return { openTickets, completedLast30Days, avgCompletionDays };
-}, [tickets]);
-
-  const dealershipInsights = useMemo(() => {
-    const totalDealerships = dealerships.length;
-    const liveAccounts = dealerships.filter(d => d.status === DealershipStatus.Live).length;
-    const onboardingAccounts = dealerships.filter(d => d.status === DealershipStatus.Onboarding).length;
-    return { totalDealerships, liveAccounts, onboardingAccounts };
-  }, [dealerships]);
-
-
-  const closeSideView = () => {
-    setIsSideViewOpen(false);
-    setSelectedTicket(null);
-    setSelectedProject(null);
-    setSelectedDealership(null);
-    setSelectedMeeting(null);
-  };
-
-  // Click handlers for opening side panel
-  const handleTicketClick = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-    setSelectedProject(null);
-    setSelectedDealership(null);
-    setSelectedMeeting(null);
-    setIsSideViewOpen(true);
-  };
+    const standaloneTasks = tasks.map(t => ({
+        ...t,
+        projectId: null,
+        projectName: 'General'
+    }));
+    return [...projectTasks, ...standaloneTasks];
+  }, [projects, tasks]);
   
-  const handleProjectClick = (project: Project) => {
-    setSelectedProject(project);
-    setSelectedTicket(null);
-    setSelectedDealership(null);
-    setSelectedMeeting(null);
-    setIsSideViewOpen(true);
-  };
-
-  const handleDealershipClick = (dealership: Dealership) => {
-    setSelectedDealership(dealership);
-    setSelectedTicket(null);
-    setSelectedProject(null);
-    setSelectedMeeting(null);
-    setIsSideViewOpen(true);
-  };
-  
-  const handleMeetingClick = (meeting: Meeting) => {
-    setSelectedMeeting(meeting);
-    setSelectedTicket(null);
-    setSelectedProject(null);
-    setSelectedDealership(null);
-    setIsSideViewOpen(true);
-  };
-
-  // Ticket CRUD and actions
-  const handleAddNewTicket = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
+  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
     const newTicket = {
       ...newTicketData,
       id: crypto.randomUUID(),
       submissionDate: new Date().toISOString(),
-    };
+      updates: [],
+    } as Ticket;
+    
     setTickets(prev => [...prev, newTicket]);
-    setIsTicketFormOpen(false);
+    showToast('Ticket created successfully!', 'success');
+    
+    // If a project was selected, add this ticket ID to that project
+    if (newTicket.projectId) {
+      setProjects(prevProjects => prevProjects.map(p => 
+        p.id === newTicket.projectId 
+          ? { ...p, ticketIds: [...p.ticketIds, newTicket.id] }
+          : p
+      ));
+    }
+  };
+  
+  const handleProjectSubmit = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds'>) => {
+      const newProject: Project = {
+          ...newProjectData,
+          id: crypto.randomUUID(),
+          creationDate: new Date().toISOString(),
+          tasks: [],
+          ticketIds: [],
+          meetingIds: [],
+          updates: [],
+          involvedPeople: [],
+      };
+      setProjects(prev => [...prev, newProject]);
+      showToast('Project created successfully!', 'success');
+  };
+  
+  const handleDealershipSubmit = (newDealershipData: Omit<Dealership, 'id'>) => {
+    const newDealership: Dealership = {
+      id: crypto.randomUUID(),
+      ...newDealershipData,
+    };
+    setDealerships(prev => [...prev, newDealership]);
+    showToast('Dealership account created successfully!', 'success');
+  };
+  
+  const handleFeatureSubmit = (newFeatureData: Omit<FeatureAnnouncement, 'id'>) => {
+      const newFeature: FeatureAnnouncement = {
+          id: crypto.randomUUID(),
+          ...newFeatureData,
+      };
+      setFeatures(prev => [...prev, newFeature]);
+      showToast('Feature announcement added!', 'success');
+  };
+  
+  const handleMeetingSubmit = (newMeetingData: Omit<Meeting, 'id'>) => {
+      const newMeeting: Meeting = {
+          id: crypto.randomUUID(),
+          ...newMeetingData,
+      };
+      setMeetings(prev => [...prev, newMeeting]);
+      showToast('Meeting note saved!', 'success');
   };
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
     setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
-    // Also update the selected ticket if it's the one being edited
-    if (selectedTicket && selectedTicket.id === updatedTicket.id) {
-        setSelectedTicket(updatedTicket);
-    }
-  };
-
-  const handleDeleteTicket = (ticketId: string) => {
-    setTickets(prev => prev.filter(t => t.id !== ticketId));
-    // If the deleted ticket was selected, close the side view
-    if (selectedTicket && selectedTicket.id === ticketId) {
-        closeSideView();
-    }
-  };
-
-  const handleAddUpdateToTicket = (ticketId: string, comment: string, author: string, date: string) => {
-    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
-    setTickets(prevTickets => {
-      const newTickets = prevTickets.map(ticket =>
-        ticket.id === ticketId
-          ? { ...ticket, updates: [...(ticket.updates || []), newUpdate] }
-          : ticket
-      );
-      
-      if (selectedTicket && selectedTicket.id === ticketId) {
-          const updatedTicket = newTickets.find(t => t.id === ticketId);
-          if (updatedTicket) {
-              setSelectedTicket(updatedTicket);
-          }
-      }
-      return newTickets;
-    });
+    showToast('Ticket updated successfully!', 'success');
   };
   
-  const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
-     setTickets(prevTickets =>
-      prevTickets.map(ticket =>
-        ticket.id === ticketId
-          ? { ...ticket, completionNotes: notes }
-          : ticket
-      )
-    );
-  };
-  
-  const handleTicketStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
-    setTickets(prev => prev.map(t => {
-      if (t.id === ticketId) {
-        const updatedTicket: Ticket = { ...t, status: newStatus };
-        if (newStatus === Status.Completed) {
-            updatedTicket.completionDate = new Date().toISOString();
-        }
-        if (newStatus === Status.OnHold) {
-            updatedTicket.onHoldReason = onHoldReason || t.onHoldReason;
-        } else {
-            updatedTicket.onHoldReason = undefined;
-        }
-        return updatedTicket;
-      }
-      return t;
-    }));
-  };
-
-  // Project CRUD
-  const handleAddNewProject = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds'>) => {
-    const newProject: Project = {
-      ...newProjectData,
-      id: crypto.randomUUID(),
-      creationDate: new Date().toISOString(),
-      tasks: [],
-      ticketIds: [],
-    };
-    setProjects(prev => [newProject, ...prev]);
-    setIsProjectFormOpen(false);
-  };
-
   const handleUpdateProject = (updatedProject: Project) => {
     setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-     if (selectedProject && selectedProject.id === updatedProject.id) {
-        setSelectedProject(updatedProject);
-    }
-  };
-
-  const handleDeleteProject = (projectId: string) => {
-    // Also unlink tickets associated with this project
-    setTickets(prevTickets => prevTickets.map(t => t.projectId === projectId ? { ...t, projectId: undefined } : t));
-    setProjects(prev => prev.filter(p => p.id !== projectId));
-    if (selectedProject && selectedProject.id === projectId) {
-        closeSideView();
-    }
-  };
-
-  const handleAddUpdateToProject = (projectId: string, comment: string, author: string, date: string) => {
-    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
-    setProjects(prevProjects => {
-      const newProjects = prevProjects.map(project =>
-        project.id === projectId
-          ? { ...project, updates: [...(project.updates || []), newUpdate] }
-          : project
-      );
-      
-      const updatedProject = newProjects.find(p => p.id === projectId);
-      if (selectedProject && selectedProject.id === projectId && updatedProject) {
-          setSelectedProject(updatedProject);
-      }
-      return newProjects;
-    });
-  };
-
-  // Dealership CRUD
-  const handleAddNewDealership = (newDealershipData: Omit<Dealership, 'id'>) => {
-    const newDealership: Dealership = { ...newDealershipData, id: crypto.randomUUID() };
-    setDealerships(prev => [newDealership, ...prev]);
-    showToast('Account created successfully!', 'success');
+    showToast('Project updated successfully!', 'success');
   };
   
   const handleUpdateDealership = (updatedDealership: Dealership) => {
-    setDealerships(prev => prev.map(d => d.id === updatedDealership.id ? updatedDealership : d));
-     if (selectedDealership && selectedDealership.id === updatedDealership.id) {
-        setSelectedDealership(updatedDealership);
+      setDealerships(prev => prev.map(d => d.id === updatedDealership.id ? updatedDealership : d));
+      showToast('Dealership account updated successfully!', 'success');
+      if (selectedDealership?.id === updatedDealership.id) {
+          setSelectedDealership(updatedDealership);
+      }
+  };
+  
+  const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
+      setFeatures(prev => prev.map(f => f.id === updatedFeature.id ? updatedFeature : f));
+      showToast('Feature announcement updated!', 'success');
+  };
+  
+  const handleUpdateMeeting = (updatedMeeting: Meeting) => {
+      setMeetings(prev => prev.map(m => m.id === updatedMeeting.id ? updatedMeeting : m));
+      showToast('Meeting note updated!', 'success');
+      if (selectedMeeting?.id === updatedMeeting.id) {
+        setSelectedMeeting(updatedMeeting);
+      }
+  };
+
+  const handleDeleteTicket = (ticketId: string) => {
+    const ticketToDelete = tickets.find(t => t.id === ticketId);
+    if (!ticketToDelete) return;
+
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
+
+    // Also remove from any associated project
+    if (ticketToDelete.projectId) {
+        setProjects(prev => prev.map(p => {
+            if (p.id === ticketToDelete.projectId) {
+                return { ...p, ticketIds: p.ticketIds.filter(id => id !== ticketId) };
+            }
+            return p;
+        }));
     }
-    showToast('Account updated successfully!', 'success');
+    showToast('Ticket deleted successfully!', 'success');
+    setSelectedTicket(null); // Close side view
+  };
+  
+  const handleDeleteProject = (projectId: string) => {
+      const projectToDelete = projects.find(p => p.id === projectId);
+      if (!projectToDelete) return;
+      
+      // Unlink all tickets associated with this project
+      setTickets(prevTickets => prevTickets.map(t => {
+          if (t.projectId === projectId) {
+              const { projectId, ...rest } = t;
+              return rest as Ticket;
+          }
+          return t;
+      }));
+
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      showToast('Project deleted successfully!', 'success');
+      setSelectedProject(null);
   };
   
   const handleDeleteDealership = (dealershipId: string) => {
-    setDealerships(prev => prev.filter(d => d.id !== dealershipId));
-    if (selectedDealership && selectedDealership.id === dealershipId) {
-        closeSideView();
-    }
-    showToast('Account deleted successfully.', 'success');
-  };
-
-  // Feature CRUD
-  const handleAddNewFeature = (newFeatureData: Omit<FeatureAnnouncement, 'id'>) => {
-    const newFeature: FeatureAnnouncement = { ...newFeatureData, id: crypto.randomUUID() };
-    setFeatures(prev => [newFeature, ...prev]);
-    setIsFeatureFormOpen(false);
-    showToast('Feature announcement added!', 'success');
-  };
-
-  const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
-    setFeatures(prev => prev.map(f => f.id === updatedFeature.id ? updatedFeature : f));
-    setFeatureToEdit(null);
-    setIsFeatureFormOpen(false);
-    showToast('Feature announcement updated!', 'success');
+      setDealerships(prev => prev.filter(d => d.id !== dealershipId));
+      showToast('Dealership account deleted successfully!', 'success');
+      setSelectedDealership(null);
   };
   
   const handleDeleteFeature = (featureId: string) => {
-    if (window.confirm("Are you sure you want to delete this feature announcement?")) {
-      setFeatures(prev => prev.filter(f => f.id !== featureId));
-      showToast('Feature announcement deleted.', 'success');
+    if (window.confirm('Are you sure you want to delete this feature announcement?')) {
+        setFeatures(prev => prev.filter(f => f.id !== featureId));
+        showToast('Feature announcement deleted!', 'success');
     }
   };
   
-  // Meeting CRUD
-  const handleAddNewMeeting = (newMeetingData: Omit<Meeting, 'id'>) => {
-    const newMeeting: Meeting = { ...newMeetingData, id: crypto.randomUUID() };
-    setMeetings(prev => [newMeeting, ...prev]);
-    setIsMeetingFormOpen(false);
-    showToast('Meeting note created!', 'success');
-  };
-
-  const handleUpdateMeeting = (updatedMeeting: Meeting) => {
-    setMeetings(prev => prev.map(m => m.id === updatedMeeting.id ? updatedMeeting : m));
-     if (selectedMeeting && selectedMeeting.id === updatedMeeting.id) {
-        setSelectedMeeting(updatedMeeting);
-    }
-    showToast('Meeting note updated!', 'success');
-  };
-
   const handleDeleteMeeting = (meetingId: string) => {
-    // Also unlink projects
-    setProjects(prev => prev.map(p => ({ ...p, meetingIds: (p.meetingIds || []).filter(id => id !== meetingId) })));
-    setMeetings(prev => prev.filter(m => m.id !== meetingId));
-    if (selectedMeeting && selectedMeeting.id === meetingId) {
-      closeSideView();
+      // Also unlink from any projects
+      setProjects(prevProjects => prevProjects.map(p => ({
+          ...p,
+          meetingIds: (p.meetingIds || []).filter(id => id !== meetingId)
+      })));
+
+      setMeetings(prev => prev.filter(m => m.id !== meetingId));
+      showToast('Meeting note deleted successfully!', 'success');
+      setSelectedMeeting(null);
+  };
+  
+  const handleAddUpdate = (id: string, comment: string, author: string, date: string) => {
+    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
+    
+    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+        setSelectedTicket(prev => prev ? { ...prev, updates: [...(prev.updates || []), newUpdate] } : null);
+        setTickets(prevTickets => prevTickets.map(t => t.id === id ? { ...t, updates: [...(t.updates || []), newUpdate] } : t));
+    } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
+        setSelectedProject(prev => prev ? { ...prev, updates: [...(prev.updates || []), newUpdate] } : null);
+        setProjects(prevProjects => prevProjects.map(p => p.id === id ? { ...p, updates: [...(p.updates || []), newUpdate] } : p));
     }
-    showToast('Meeting note deleted.', 'success');
+    showToast('Update added!', 'success');
+  };
+  
+  const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, completionNotes: notes } : t));
+      if (selectedTicket?.id === ticketId) {
+          setSelectedTicket(prev => prev ? { ...prev, completionNotes: notes } : null);
+      }
+      showToast('Completion notes updated!', 'success');
+  };
+  
+  const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
+      setTickets(prev => prev.map(t => {
+          if (t.id === ticketId) {
+              const updatedTicket: Ticket = { ...t, status: newStatus };
+              if (newStatus === Status.Completed && !t.completionDate) {
+                  updatedTicket.completionDate = new Date().toISOString();
+              }
+              if (newStatus === Status.OnHold) {
+                  updatedTicket.onHoldReason = onHoldReason || t.onHoldReason;
+              }
+              return updatedTicket;
+          }
+          return t;
+      }));
+      showToast('Status updated!', 'success');
   };
 
-  const exportTicketAsText = () => {
-    if (!selectedTicket) return;
-    const { title, updates, ...rest } = selectedTicket;
-    let content = `Ticket: ${title}\n\n`;
-    for (const [key, value] of Object.entries(rest)) {
-      if (value !== undefined && value !== null && typeof value !== 'object') {
-        content += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}\n`;
-      }
+  const filteredTickets = useMemo(() => {
+    return tickets.filter(ticket => {
+      const searchTerm = ticketFilters.searchTerm.toLowerCase();
+      const matchSearch = searchTerm === '' ||
+        ticket.title.toLowerCase().includes(searchTerm) ||
+        ticket.submitterName.toLowerCase().includes(searchTerm) ||
+        (ticket.client && ticket.client.toLowerCase().includes(searchTerm)) ||
+        (ticket.pmrNumber && ticket.pmrNumber.toLowerCase().includes(searchTerm)) ||
+        (ticket.fpTicketNumber && ticket.fpTicketNumber.toLowerCase().includes(searchTerm));
+      
+      const matchStatus = ticketFilters.status === 'all' || ticket.status === ticketFilters.status;
+      const matchPriority = ticketFilters.priority === 'all' || ticket.priority === ticketFilters.priority;
+      const matchType = ticketFilters.type === 'all' || ticket.type === ticketFilters.type;
+      const matchProductArea = ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea;
+
+      return matchSearch && matchStatus && matchPriority && matchType && matchProductArea;
+    }).sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
+  }, [tickets, ticketFilters]);
+  
+  const filteredDealerships = useMemo(() => {
+      return dealerships.filter(d => {
+          const searchTerm = dealershipFilters.searchTerm.toLowerCase();
+          const matchSearch = searchTerm === '' ||
+              d.name.toLowerCase().includes(searchTerm) ||
+              d.accountNumber.toLowerCase().includes(searchTerm) ||
+              (d.enterprise && d.enterprise.toLowerCase().includes(searchTerm)) ||
+              (d.assignedSpecialist && d.assignedSpecialist.toLowerCase().includes(searchTerm));
+          
+          const matchStatus = dealershipFilters.status === 'all' || d.status === dealershipFilters.status;
+          return matchSearch && matchStatus;
+      }).sort((a, b) => a.name.localeCompare(b.name));
+  }, [dealerships, dealershipFilters]);
+  
+  const filteredMeetings = useMemo(() => {
+      return meetings.filter(m => {
+          const searchTerm = meetingFilters.searchTerm.toLowerCase();
+          if (searchTerm === '') return true;
+          return m.name.toLowerCase().includes(searchTerm) ||
+                 m.attendees.some(a => a.toLowerCase().includes(searchTerm)) ||
+                 new Date(m.meetingDate).toLocaleDateString().includes(searchTerm) ||
+                 m.notes.toLowerCase().includes(searchTerm);
+      }).sort((a,b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
+  }, [meetings, meetingFilters]);
+
+  const performanceInsights = useMemo(() => {
+    const completedLast30Days = tickets.filter(t => 
+      t.status === Status.Completed && 
+      t.completionDate && 
+      new Date(t.completionDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    );
+    const completedWithDates = tickets.filter(t => 
+      t.status === Status.Completed && t.completionDate && t.startDate
+    );
+    const totalCompletionDays = completedWithDates.reduce((acc, t) => {
+      const start = new Date(t.startDate!).getTime();
+      const end = new Date(t.completionDate!).getTime();
+      return acc + (end - start) / (1000 * 3600 * 24);
+    }, 0);
+
+    return {
+      openTickets: tickets.filter(t => t.status !== Status.Completed).length,
+      completedLast30Days: completedLast30Days.length,
+      avgCompletionDays: completedWithDates.length > 0 ? totalCompletionDays / completedWithDates.length : null,
+    };
+  }, [tickets]);
+  
+  const dealershipInsights = useMemo(() => {
+    return {
+      totalDealerships: dealerships.length,
+      liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
+      onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
     }
-    if (updates && updates.length > 0) {
-      content += "\n--- Updates ---\n";
-      updates.forEach(u => {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = u.comment;
-        const commentText = tempDiv.textContent || tempDiv.innerText || "";
-        content += `[${new Date(u.date).toLocaleString()}] ${u.author}:\n${commentText}\n\n`;
-      });
-    }
+  }, [dealerships]);
+
+  const handleExportTicket = (ticket: Ticket) => {
+    let content = `Ticket Title: ${ticket.title}\n`;
+    content += `ID: ${ticket.id}\n`;
+    content += `Status: ${ticket.status}\n`;
+    content += `Priority: ${ticket.priority}\n`;
+    // ... add all fields
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title.replace(/ /g, '_')}.txt`;
+    a.download = `ticket-${ticket.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast('Ticket exported!', 'success');
   };
   
-  const emailTicketSummary = () => {
-      if (!selectedTicket) return;
-      const subject = `Ticket Summary: ${selectedTicket.title}`;
-      let body = `Ticket: ${selectedTicket.title}\n`;
-      body += `Status: ${selectedTicket.status}\n`;
-      body += `Priority: ${selectedTicket.priority}\n\n`;
-      if (selectedTicket.type === TicketType.Issue) {
-        body += `Problem: ${(selectedTicket as IssueTicket).problem}\n`;
-      } else {
-        body += `Improvement: ${(selectedTicket as FeatureRequestTicket).improvement}\n`;
-      }
+  const handleEmailTicket = (ticket: Ticket) => {
+      let subject = `Ticket: ${ticket.title}`;
+      let body = `Details for ticket #${ticket.id}:\n\n`;
+      body += `Title: ${ticket.title}\n`;
+      body += `Status: ${ticket.status}\n`;
+      body += `Priority: ${ticket.priority}\n`;
+      // ... add all fields
       window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
   
-  const convertToCSV = (data: any[]) => {
-    if (data.length === 0) return '';
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(',')];
+  const handleViewChange = (view: View) => {
+      setCurrentView(view);
+      setSelectedTicket(null);
+      setSelectedProject(null);
+      setSelectedDealership(null);
+      setSelectedMeeting(null);
+      setIsFormOpen(false);
+      setIsSidebarOpen(false);
+  }
 
-    for (const row of data) {
-      const values = headers.map(header => {
-        let value = row[header];
-        if (value === null || value === undefined) {
-          value = '';
-        } else if (typeof value === 'object') {
-          value = JSON.stringify(value);
-        }
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      });
-      csvRows.push(values.join(','));
+  const getFormTitle = () => {
+    switch(currentView) {
+      case 'tickets': return 'Create New Ticket';
+      case 'projects': return 'Create New Project';
+      case 'dealerships': return 'Create New Account';
+      case 'features': return 'Add New Feature';
+      case 'meetings': return 'Create New Note';
+      default: return 'New Item';
     }
-    return csvRows.join('\n');
-  };
-
-  const parseCSV = (csvText: string): any[] => {
-    const lines = csvText.split('\n');
-    if (lines.length < 2) return [];
-
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const data = [];
-
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        // Basic CSV parsing, may not handle all edge cases like quoted commas perfectly
-        const values = line.split(',');
-        const row: { [key: string]: any } = {};
-
-        for (let j = 0; j < headers.length; j++) {
-            const header = headers[j];
-            let value: any = values[j] || '';
-             try {
-              value = value.trim().replace(/^"/, '').replace(/"$/, '').replace(/""/g, '"');
-            } catch (e) { /* ignore */ }
-
-
-            if (value.startsWith('[') || value.startsWith('{')) {
-                try {
-                    value = JSON.parse(value);
-                } catch (e) { /* ignore if not valid JSON */ }
-            }
-            row[header] = value;
-        }
-        data.push(row);
-    }
-    return data;
-  };
-
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === "text/csv") {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const csvText = e.target?.result as string;
-                const data = parseCSV(csvText);
-
-                if (data.length === 0) {
-                    showToast('CSV file is empty or invalid.', 'error');
-                    return;
-                }
-
-                if (!window.confirm(`Are you sure you want to add ${data.length} items to the current "${currentView}" view? This will append the data.`)) {
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                    return;
-                }
-
-                const addDataWithIds = (items: any[]) => items.map(item => ({...item, id: item.id || crypto.randomUUID()}));
-
-                switch(currentView) {
-                    case 'tickets':
-                        setTickets(prev => [...prev, ...addDataWithIds(data) as Ticket[]]);
-                        break;
-                    case 'projects':
-                        setProjects(prev => [...prev, ...addDataWithIds(data) as Project[]]);
-                        break;
-                    case 'dealerships':
-                        setDealerships(prev => [...prev, ...addDataWithIds(data) as Dealership[]]);
-                        break;
-                    case 'meetings':
-                        setMeetings(prev => [...prev, ...addDataWithIds(data) as Meeting[]]);
-                        break;
-                    case 'features':
-                        setFeatures(prev => [...prev, ...addDataWithIds(data) as FeatureAnnouncement[]]);
-                        break;
-                    default:
-                        showToast(`Import not supported for the ${currentView} view.`, 'error');
-                        return;
-                }
-                showToast('Data imported successfully!', 'success');
-            } catch (error) {
-                console.error("CSV Import Error:", error);
-                showToast('Failed to parse CSV file.', 'error');
-            } finally {
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
-            }
-        };
-        reader.readAsText(file);
-    } else if (file) {
-        showToast('Please select a valid .csv file.', 'error');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-
-  const handleExportData = () => {
-    let dataToExport: any[] = [];
-    let fileName = `curator_export.csv`;
-
-    switch (currentView) {
-        case 'tickets':
-            dataToExport = tickets;
-            fileName = `tickets_export_${new Date().toISOString().split('T')[0]}.csv`;
-            break;
-        case 'projects':
-            dataToExport = projects;
-            fileName = `projects_export_${new Date().toISOString().split('T')[0]}.csv`;
-            break;
-        case 'dealerships':
-            dataToExport = dealerships;
-            fileName = `dealerships_export_${new Date().toISOString().split('T')[0]}.csv`;
-            break;
-        case 'tasks':
-            const allTasks = [
-                ...tasks.map(t => ({...t, project_name: 'General'})),
-                ...projects.flatMap(p => (p.tasks || []).map(t => ({ ...t, project_name: p.name })))
-            ];
-            dataToExport = allTasks;
-            fileName = `tasks_export_${new Date().toISOString().split('T')[0]}.csv`;
-            break;
-        case 'features':
-            dataToExport = features;
-            fileName = `features_export_${new Date().toISOString().split('T')[0]}.csv`;
-            break;
-        case 'meetings':
-            dataToExport = meetings;
-            fileName = `meetings_export_${new Date().toISOString().split('T')[0]}.csv`;
-            break;
-        default:
-            showToast('No data to export for this view.', 'error');
-            return;
-    }
-
-    if (dataToExport.length === 0) {
-        showToast('There is no data to export.', 'error');
-        return;
-    }
-
-    const csvString = convertToCSV(dataToExport);
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('Data exported successfully!', 'success');
   };
   
-  const renderView = () => {
+  const getNewButtonText = () => {
+    switch(currentView) {
+        case 'tickets': return 'New Ticket';
+        case 'projects': return 'New Project';
+        case 'dealerships': return 'New Account';
+        case 'features': return 'New Feature';
+        case 'meetings': return 'New Note';
+        default: return 'New Item';
+    }
+  };
+
+  const renderCurrentView = () => {
     switch (currentView) {
       case 'tickets':
-        return <TicketList tickets={filteredTickets} onRowClick={handleTicketClick} onStatusChange={handleTicketStatusChange} />;
+        return <TicketList tickets={filteredTickets} onRowClick={setSelectedTicket} onStatusChange={handleStatusChange} projects={projects} />;
       case 'projects':
-        return <ProjectList projects={projects} onProjectClick={handleProjectClick} tickets={tickets} />;
+        return <ProjectList projects={projects} onProjectClick={setSelectedProject} tickets={tickets} />;
       case 'dealerships':
-        return <DealershipList dealerships={filteredDealerships} onDealershipClick={handleDealershipClick} />;
+        return <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />;
       case 'tasks':
-        return <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} />;
+        return <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} />;
       case 'features':
-        return <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={(feature) => { setFeatureToEdit(feature); setIsFeatureFormOpen(true); }} />;
+        return <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={setEditingFeature} />;
       case 'meetings':
-        return <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />;
+        return <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />;
       default:
-        return <div>Select a view</div>;
+        return null;
     }
   };
   
-  const renderInsights = () => {
-    switch (currentView) {
-        case 'tickets':
-            return <PerformanceInsights {...performanceInsights} />;
-        case 'dealerships':
-            return <DealershipInsights {...dealershipInsights} />;
-        default:
-            return null;
+  const renderSideViewContent = () => {
+    if (selectedTicket) {
+      return <TicketDetailView ticket={selectedTicket} onUpdate={handleUpdateTicket} onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)} onExport={() => handleExportTicket(selectedTicket)} onEmail={() => handleEmailTicket(selectedTicket)} onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)} onDelete={handleDeleteTicket} projects={projects} tickets={tickets} />
     }
+    if (selectedProject) {
+      return <ProjectDetailView project={selectedProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} tickets={tickets} onUpdateTicket={handleUpdateTicket} onAddUpdate={(projectId, comment, author, date) => handleAddUpdate(projectId, comment, author, date)} meetings={meetings} onUpdateMeeting={handleUpdateMeeting} allTasks={allTasks} />;
+    }
+    if (selectedDealership) {
+        return <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} />
+    }
+    if (selectedMeeting) {
+        return <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} projects={projects} tickets={tickets} onUpdateProject={handleUpdateProject} onUpdateTicket={handleUpdateTicket} />
+    }
+    return null;
   };
 
+  const renderModalContent = () => {
+    if (isFormOpen && currentView === 'tickets') {
+        return <TicketForm onSubmit={(data) => { handleTicketSubmit(data); setIsFormOpen(false); }} projects={projects} />
+    }
+    if (isFormOpen && currentView === 'projects') {
+        return <ProjectForm onSubmit={(data) => { handleProjectSubmit(data); setIsFormOpen(false); }} />
+    }
+    if (isFormOpen && currentView === 'dealerships') {
+        return <DealershipForm onSubmit={(data) => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} dealershipToEdit={null} onClose={() => setIsFormOpen(false)} />
+    }
+     if ((isFormOpen || editingFeature) && currentView === 'features') {
+        return <FeatureForm onSubmit={(data) => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={(data) => { handleUpdateFeature(data); setEditingFeature(null); }} featureToEdit={editingFeature} onClose={() => { setIsFormOpen(false); setEditingFeature(null); }} />
+    }
+    if (isFormOpen && currentView === 'meetings') {
+        return <MeetingForm onSubmit={(data) => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />
+    }
+    return null;
+  };
+  
   const getSideViewTitle = () => {
-    if (selectedTicket) return selectedTicket.title;
-    if (selectedProject) return selectedProject.name;
-    if (selectedDealership) return selectedDealership.name;
-    if (selectedMeeting) return selectedMeeting.name;
-    return 'Details';
-  };
-
-  const getNewItemButton = () => {
-    switch (currentView) {
-        case 'tickets':
-            return { label: 'New Ticket', onClick: () => setIsTicketFormOpen(true) };
-        case 'projects':
-            return { label: 'New Project', onClick: () => setIsProjectFormOpen(true) };
-        case 'dealerships':
-            return { label: 'New Account', onClick: () => setIsDealershipFormOpen(true) };
-        case 'features':
-            return { label: 'New Announcement', onClick: () => { setFeatureToEdit(null); setIsFeatureFormOpen(true); } };
-        case 'meetings':
-            return { label: 'New Note', onClick: () => setIsMeetingFormOpen(true) };
-        default:
-            return null;
-    }
+      if (selectedTicket) return selectedTicket.title;
+      if (selectedProject) return selectedProject.name;
+      if (selectedDealership) return selectedDealership.name;
+      if (selectedMeeting) return selectedMeeting.name;
+      return 'Details';
   };
   
-  const newItemButton = getNewItemButton();
+  const getModalTitle = () => {
+      if (editingFeature) return 'Edit Feature Announcement';
+      return getFormTitle();
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
-      
-      {isTicketFormOpen && (
-        <Modal title="Create New Ticket" onClose={() => setIsTicketFormOpen(false)}>
-          <TicketForm onSubmit={handleAddNewTicket} projects={projects} />
-        </Modal>
-      )}
-
-      {isProjectFormOpen && (
-        <Modal title="Create New Project" onClose={() => setIsProjectFormOpen(false)}>
-            <ProjectForm onSubmit={handleAddNewProject} />
-        </Modal>
-      )}
-
-      {isDealershipFormOpen && (
-        <Modal title="Create New Dealership Account" onClose={() => setIsDealershipFormOpen(false)}>
-            <DealershipForm onSubmit={handleAddNewDealership} onUpdate={()=>{}} onClose={() => setIsDealershipFormOpen(false)} />
-        </Modal>
-      )}
-
-      {isFeatureFormOpen && (
-        <Modal title={featureToEdit ? "Edit Feature Announcement" : "New Feature Announcement"} onClose={() => { setIsFeatureFormOpen(false); setFeatureToEdit(null); }}>
-            <FeatureForm 
-                onSubmit={handleAddNewFeature} 
-                onUpdate={handleUpdateFeature} 
-                featureToEdit={featureToEdit}
-                onClose={() => { setIsFeatureFormOpen(false); setFeatureToEdit(null); }}
-            />
-        </Modal>
-      )}
-      
-      {isMeetingFormOpen && (
-        <Modal title="Create New Meeting Note" onClose={() => setIsMeetingFormOpen(false)}>
-            <MeetingForm onSubmit={handleAddNewMeeting} onClose={() => setIsMeetingFormOpen(false)} />
-        </Modal>
-      )}
-
-      <LeftSidebar
-        ticketFilters={ticketFilters}
-        setTicketFilters={setTicketFilters}
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
+      <LeftSidebar 
+        ticketFilters={ticketFilters} 
+        setTicketFilters={setTicketFilters} 
         dealershipFilters={dealershipFilters}
         setDealershipFilters={setDealershipFilters}
-        isOpen={isSidebarOpen}
+        isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)}
         currentView={currentView}
-        onViewChange={(view) => { setCurrentView(view); closeSideView(); }}
+        onViewChange={handleViewChange}
       />
-      <main className="flex-1 p-6 overflow-y-auto">
-        <header className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden mr-4 p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 ring-gray-400"
-              aria-label="Open sidebar"
-            >
-              <MenuIcon className="w-6 h-6 text-gray-700" />
-            </button>
-            <h1 className="text-2xl font-bold text-gray-800 capitalize">{currentView}</h1>
-          </div>
-          <div className="flex items-center gap-3">
-             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                <UploadIcon className="w-4 h-4" />
-                <span>Import</span>
-            </button>
-            <button onClick={handleExportData} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                <DownloadIcon className="w-4 h-4" />
-                <span>Export</span>
-            </button>
-            {newItemButton && (
-                <button onClick={newItemButton.onClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
-                  <PlusIcon className="w-4 h-4" />
-                  <span>{newItemButton.label}</span>
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+            <div className="flex items-center">
+                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mr-4 p-2 rounded-md text-gray-500 hover:bg-gray-200" aria-label="Open sidebar">
+                    <MenuIcon className="w-6 h-6"/>
                 </button>
-            )}
-          </div>
-        </header>
-
-        {renderInsights()}
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">
+                    {currentView.charAt(0).toUpperCase() + currentView.slice(1)}
+                </h1>
+            </div>
+            { (currentView === 'tickets' || currentView === 'projects' || currentView === 'dealerships' || currentView === 'features' || currentView === 'meetings') &&
+                <button onClick={() => { setIsFormOpen(true); setEditingFeature(null); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                    <PlusIcon className="w-5 h-5" />
+                    <span className="hidden sm:inline">{getNewButtonText()}</span>
+                </button>
+            }
+        </div>
         
-        {renderView()}
-      </main>
+        {currentView === 'tickets' && <PerformanceInsights {...performanceInsights} />}
+        {currentView === 'dealerships' && <DealershipInsights {...dealershipInsights} />}
 
-      <SideView title={getSideViewTitle()} isOpen={isSideViewOpen} onClose={closeSideView}>
-        {selectedTicket && (
-          <TicketDetailView
-            ticket={selectedTicket}
-            onUpdate={handleUpdateTicket}
-            onAddUpdate={(comment, author, date) => handleAddUpdateToTicket(selectedTicket.id, comment, author, date)}
-            onExport={exportTicketAsText}
-            onEmail={emailTicketSummary}
-            onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
-            onDelete={handleDeleteTicket}
-            projects={projects}
-          />
-        )}
-        {selectedProject && (
-            <ProjectDetailView 
-                project={selectedProject}
-                onUpdate={handleUpdateProject}
-                onDelete={handleDeleteProject}
-                tickets={tickets}
-                onUpdateTicket={handleUpdateTicket}
-                onAddUpdate={handleAddUpdateToProject}
-                meetings={meetings}
-                onUpdateMeeting={handleUpdateMeeting}
-            />
-        )}
-        {selectedDealership && (
-            <DealershipDetailView
-                dealership={selectedDealership}
-                onUpdate={handleUpdateDealership}
-                onDelete={handleDeleteDealership}
-            />
-        )}
-        {selectedMeeting && (
-          <MeetingDetailView
-            meeting={selectedMeeting}
-            onUpdate={handleUpdateMeeting}
-            onDelete={handleDeleteMeeting}
-            projects={projects}
-            tickets={tickets}
-            onUpdateProject={handleUpdateProject}
-            onUpdateTicket={handleUpdateTicket}
-          />
-        )}
+        {renderCurrentView()}
+      </main>
+      
+      {(isFormOpen || editingFeature) && currentView !== 'tasks' && (
+        <Modal title={getModalTitle()} onClose={() => { setIsFormOpen(false); setEditingFeature(null); }}>
+          {renderModalContent()}
+        </Modal>
+      )}
+
+      <SideView 
+        title={getSideViewTitle()}
+        isOpen={!!selectedTicket || !!selectedProject || !!selectedDealership || !!selectedMeeting}
+        onClose={() => {
+            setSelectedTicket(null);
+            setSelectedProject(null);
+            setSelectedDealership(null);
+            setSelectedMeeting(null);
+        }}
+      >
+        {renderSideViewContent()}
       </SideView>
     </div>
   );
-};
+}
 
 export default App;

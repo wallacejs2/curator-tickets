@@ -79,6 +79,7 @@ interface BaseTicket {
   completionNotes?: string;
   onHoldReason?: string;
   projectId?: string;
+  linkedTicketIds?: string[];
 }
 
 export interface IssueTicket extends BaseTicket {
@@ -146,6 +147,7 @@ export interface Task {
   priority: TaskPriority;
   type: string;
   dueDate?: string;
+  linkedTaskIds?: string[];
 }
 
 export interface Project {

@@ -1,12 +1,15 @@
 
 
 
+
 import React, { useState, useRef } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
+import EditTaskForm from './common/EditTaskForm.tsx';
+import { LinkIcon } from './icons/LinkIcon.tsx';
 
 interface ProjectDetailViewProps {
   project: Project;
@@ -17,71 +20,10 @@ interface ProjectDetailViewProps {
   onAddUpdate: (projectId: string, comment: string, author: string, date: string) => void;
   meetings: Meeting[];
   onUpdateMeeting: (meeting: Meeting) => void;
+  allTasks: (Task & { projectName?: string; projectId: string | null; })[];
 }
 
-const EditTaskForm: React.FC<{ task: Task, onSave: (task: Task) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
-    const [editedTask, setEditedTask] = useState(task);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        setEditedTask({ ...editedTask, [e.target.name]: e.target.value });
-    };
-    
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditedTask({ ...editedTask, dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : undefined });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(editedTask);
-    };
-    
-    const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
-    const labelClasses = "block text-sm font-medium text-gray-700";
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className={labelClasses}>Description</label>
-                <textarea name="description" value={editedTask.description} onChange={handleChange} required rows={3} className={formElementClasses} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Assigned User</label>
-                    <input type="text" name="assignedUser" value={editedTask.assignedUser} onChange={handleChange} required className={formElementClasses} />
-                </div>
-                 <div>
-                    <label className={labelClasses}>Status</label>
-                    <select name="status" value={editedTask.status} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </div>
-            </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Priority</label>
-                    <select name="priority" value={editedTask.priority} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClasses}>Type</label>
-                    <input type="text" name="type" value={editedTask.type} onChange={handleChange} required className={formElementClasses} />
-                </div>
-            </div>
-             <div>
-                <label className={labelClasses}>Due Date</label>
-                <input type="date" name="dueDate" value={editedTask.dueDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
-            </div>
-        </form>
-    );
-};
-
-
-const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate, onDelete, tickets, onUpdateTicket, onAddUpdate, meetings, onUpdateMeeting }) => {
+const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate, onDelete, tickets, onUpdateTicket, onAddUpdate, meetings, onUpdateMeeting, allTasks }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableProject, setEditableProject] = useState(project);
@@ -127,6 +69,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                 dueDate: newDueDate ? new Date(`${newDueDate}T00:00:00`).toISOString() : undefined,
                 priority: newPriority,
                 type: newType.trim(),
+                linkedTaskIds: [],
             };
             const updatedProject = { ...project, tasks: [...projectTasks, newTask] };
             onUpdate(updatedProject);
@@ -302,7 +245,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             
             {editingTask && (
                 <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-                    <EditTaskForm task={editingTask} onSave={handleTaskUpdate} onClose={() => setEditingTask(null)} />
+                    <EditTaskForm 
+                      task={editingTask} 
+                      onSave={handleTaskUpdate} 
+                      onClose={() => setEditingTask(null)}
+                      allTasks={allTasks}
+                    />
                 </Modal>
             )}
 
@@ -351,6 +299,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                                     {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
                                     <span>Type: <span className="font-medium">{task.type}</span></span>
                                     <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                                    {task.linkedTaskIds && task.linkedTaskIds.length > 0 && (
+                                        <span className="flex items-center gap-1 text-blue-600">
+                                            <LinkIcon className="w-3 h-3"/>
+                                            <span>{task.linkedTaskIds.length} Linked</span>
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
@@ -422,28 +376,26 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             {/* Updates Section */}
             <div>
                 <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
-                 <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4 space-y-2">
+                <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4 space-y-3">
                     <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-                     <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md" />
-                     <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md" />
-                    <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Type your comment here..." required rows={3} className="w-full text-sm p-2 border border-gray-300 rounded-md" />
-                    <div className="flex justify-end">
-                        <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm">Add Update</button>
+                    <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Add a new update..." required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50" rows={3}/>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                        <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+                        <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
                     </div>
-                 </form>
+                    <button type="submit" disabled={!newUpdate.trim() || !authorName.trim()} className="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 text-sm">Add Update</button>
+                </form>
                 <div className="space-y-4">
-                    {project.updates && project.updates.length > 0 ? (
-                    [...project.updates].reverse().map((update, index) => (
-                        <div key={index} className="p-4 bg-white rounded-md border border-gray-200 shadow-sm">
-                            <div dangerouslySetInnerHTML={{ __html: update.comment }} className="text-gray-800 text-sm" />
-                            <p className="text-xs text-gray-500 mt-2">
-                                {update.author} - {new Date(update.date).toLocaleString()}
+                    {[...(project.updates || [])].reverse().map((update, index) => (
+                        <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                            <p className="text-xs text-gray-500 font-medium">
+                                <span className="font-semibold text-gray-700">{update.author}</span>
+                                <span className="mx-1.5">•</span>
+                                <span>{new Date(update.date).toLocaleString()}</span>
                             </p>
+                            <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">{update.comment}</div>
                         </div>
-                    ))
-                    ) : (
-                    <p className="text-sm text-gray-500 italic">No updates have been added yet.</p>
-                    )}
+                    ))}
                 </div>
             </div>
         </div>

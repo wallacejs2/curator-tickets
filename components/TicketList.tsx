@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform } from '../types.ts';
+import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { LinkIcon } from './icons/LinkIcon.tsx';
 
 
 interface TicketTableProps {
   tickets: Ticket[];
   onRowClick: (ticket: Ticket) => void;
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
+  projects: Project[];
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -95,7 +97,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 type TicketView = 'active' | 'completed';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -172,11 +174,21 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
         </div>
       ) : (
         <div className="space-y-4">
-          {ticketsToShow.map(ticket => (
+          {ticketsToShow.map(ticket => {
+            const projectName = ticket.projectId ? projects.find(p => p.id === ticket.projectId)?.name : null;
+            return (
             <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
               <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
                 <div className="flex justify-between items-start gap-3">
-                  <h3 className="font-semibold text-gray-900 flex-1">{ticket.title}</h3>
+                  <div className="flex-1 flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900">{ticket.title}</h3>
+                    {ticket.linkedTicketIds && ticket.linkedTicketIds.length > 0 && (
+                        <div className="flex items-center gap-1 text-gray-500" title={`${ticket.linkedTicketIds.length} linked tickets`}>
+                            <LinkIcon className="w-4 h-4" />
+                            <span className="text-xs font-medium">{ticket.linkedTicketIds.length}</span>
+                        </div>
+                    )}
+                  </div>
                   <Tag label={ticket.priority} />
                 </div>
                 <div className="text-sm text-gray-500 mt-2">
@@ -186,6 +198,12 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                         <span className="font-medium text-gray-600">{ticket.client}</span>
                         <span className="mx-2 text-gray-300">•</span>
                       </>
+                    )}
+                     {projectName && (
+                        <>
+                            <span className="font-medium text-gray-600">{projectName}</span>
+                            <span className="mx-2 text-gray-300">•</span>
+                        </>
                     )}
                     <span>{ticket.submitterName}</span>
                   </div>
@@ -258,7 +276,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

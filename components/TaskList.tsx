@@ -1,82 +1,26 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Project, Task, TaskPriority, TaskStatus } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
-
-const EditTaskForm: React.FC<{ task: Task, onSave: (task: Task) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
-    const [editedTask, setEditedTask] = useState(task);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        setEditedTask({ ...editedTask, [e.target.name]: e.target.value });
-    };
-    
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditedTask({ ...editedTask, dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : undefined });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(editedTask);
-    };
-    
-    const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
-    const labelClasses = "block text-sm font-medium text-gray-700";
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label className={labelClasses}>Description</label>
-                <textarea name="description" value={editedTask.description} onChange={handleChange} required rows={3} className={formElementClasses} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Assigned User</label>
-                    <input type="text" name="assignedUser" value={editedTask.assignedUser} onChange={handleChange} required className={formElementClasses} />
-                </div>
-                 <div>
-                    <label className={labelClasses}>Status</label>
-                    <select name="status" value={editedTask.status} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </div>
-            </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Priority</label>
-                    <select name="priority" value={editedTask.priority} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClasses}>Type</label>
-                    <input type="text" name="type" value={editedTask.type} onChange={handleChange} required className={formElementClasses} />
-                </div>
-            </div>
-             <div>
-                <label className={labelClasses}>Due Date</label>
-                <input type="date" name="dueDate" value={editedTask.dueDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
-            </div>
-            <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
-            </div>
-        </form>
-    );
-};
+import EditTaskForm from './common/EditTaskForm.tsx';
+import { LinkIcon } from './icons/LinkIcon.tsx';
 
 interface TaskListProps {
   projects: Project[];
   onUpdateProject: (project: Project) => void;
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  // FIX: Added projectId to the allTasks prop type to match the data shape from App.tsx.
+  allTasks: (Task & { projectName?: string; projectId: string | null })[];
 }
 
 type TaskView = 'active' | 'completed';
 
-const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, setTasks }) => {
+const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, setTasks, allTasks }) => {
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [taskType, setTaskType] = useState('');
@@ -84,24 +28,11 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
   const [dueDate, setDueDate] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   
-  const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null }) | null>(null);
+  const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string }) | null>(null);
   const [taskView, setTaskView] = useState<TaskView>('active');
 
   const { activeTasks, completedTasks } = useMemo(() => {
-    const projectTasks = projects.flatMap(p => 
-      (p.tasks || []).map(st => ({
-        ...st,
-        projectId: p.id,
-        projectName: p.name
-      }))
-    );
-    const standaloneTasks = tasks.map(t => ({
-        ...t,
-        projectId: null,
-        projectName: 'General'
-    }));
-    
-    const sortedTasks = [...projectTasks, ...standaloneTasks].sort((a,b) => {
+    const sortedTasks = [...allTasks].sort((a,b) => {
         const aHasDate = !!a.dueDate;
         const bHasDate = !!b.dueDate;
         if (aHasDate && bHasDate) {
@@ -121,7 +52,7 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
         },
         { activeTasks: [] as typeof sortedTasks, completedTasks: [] as typeof sortedTasks }
     );
-  }, [projects, tasks]);
+  }, [allTasks]);
   
   const tasksToShow = taskView === 'active' ? activeTasks : completedTasks;
 
@@ -140,6 +71,7 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
       priority,
       type: taskType.trim(),
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00`).toISOString() : undefined,
+      linkedTaskIds: [],
     };
     
     if (selectedProjectId) {
@@ -213,14 +145,19 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
       }
   };
   
-  const inputClasses = "w-full p-2.5 bg-gray-700 text-white border border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";
+  const inputClasses = "w-full p-2.5 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";
   const selectClasses = `${inputClasses}`;
 
   return (
     <div>
       {editingTask && (
         <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-            <EditTaskForm task={editingTask} onSave={handleUpdateTask} onClose={() => setEditingTask(null)} />
+            <EditTaskForm 
+                task={editingTask} 
+                onSave={handleUpdateTask} 
+                onClose={() => setEditingTask(null)}
+                allTasks={allTasks}
+            />
         </Modal>
       )}
 
@@ -298,6 +235,12 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
                 {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
                 {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
                 <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                {task.linkedTaskIds && task.linkedTaskIds.length > 0 && (
+                    <span className="flex items-center gap-1 text-blue-600">
+                        <LinkIcon className="w-3 h-3"/>
+                        <span>{task.linkedTaskIds.length} Linked</span>
+                    </span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">

@@ -1,6 +1,10 @@
+
+
+
 import React, { useState } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { LinkIcon } from './icons/LinkIcon.tsx';
 
 
 interface ProjectListProps {
@@ -68,12 +72,17 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
   const totalTasks = projectTasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const statusColor = statusColors[project.status];
+  const hasLinkedTasks = project.tasks.some(task => task.linkedTaskIds && task.linkedTaskIds.length > 0);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 flex flex-col">
       <div onClick={onClick} className="p-5 cursor-pointer hover:bg-gray-50/50">
         <div className="flex justify-between items-start gap-3">
-          <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+            <div className="flex items-center gap-2">
+                 <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+                 {/* FIX: Replaced invalid 'title' prop on component with a wrapper span that has a valid title attribute for tooltips. */}
+                 {hasLinkedTasks && <span title="This project has linked tasks"><LinkIcon className="w-4 h-4 text-gray-500 flex-shrink-0" /></span>}
+            </div>
           <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColor.bg} ${statusColor.text}`}>
             {project.status}
           </span>
