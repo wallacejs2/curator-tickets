@@ -112,6 +112,11 @@ export interface DealershipFilterState {
   status: string; // 'all' or a DealershipStatus enum value
 }
 
+export interface MeetingFilterState {
+  searchTerm: string;
+}
+
+
 // New types for Projects
 export enum ProjectStatus {
   NotStarted = 'Not Started',
@@ -152,10 +157,23 @@ export interface Project {
   creationDate: string;
   ticketIds: string[];
   updates?: Update[];
+  involvedPeople?: string[];
+  meetingIds?: string[];
+}
+
+// New types for Meeting Notes
+export interface Meeting {
+  id: string;
+  name: string;
+  meetingDate: string;
+  attendees: string[];
+  notes: string; // Rich text content
+  projectIds: string[];
+  ticketIds: string[];
 }
 
 // Type for main application view
-export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features';
+export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings';
 
 // New types for Dealerships
 export enum DealershipStatus {

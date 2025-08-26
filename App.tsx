@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -16,7 +16,7 @@ import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
@@ -30,6 +30,9 @@ import DealershipForm from './components/DealershipForm.tsx';
 import TaskList from './components/TaskList.tsx';
 import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
+import MeetingList from './components/MeetingList.tsx';
+import MeetingDetailView from './components/MeetingDetailView.tsx';
+import MeetingForm from './components/MeetingForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -500,6 +503,7 @@ const App: React.FC = () => {
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', initialTasks);
   const [features, setFeatures] = useLocalStorage<FeatureAnnouncement[]>('features', initialFeatures);
+  const [meetings, setMeetings] = useLocalStorage<Meeting[]>('meetings', initialMeetings);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
@@ -514,6 +518,10 @@ const App: React.FC = () => {
     status: 'all',
   });
   
+  const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({
+    searchTerm: '',
+  });
+
   const [currentView, setCurrentView] = useState<View>('tickets');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -526,6 +534,8 @@ const App: React.FC = () => {
   const [isDealershipFormOpen, setIsDealershipFormOpen] = useState(false);
   const [isFeatureFormOpen, setIsFeatureFormOpen] = useState(false);
   const [featureToEdit, setFeatureToEdit] = useState<FeatureAnnouncement | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [isMeetingFormOpen, setIsMeetingFormOpen] = useState(false);
   const { toast, showToast, hideToast } = useToast();
 
 
@@ -572,6 +582,26 @@ const App: React.FC = () => {
         .sort((a, b) => a.name.localeCompare(b.name));
   }, [dealerships, dealershipFilters]);
   
+  const filteredMeetings = useMemo(() => {
+    return meetings
+      .filter(meeting => {
+        const searchTermLower = meetingFilters.searchTerm.toLowerCase();
+        if (!searchTermLower) return true;
+
+        // Create a temporary div to parse HTML and get plain text for searching
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = meeting.notes;
+        const notesText = tempDiv.textContent || tempDiv.innerText || "";
+
+        const matchesSearch =
+          meeting.name.toLowerCase().includes(searchTermLower) ||
+          notesText.toLowerCase().includes(searchTermLower) ||
+          meeting.attendees.some(attendee => attendee.toLowerCase().includes(searchTermLower));
+        
+        return matchesSearch;
+      });
+  }, [meetings, meetingFilters]);
+
   const performanceInsights = useMemo(() => {
     const openTickets = tickets.filter(t => t.status !== Status.Completed).length;
     
@@ -613,6 +643,7 @@ const App: React.FC = () => {
     setSelectedTicket(null);
     setSelectedProject(null);
     setSelectedDealership(null);
+    setSelectedMeeting(null);
   };
 
   // Click handlers for opening side panel
@@ -620,6 +651,7 @@ const App: React.FC = () => {
     setSelectedTicket(ticket);
     setSelectedProject(null);
     setSelectedDealership(null);
+    setSelectedMeeting(null);
     setIsSideViewOpen(true);
   };
   
@@ -627,6 +659,7 @@ const App: React.FC = () => {
     setSelectedProject(project);
     setSelectedTicket(null);
     setSelectedDealership(null);
+    setSelectedMeeting(null);
     setIsSideViewOpen(true);
   };
 
@@ -634,6 +667,15 @@ const App: React.FC = () => {
     setSelectedDealership(dealership);
     setSelectedTicket(null);
     setSelectedProject(null);
+    setSelectedMeeting(null);
+    setIsSideViewOpen(true);
+  };
+  
+  const handleMeetingClick = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
+    setSelectedTicket(null);
+    setSelectedProject(null);
+    setSelectedDealership(null);
     setIsSideViewOpen(true);
   };
 
@@ -643,70 +685,74 @@ const App: React.FC = () => {
       ...newTicketData,
       id: crypto.randomUUID(),
       submissionDate: new Date().toISOString(),
-      updates: [],
     };
-    setTickets(prev => [newTicket as Ticket, ...prev]);
+    setTickets(prev => [...prev, newTicket]);
     setIsTicketFormOpen(false);
   };
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
     setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+    // Also update the selected ticket if it's the one being edited
     if (selectedTicket && selectedTicket.id === updatedTicket.id) {
         setSelectedTicket(updatedTicket);
     }
   };
 
   const handleDeleteTicket = (ticketId: string) => {
-      setTickets(prev => prev.filter(t => t.id !== ticketId));
-      closeSideView();
+    setTickets(prev => prev.filter(t => t.id !== ticketId));
+    // If the deleted ticket was selected, close the side view
+    if (selectedTicket && selectedTicket.id === ticketId) {
+        closeSideView();
+    }
+  };
+
+  const handleAddUpdateToTicket = (ticketId: string, comment: string, author: string, date: string) => {
+    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
+    setTickets(prevTickets =>
+      prevTickets.map(ticket =>
+        ticket.id === ticketId
+          ? { ...ticket, updates: [...(ticket.updates || []), newUpdate] }
+          : ticket
+      )
+    );
   };
   
-  const handleAddUpdate = (comment: string, author: string, date: string) => {
-    if (!selectedTicket) return;
-    
-    const selectedDate = new Date(date); // This is UTC midnight
-    const now = new Date();
-    const finalDate = new Date(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate(), now.getHours(), now.getMinutes(), now.getSeconds());
-
-    const newUpdate: Update = { author, comment, date: finalDate.toISOString() };
-    const updatedTicket: Ticket = {
-      ...selectedTicket,
-      updates: [...(selectedTicket.updates || []), newUpdate],
-    };
-    handleUpdateTicket(updatedTicket);
+  const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
+     setTickets(prevTickets =>
+      prevTickets.map(ticket =>
+        ticket.id === ticketId
+          ? { ...ticket, completionNotes: notes }
+          : ticket
+      )
+    );
   };
-
-  const handleUpdateCompletionNotes = (notes: string) => {
-    if (!selectedTicket) return;
-    const updatedTicket = { ...selectedTicket, completionNotes: notes };
-    handleUpdateTicket(updatedTicket);
-  };
-
-  const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
-    const ticket = tickets.find(t => t.id === ticketId);
-    if (ticket) {
-      const updatedTicket: Ticket = { ...ticket, status: newStatus };
-      if (newStatus === Status.Completed) {
-        updatedTicket.completionDate = new Date().toISOString();
-      } else {
-        updatedTicket.completionDate = undefined;
+  
+  const handleTicketStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
+    setTickets(prev => prev.map(t => {
+      if (t.id === ticketId) {
+        const updatedTicket: Ticket = { ...t, status: newStatus };
+        if (newStatus === Status.Completed) {
+            updatedTicket.completionDate = new Date().toISOString();
+        }
+        if (newStatus === Status.OnHold) {
+            updatedTicket.onHoldReason = onHoldReason || t.onHoldReason;
+        } else {
+            updatedTicket.onHoldReason = undefined;
+        }
+        return updatedTicket;
       }
-      if (newStatus === Status.OnHold) {
-          updatedTicket.onHoldReason = onHoldReason;
-      }
-      handleUpdateTicket(updatedTicket);
-    }
+      return t;
+    }));
   };
 
   // Project CRUD
   const handleAddNewProject = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds'>) => {
     const newProject: Project = {
-        ...newProjectData,
-        id: crypto.randomUUID(),
-        creationDate: new Date().toISOString(),
-        tasks: [],
-        ticketIds: [],
-        updates: [],
+      ...newProjectData,
+      id: crypto.randomUUID(),
+      creationDate: new Date().toISOString(),
+      tasks: [],
+      ticketIds: [],
     };
     setProjects(prev => [newProject, ...prev]);
     setIsProjectFormOpen(false);
@@ -714,566 +760,370 @@ const App: React.FC = () => {
 
   const handleUpdateProject = (updatedProject: Project) => {
     setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-    if (selectedProject && selectedProject.id === updatedProject.id) {
+     if (selectedProject && selectedProject.id === updatedProject.id) {
         setSelectedProject(updatedProject);
     }
   };
 
-  const handleAddProjectUpdate = (projectId: string, comment: string, author: string, date: string) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) return;
-    
-    const selectedDate = new Date(date); // This is UTC midnight
-    const now = new Date();
-    const finalDate = new Date(selectedDate.getUTCFullYear(), selectedDate.getUTCMonth(), selectedDate.getUTCDate(), now.getHours(), now.getMinutes(), now.getSeconds());
-
-    const newUpdate: Update = { author, comment, date: finalDate.toISOString() };
-    const updatedProject: Project = {
-      ...project,
-      updates: [...(project.updates || []), newUpdate],
-    };
-    handleUpdateProject(updatedProject);
+  const handleDeleteProject = (projectId: string) => {
+    // Also unlink tickets associated with this project
+    setTickets(prevTickets => prevTickets.map(t => t.projectId === projectId ? { ...t, projectId: undefined } : t));
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    if (selectedProject && selectedProject.id === projectId) {
+        closeSideView();
+    }
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    setProjects(prev => prev.filter(p => p.id !== projectId));
-    // Also unlink any tickets associated with this project
-    setTickets(prevTickets => prevTickets.map(t => t.projectId === projectId ? { ...t, projectId: undefined } : t));
-    closeSideView();
+  const handleAddUpdateToProject = (projectId: string, comment: string, author: string, date: string) => {
+    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
+    setProjects(prevProjects =>
+      prevProjects.map(project =>
+        project.id === projectId
+          ? { ...project, updates: [...(project.updates || []), newUpdate] }
+          : project
+      )
+    );
   };
 
   // Dealership CRUD
   const handleAddNewDealership = (newDealershipData: Omit<Dealership, 'id'>) => {
-    const newDealership: Dealership = {
-        ...newDealershipData,
-        id: crypto.randomUUID(),
-    };
+    const newDealership: Dealership = { ...newDealershipData, id: crypto.randomUUID() };
     setDealerships(prev => [newDealership, ...prev]);
-    setIsDealershipFormOpen(false);
+    showToast('Account created successfully!', 'success');
   };
-
+  
   const handleUpdateDealership = (updatedDealership: Dealership) => {
     setDealerships(prev => prev.map(d => d.id === updatedDealership.id ? updatedDealership : d));
      if (selectedDealership && selectedDealership.id === updatedDealership.id) {
         setSelectedDealership(updatedDealership);
     }
-  };
-
-  const handleDeleteDealership = (dealershipId: string) => {
-    setDealerships(prev => prev.filter(d => d.id !== dealershipId));
-    closeSideView();
+    showToast('Account updated successfully!', 'success');
   };
   
+  const handleDeleteDealership = (dealershipId: string) => {
+    setDealerships(prev => prev.filter(d => d.id !== dealershipId));
+    if (selectedDealership && selectedDealership.id === dealershipId) {
+        closeSideView();
+    }
+    showToast('Account deleted successfully.', 'success');
+  };
+
   // Feature CRUD
   const handleAddNewFeature = (newFeatureData: Omit<FeatureAnnouncement, 'id'>) => {
-    const newFeature: FeatureAnnouncement = {
-        ...newFeatureData,
-        id: crypto.randomUUID(),
-    };
+    const newFeature: FeatureAnnouncement = { ...newFeatureData, id: crypto.randomUUID() };
     setFeatures(prev => [newFeature, ...prev]);
     setIsFeatureFormOpen(false);
+    showToast('Feature announcement added!', 'success');
   };
 
   const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
     setFeatures(prev => prev.map(f => f.id === updatedFeature.id ? updatedFeature : f));
-    setIsFeatureFormOpen(false);
     setFeatureToEdit(null);
+    setIsFeatureFormOpen(false);
+    showToast('Feature announcement updated!', 'success');
   };
-
+  
   const handleDeleteFeature = (featureId: string) => {
-    if (window.confirm('Are you sure you want to delete this feature announcement?')) {
-        setFeatures(prev => prev.filter(f => f.id !== featureId));
+    if (window.confirm("Are you sure you want to delete this feature announcement?")) {
+      setFeatures(prev => prev.filter(f => f.id !== featureId));
+      showToast('Feature announcement deleted.', 'success');
     }
   };
   
-  const handleEditFeature = (feature: FeatureAnnouncement) => {
-      setFeatureToEdit(feature);
-      setIsFeatureFormOpen(true);
+  // Meeting CRUD
+  const handleAddNewMeeting = (newMeetingData: Omit<Meeting, 'id'>) => {
+    const newMeeting: Meeting = { ...newMeetingData, id: crypto.randomUUID() };
+    setMeetings(prev => [newMeeting, ...prev]);
+    setIsMeetingFormOpen(false);
+    showToast('Meeting note created!', 'success');
   };
 
-  // Export and Import
-  const handleExport = () => {
-    const convertToCsv = (data: Record<string, any>[]) => {
-        if (!data || data.length === 0) return '';
-        const headers = Object.keys(data[0]);
-        const csvRows = [headers.join(',')];
-
-        for (const row of data) {
-            const values = headers.map(header => {
-                let cell = row[header];
-                if (cell === null || cell === undefined) {
-                    cell = '';
-                }
-                const stringCell = String(cell);
-                const escapedCell = stringCell.replace(/"/g, '""');
-                if (stringCell.includes(',') || stringCell.includes('\n') || stringCell.includes('"')) {
-                    return `"${escapedCell}"`;
-                }
-                return escapedCell;
-            });
-            csvRows.push(values.join(','));
-        }
-        return csvRows.join('\n');
-    };
-
-    let dataToExport: any[] = [];
-    let filename: string = '';
-
-    switch (currentView) {
-      case 'tickets':
-        filename = 'tickets.csv';
-        const ticketKeys = [
-            'id', 'title', 'type', 'productArea', 'platform', 'status', 'priority', 'submitterName', 'client', 'location', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate',
-            'pmrNumber', 'fpTicketNumber', 'ticketThreadId', 'projectId', 'onHoldReason', 'completionNotes',
-            'problem', 'duplicationSteps', 'workaround', 'frequency',
-            'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits',
-            'updates'
-        ];
-        dataToExport = tickets.map(ticket => {
-            const row: Record<string, any> = {};
-            const enrichedTicket = { ...ticket, updates: JSON.stringify(ticket.updates || []) };
-            for (const key of ticketKeys) {
-                row[key] = (enrichedTicket as any)[key] ?? '';
-            }
-            return row;
-        });
-        break;
-      case 'projects':
-        filename = 'projects.csv';
-        dataToExport = projects.map(p => ({
-            id: p.id,
-            name: p.name,
-            description: p.description,
-            status: p.status,
-            creationDate: p.creationDate,
-            ticketIds: p.ticketIds.join(';'),
-            tasks: JSON.stringify(p.tasks),
-            updates: JSON.stringify(p.updates || []),
-        }));
-        break;
-      case 'dealerships':
-        filename = 'dealerships.csv';
-        dataToExport = dealerships;
-        break;
-      case 'features':
-        filename = 'features.csv';
-        dataToExport = features;
-        break;
+  const handleUpdateMeeting = (updatedMeeting: Meeting) => {
+    setMeetings(prev => prev.map(m => m.id === updatedMeeting.id ? updatedMeeting : m));
+     if (selectedMeeting && selectedMeeting.id === updatedMeeting.id) {
+        setSelectedMeeting(updatedMeeting);
     }
+    showToast('Meeting note updated!', 'success');
+  };
 
-    if (dataToExport.length === 0) {
-      showToast(`No ${currentView} to export.`, 'error');
-      return;
+  const handleDeleteMeeting = (meetingId: string) => {
+    // Also unlink projects
+    setProjects(prev => prev.map(p => ({ ...p, meetingIds: (p.meetingIds || []).filter(id => id !== meetingId) })));
+    setMeetings(prev => prev.filter(m => m.id !== meetingId));
+    if (selectedMeeting && selectedMeeting.id === meetingId) {
+      closeSideView();
     }
+    showToast('Meeting note deleted.', 'success');
+  };
 
-    const csvContent = convertToCsv(dataToExport);
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const exportTicketAsText = () => {
+    if (!selectedTicket) return;
+    const { title, updates, ...rest } = selectedTicket;
+    let content = `Ticket: ${title}\n\n`;
+    for (const [key, value] of Object.entries(rest)) {
+      if (value !== undefined && value !== null && typeof value !== 'object') {
+        content += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}\n`;
+      }
+    }
+    if (updates && updates.length > 0) {
+      content += "\n--- Updates ---\n";
+      updates.forEach(u => {
+        content += `[${new Date(u.date).toLocaleString()}] ${u.author}:\n${u.comment}\n\n`;
+      });
+    }
+    const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = `${title.replace(/ /g, '_')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
   
-    const formatTicketAsText = (ticket: Ticket): string => {
-        const issueTicket = ticket as IssueTicket;
-        const featureRequestTicket = ticket as FeatureRequestTicket;
-        
-        const fields = [
-          { label: 'Title', value: ticket.title },
-          { label: 'ID', value: ticket.id },
-          { label: 'Type', value: ticket.type },
-          { label: 'Status', value: ticket.status },
-          { label: 'Priority', value: ticket.priority },
-          { label: 'Product Area', value: ticket.productArea },
-          { label: 'Platform', value: ticket.platform },
-          { label: 'Submitter', value: ticket.submitterName },
-          { label: 'Client', value: ticket.client },
-          { label: 'Submission Date', value: new Date(ticket.submissionDate).toLocaleString() },
-          { label: 'Location', value: ticket.location },
-          { label: 'PMR Number', value: ticket.pmrNumber },
-          { label: 'FP Ticket #', value: ticket.fpTicketNumber },
-          { label: 'Thread ID', value: ticket.ticketThreadId },
-          { label: 'Start Date', value: ticket.startDate ? new Date(ticket.startDate).toLocaleString() : undefined },
-          { label: 'Est. Completion', value: ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleString() : undefined },
-          { label: 'Completion Date', value: ticket.completionDate ? new Date(ticket.completionDate).toLocaleString() : undefined },
-        ];
-
-        let text = 'Ticket Details\n==================================\n';
-        fields.forEach(field => {
-            if (field.value) {
-                text += `${field.label}: ${field.value}\n`;
-            }
-        });
-        
-        if (ticket.status === Status.OnHold && ticket.onHoldReason) {
-          text += `\n--- On Hold Reason ---\n${ticket.onHoldReason}\n`;
-        }
-
-        text += '\n--- Details ---\n';
-        if (ticket.type === TicketType.Issue) {
-            text += `Problem: ${issueTicket.problem}\n`;
-            text += `Duplication Steps: ${issueTicket.duplicationSteps}\n`;
-            text += `Workaround: ${issueTicket.workaround}\n`;
-            text += `Frequency: ${issueTicket.frequency}\n`;
-        } else {
-            text += `Improvement: ${featureRequestTicket.improvement}\n`;
-            text += `Current Functionality: ${featureRequestTicket.currentFunctionality}\n`;
-            text += `Suggested Solution: ${featureRequestTicket.suggestedSolution}\n`;
-            text += `Benefits: ${featureRequestTicket.benefits}\n`;
-        }
-        
-        if (ticket.completionNotes) {
-          text += `\n--- Completion Notes ---\n${ticket.completionNotes}\n`;
-        }
-
-        text += '\n--- Updates ---\n';
-        if (ticket.updates && ticket.updates.length > 0) {
-          [...ticket.updates].reverse().forEach(update => {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = update.comment;
-            const plainTextComment = tempDiv.textContent || tempDiv.innerText || "";
-            text += `[${new Date(update.date).toLocaleString()}] ${update.author}:\n${plainTextComment}\n\n`;
-          });
-        } else {
-          text += 'No updates.\n';
-        }
-
-        return text;
-    };
-
-
-  const handleExportTicket = (ticketId: string) => {
-    const ticket = tickets.find(t => t.id === ticketId);
-    if (!ticket) return;
-    const data = formatTicketAsText(ticket);
-    const blob = new Blob([data], { type: 'text/plain;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ticket-${ticket.id.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const emailTicketSummary = () => {
+      if (!selectedTicket) return;
+      const subject = `Ticket Summary: ${selectedTicket.title}`;
+      let body = `Ticket: ${selectedTicket.title}\n`;
+      body += `Status: ${selectedTicket.status}\n`;
+      body += `Priority: ${selectedTicket.priority}\n\n`;
+      if (selectedTicket.type === TicketType.Issue) {
+        body += `Problem: ${(selectedTicket as IssueTicket).problem}\n`;
+      } else {
+        body += `Improvement: ${(selectedTicket as FeatureRequestTicket).improvement}\n`;
+      }
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
-
-
-  const handleEmailTicket = (ticketId: string) => {
-      const ticket = tickets.find(t => t.id === ticketId);
-      if (!ticket) return;
-
-      const subject = `Ticket Details: ${ticket.title} (#${ticket.id})`;
-      let body = `Ticket Details:\n`;
-      body += `------------------\n`;
-      body += `Title: ${ticket.title}\n`;
-      body += `ID: ${ticket.id}\n`;
-      body += `Status: ${ticket.status}\n`;
-      body += `Priority: ${ticket.priority}\n`;
-      body += `Submitter: ${ticket.submitterName}\n`;
-      body += `Submitted On: ${new Date(ticket.submissionDate).toLocaleString()}\n`;
-      body += `Link: ${window.location.href}\n\n`;
-      body += `Description:\n`;
-      const description = ticket.type === TicketType.Issue ? (ticket as IssueTicket).problem : (ticket as FeatureRequestTicket).improvement;
-      body += `${description}\n`;
-
-      const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.location.href = mailtoLink;
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
+  
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        
-        const parseCsvRow = (row: string): string[] => {
-            const result: string[] = [];
-            let currentField = '';
-            let inQuotes = false;
-            for (let i = 0; i < row.length; i++) {
-                const char = row[i];
-                if (char === '"') {
-                    if (inQuotes && row[i + 1] === '"') {
-                        currentField += '"';
-                        i++; 
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    result.push(currentField);
-                    currentField = '';
-                } else {
-                    currentField += char;
-                }
-            }
-            result.push(currentField);
-            return result;
-        };
-
-        const lines = content.trim().replace(/\r\n/g, '\n').split('\n');
-        if (lines.length < 2) {
-            showToast("CSV file is empty or has only headers.", 'error');
-            return;
-        }
-
-        const headers = parseCsvRow(lines[0]);
-        const data: Record<string, string>[] = [];
-        for (let i = 1; i < lines.length; i++) {
-            const values = parseCsvRow(lines[i]);
-            if (values.length === headers.length) {
-                const obj: Record<string, string> = {};
-                for (let j = 0; j < headers.length; j++) {
-                    obj[headers[j]] = values[j];
-                }
-                data.push(obj);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          if (data.tickets && data.projects && data.dealerships && data.tasks && data.features && data.meetings) {
+            setTickets(data.tickets);
+            setProjects(data.projects);
+            setDealerships(data.dealerships);
+            setTasks(data.tasks);
+            setFeatures(data.features);
+            setMeetings(data.meetings);
+            showToast('Data imported successfully!', 'success');
+          } else {
+            showToast('Invalid data file format.', 'error');
+          }
+        } catch (error) {
+          showToast('Failed to parse data file.', 'error');
+        } finally {
+            // Reset the file input value to allow re-uploading the same file
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
             }
         }
-
-        const isTickets = ['id', 'title', 'type', 'status', 'priority'].every(h => headers.includes(h));
-        const isProjects = ['id', 'name', 'status', 'creationDate'].every(h => headers.includes(h));
-        const isDealerships = ['id', 'name', 'accountNumber', 'status'].every(h => headers.includes(h));
-        const isFeatures = ['id', 'title', 'launchDate', 'status'].every(h => headers.includes(h));
-        
-        if (isTickets) {
-            const newTickets = data.map(row => {
-                const ticket: any = {};
-                for (const key in row) {
-                    if (row[key] !== '') ticket[key] = row[key];
-                }
-                if (ticket.updates) ticket.updates = JSON.parse(ticket.updates);
-                return ticket as Ticket;
-            });
-            setTickets(newTickets);
-            showToast(`Successfully imported ${newTickets.length} tickets.`, 'success');
-        } else if (isProjects) {
-            const newProjects = data.map(row => {
-                const project: any = {};
-                 for (const key in row) {
-                    if (row[key] !== '') project[key] = row[key];
-                }
-                if (project.ticketIds) project.ticketIds = project.ticketIds.split(';');
-                if (project.tasks) project.tasks = JSON.parse(project.tasks);
-                if (project.updates) project.updates = JSON.parse(project.updates);
-                return project as Project;
-            });
-            setProjects(newProjects);
-            showToast(`Successfully imported ${newProjects.length} projects.`, 'success');
-        } else if (isDealerships) {
-            const newDealerships = data.map(row => {
-                 const dealership: any = {};
-                 for (const key in row) {
-                    if (row[key] !== '') dealership[key] = row[key];
-                }
-                return dealership as Dealership;
-            });
-            setDealerships(newDealerships);
-            showToast(`Successfully imported ${newDealerships.length} dealerships.`, 'success');
-        } else if (isFeatures) {
-            const newFeatures = data.map(row => {
-                 const feature: any = {};
-                 for (const key in row) {
-                    if (row[key] !== '') feature[key] = row[key];
-                }
-                return feature as FeatureAnnouncement;
-            });
-            setFeatures(newFeatures);
-            showToast(`Successfully imported ${newFeatures.length} features.`, 'success');
-        } else {
-            showToast("Could not determine data type. Please check CSV headers.", 'error');
-        }
-      } catch (error) {
-        console.error("Error parsing CSV file:", error);
-        showToast("Failed to import data. Please check file format.", 'error');
-      }
-    };
-    reader.readAsText(file);
-    if (event.target) {
-        event.target.value = '';
+      };
+      reader.readAsText(file);
     }
   };
 
-  // UI Helpers
-  const getNewItemButtonText = () => {
+  const handleExportData = () => {
+    const data = { tickets, projects, dealerships, tasks, features, meetings };
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `curator_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Data exported successfully!', 'success');
+  };
+  
+  const renderView = () => {
     switch (currentView) {
-        case 'tickets': return 'New Ticket';
-        case 'projects': return 'New Project';
-        case 'tasks': return 'Add New Task';
-        case 'dealerships': return 'New Account';
-        case 'features': return 'New Feature';
-        default: return 'New Item';
+      case 'tickets':
+        return <TicketList tickets={filteredTickets} onRowClick={handleTicketClick} onStatusChange={handleTicketStatusChange} />;
+      case 'projects':
+        return <ProjectList projects={projects} onProjectClick={handleProjectClick} tickets={tickets} />;
+      case 'dealerships':
+        return <DealershipList dealerships={filteredDealerships} onDealershipClick={handleDealershipClick} />;
+      case 'tasks':
+        return <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} />;
+      case 'features':
+        return <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={(feature) => { setFeatureToEdit(feature); setIsFeatureFormOpen(true); }} />;
+      case 'meetings':
+        return <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} />;
+      default:
+        return <div>Select a view</div>;
     }
   };
   
+  const renderInsights = () => {
+    switch (currentView) {
+        case 'tickets':
+            return <PerformanceInsights {...performanceInsights} />;
+        case 'dealerships':
+            return <DealershipInsights {...dealershipInsights} />;
+        default:
+            return null;
+    }
+  };
+
   const getSideViewTitle = () => {
-    if (selectedTicket) return `Ticket: ${selectedTicket.title}`;
-    if (selectedProject) return `Project: ${selectedProject.name}`;
-    if (selectedDealership) return `Account: ${selectedDealership.name}`;
+    if (selectedTicket) return selectedTicket.title;
+    if (selectedProject) return selectedProject.name;
+    if (selectedDealership) return selectedDealership.name;
+    if (selectedMeeting) return selectedMeeting.name;
     return 'Details';
   };
 
-  const openFormModal = () => {
+  const getNewItemButton = () => {
     switch (currentView) {
-        case 'tickets': setIsTicketFormOpen(true); break;
-        case 'projects': setIsProjectFormOpen(true); break;
-        case 'tasks': 
-          document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' });
-          break;
-        case 'dealerships': setIsDealershipFormOpen(true); break;
-        case 'features': 
-          setFeatureToEdit(null);
-          setIsFeatureFormOpen(true); 
-          break;
+        case 'tickets':
+            return { label: 'New Ticket', onClick: () => setIsTicketFormOpen(true) };
+        case 'projects':
+            return { label: 'New Project', onClick: () => setIsProjectFormOpen(true) };
+        case 'dealerships':
+            return { label: 'New Account', onClick: () => setIsDealershipFormOpen(true) };
+        case 'features':
+            return { label: 'New Announcement', onClick: () => { setFeatureToEdit(null); setIsFeatureFormOpen(true); } };
+        case 'meetings':
+            return { label: 'New Note', onClick: () => setIsMeetingFormOpen(true) };
+        default:
+            return null;
     }
   };
+  
+  const newItemButton = getNewItemButton();
 
   return (
     <div className="flex h-screen bg-gray-100">
-        <Toast 
-            message={toast.message} 
-            type={toast.type}
-            isVisible={toast.isVisible}
-            onClose={hideToast}
-        />
-        <LeftSidebar 
-            ticketFilters={ticketFilters} 
-            setTicketFilters={setTicketFilters}
-            dealershipFilters={dealershipFilters}
-            setDealershipFilters={setDealershipFilters}
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            currentView={currentView}
-            onViewChange={view => {
-                setCurrentView(view);
-                closeSideView();
-                setIsSidebarOpen(false); // Also close sidebar on mobile
-            }}
-        />
-        <main className="flex-1 flex flex-col overflow-hidden">
-            <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center flex-shrink-0">
-                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800 rounded-md focus:outline-none focus:ring-2 ring-blue-500">
-                    <MenuIcon className="w-6 h-6" />
-                </button>
-                <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView}</h1>
-                <div className="flex items-center gap-3">
-                    <button onClick={handleUploadClick} className="flex items-center gap-2 bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
-                        <UploadIcon className="w-4 h-4" />
-                        <span>Import</span>
-                    </button>
-                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" style={{ display: 'none' }} />
-                    <button onClick={handleExport} className="flex items-center gap-2 bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
-                        <DownloadIcon className="w-4 h-4" />
-                        <span>Export</span>
-                    </button>
-                </div>
-            </header>
-            <div className="flex-1 overflow-y-auto p-6">
-                {currentView === 'tickets' && (
-                    <>
-                        <PerformanceInsights {...performanceInsights} />
-                        <TicketList tickets={filteredTickets} onRowClick={handleTicketClick} onStatusChange={handleStatusChange} />
-                    </>
-                )}
-                {currentView === 'projects' && <ProjectList projects={projects} onProjectClick={handleProjectClick} tickets={tickets} />}
-                {currentView === 'tasks' && <TaskList 
-                    projects={projects} 
-                    onUpdateProject={handleUpdateProject}
-                    tasks={tasks}
-                    setTasks={setTasks}
-                />}
-                {currentView === 'dealerships' && (
-                  <>
-                    <DealershipInsights {...dealershipInsights} />
-                    <DealershipList dealerships={filteredDealerships} onDealershipClick={handleDealershipClick} />
-                  </>
-                )}
-                {currentView === 'features' && <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={handleEditFeature} />}
-            </div>
-        </main>
-        
-        <button
-            onClick={openFormModal}
-            className="fixed bottom-6 right-6 z-40 bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform hover:scale-105"
-            aria-label={getNewItemButtonText()}
-            title={getNewItemButtonText()}
-        >
-            <PlusIcon className="w-7 h-7" />
-        </button>
+      <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
+      
+      {isTicketFormOpen && (
+        <Modal title="Create New Ticket" onClose={() => setIsTicketFormOpen(false)}>
+          <TicketForm onSubmit={handleAddNewTicket} projects={projects} />
+        </Modal>
+      )}
 
-        {isTicketFormOpen && (
-            <Modal title="Create New Ticket" onClose={() => setIsTicketFormOpen(false)}>
-                <TicketForm onSubmit={handleAddNewTicket} projects={projects}/>
-            </Modal>
-        )}
-        {isProjectFormOpen && (
-            <Modal title="Create New Project" onClose={() => setIsProjectFormOpen(false)}>
-                <ProjectForm onSubmit={handleAddNewProject} />
-            </Modal>
-        )}
-        {isDealershipFormOpen && (
-            <Modal title="Create New Account" onClose={() => setIsDealershipFormOpen(false)}>
-                 <DealershipForm 
-                    onSubmit={handleAddNewDealership} 
-                    onUpdate={handleUpdateDealership}
-                    onClose={() => setIsDealershipFormOpen(false)}
-                />
-            </Modal>
-        )}
-        {isFeatureFormOpen && (
-            <Modal title={featureToEdit ? 'Edit Feature' : 'Add New Feature'} onClose={() => setIsFeatureFormOpen(false)}>
-                 <FeatureForm 
-                    onSubmit={handleAddNewFeature} 
-                    onUpdate={handleUpdateFeature}
-                    featureToEdit={featureToEdit}
-                    onClose={() => {
-                        setIsFeatureFormOpen(false);
-                        setFeatureToEdit(null);
-                    }}
-                />
-            </Modal>
-        )}
+      {isProjectFormOpen && (
+        <Modal title="Create New Project" onClose={() => setIsProjectFormOpen(false)}>
+            <ProjectForm onSubmit={handleAddNewProject} />
+        </Modal>
+      )}
+
+      {isDealershipFormOpen && (
+        <Modal title="Create New Dealership Account" onClose={() => setIsDealershipFormOpen(false)}>
+            <DealershipForm onSubmit={handleAddNewDealership} onUpdate={()=>{}} onClose={() => setIsDealershipFormOpen(false)} />
+        </Modal>
+      )}
+
+      {isFeatureFormOpen && (
+        <Modal title={featureToEdit ? "Edit Feature Announcement" : "New Feature Announcement"} onClose={() => { setIsFeatureFormOpen(false); setFeatureToEdit(null); }}>
+            <FeatureForm 
+                onSubmit={handleAddNewFeature} 
+                onUpdate={handleUpdateFeature} 
+                featureToEdit={featureToEdit}
+                onClose={() => { setIsFeatureFormOpen(false); setFeatureToEdit(null); }}
+            />
+        </Modal>
+      )}
+      
+      {isMeetingFormOpen && (
+        <Modal title="Create New Meeting Note" onClose={() => setIsMeetingFormOpen(false)}>
+            <MeetingForm onSubmit={handleAddNewMeeting} onClose={() => setIsMeetingFormOpen(false)} />
+        </Modal>
+      )}
+
+      <LeftSidebar
+        ticketFilters={ticketFilters}
+        setTicketFilters={setTicketFilters}
+        dealershipFilters={dealershipFilters}
+        setDealershipFilters={setDealershipFilters}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        currentView={currentView}
+        onViewChange={(view) => { setCurrentView(view); closeSideView(); }}
+      />
+      <main className="flex-1 p-6 overflow-y-auto">
+        <header className="flex justify-between items-center mb-6">
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden mr-4 p-2 rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 ring-gray-400"
+              aria-label="Open sidebar"
+            >
+              <MenuIcon className="w-6 h-6 text-gray-700" />
+            </button>
+            <h1 className="text-2xl font-bold text-gray-800 capitalize">{currentView}</h1>
+          </div>
+          <div className="flex items-center gap-3">
+             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".json" className="hidden" />
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
+                <UploadIcon className="w-4 h-4" />
+                <span>Import</span>
+            </button>
+            <button onClick={handleExportData} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
+                <DownloadIcon className="w-4 h-4" />
+                <span>Export</span>
+            </button>
+            {newItemButton && (
+                <button onClick={newItemButton.onClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
+                  <PlusIcon className="w-4 h-4" />
+                  <span>{newItemButton.label}</span>
+                </button>
+            )}
+          </div>
+        </header>
+
+        {renderInsights()}
         
-        <SideView 
-            title={getSideViewTitle()}
-            isOpen={isSideViewOpen} 
-            onClose={closeSideView}
-        >
-            {selectedTicket && (
-                <TicketDetailView 
-                    ticket={selectedTicket} 
-                    onUpdate={handleUpdateTicket}
-                    onAddUpdate={handleAddUpdate}
-                    onExport={() => handleExportTicket(selectedTicket.id)}
-                    onEmail={() => handleEmailTicket(selectedTicket.id)}
-                    onUpdateCompletionNotes={handleUpdateCompletionNotes}
-                    onDelete={handleDeleteTicket}
-                    projects={projects}
-                />
-            )}
-            {selectedProject && (
-                <ProjectDetailView 
-                    project={selectedProject} 
-                    onUpdate={handleUpdateProject}
-                    onDelete={handleDeleteProject}
-                    tickets={tickets}
-                    onUpdateTicket={handleUpdateTicket}
-                    onAddUpdate={handleAddProjectUpdate}
-                />
-            )}
-             {selectedDealership && (
-                <DealershipDetailView
-                    dealership={selectedDealership}
-                    onUpdate={handleUpdateDealership}
-                    onDelete={handleDeleteDealership}
-                />
-            )}
-        </SideView>
+        {renderView()}
+      </main>
+
+      <SideView title={getSideViewTitle()} isOpen={isSideViewOpen} onClose={closeSideView}>
+        {selectedTicket && (
+          <TicketDetailView
+            ticket={selectedTicket}
+            onUpdate={handleUpdateTicket}
+            onAddUpdate={(comment, author, date) => handleAddUpdateToTicket(selectedTicket.id, comment, author, date)}
+            onExport={exportTicketAsText}
+            onEmail={emailTicketSummary}
+            onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
+            onDelete={handleDeleteTicket}
+            projects={projects}
+          />
+        )}
+        {selectedProject && (
+            <ProjectDetailView 
+                project={selectedProject}
+                onUpdate={handleUpdateProject}
+                onDelete={handleDeleteProject}
+                tickets={tickets}
+                onUpdateTicket={handleUpdateTicket}
+                onAddUpdate={handleAddUpdateToProject}
+                meetings={meetings}
+                onUpdateMeeting={handleUpdateMeeting}
+            />
+        )}
+        {selectedDealership && (
+            <DealershipDetailView
+                dealership={selectedDealership}
+                onUpdate={handleUpdateDealership}
+                onDelete={handleDeleteDealership}
+            />
+        )}
+        {selectedMeeting && (
+          <MeetingDetailView
+            meeting={selectedMeeting}
+            onUpdate={handleUpdateMeeting}
+            onDelete={handleDeleteMeeting}
+            projects={projects}
+            tickets={tickets}
+            onUpdateProject={handleUpdateProject}
+            onUpdateTicket={handleUpdateTicket}
+          />
+        )}
+      </SideView>
     </div>
   );
 };

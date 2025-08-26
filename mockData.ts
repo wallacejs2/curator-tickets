@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -142,6 +142,8 @@ export const initialProjects: Project[] = [
     status: ProjectStatus.InProgress,
     creationDate: new Date('2024-07-10T10:00:00Z').toISOString(),
     ticketIds: ['2'],
+    involvedPeople: ['Project Lead', 'John Doe', 'UX Team', 'Backend Team', 'Alice Johnson'],
+    meetingIds: ['meet-1'],
     updates: [
       {
         author: 'Project Lead',
@@ -163,6 +165,8 @@ export const initialProjects: Project[] = [
     status: ProjectStatus.NotStarted,
     creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
     ticketIds: [],
+    involvedPeople: ['Security Team', 'DevOps Team'],
+    meetingIds: ['meet-2'],
     updates: [],
     tasks: [
        { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation' },
@@ -176,6 +180,7 @@ export const initialProjects: Project[] = [
     status: ProjectStatus.Completed,
     creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
     ticketIds: [],
+    involvedPeople: ['Marketing Team', 'PR Team'],
     updates: [],
     tasks: [
        { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Design' },
@@ -281,5 +286,26 @@ export const initialFeatures: FeatureAnnouncement[] = [
     launchDate: new Date('2024-09-01T00:00:00Z').toISOString(),
     platform: Platform.Curator,
     status: FeatureStatus.Upcoming,
+  }
+];
+
+export const initialMeetings: Meeting[] = [
+  {
+    id: 'meet-1',
+    name: 'Project Kickoff: Dark Mode',
+    meetingDate: new Date('2024-07-11T10:00:00Z').toISOString(),
+    attendees: ['Project Lead', 'John Doe', 'UX Team'],
+    notes: '<h3>Agenda</h3><ul><li>Finalize design specs</li><li>Outline development tasks</li><li>Set timeline</li></ul><p>Discussion points were positive. Team is aligned.</p>',
+    projectIds: ['proj-1'],
+    ticketIds: ['2'],
+  },
+  {
+    id: 'meet-2',
+    name: 'Compliance Audit Weekly Sync',
+    meetingDate: new Date('2024-07-28T14:00:00Z').toISOString(),
+    attendees: ['Security Team', 'DevOps', 'Legal Advisor'],
+    notes: '<p>Reviewed progress on log gathering. DevOps to provide an update on encryption verification by EOW.</p>',
+    projectIds: ['proj-2'],
+    ticketIds: [],
   }
 ];
