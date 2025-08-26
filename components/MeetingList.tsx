@@ -1,9 +1,12 @@
 import React from 'react';
-import { Meeting } from '../types.ts';
+import { Meeting, MeetingFilterState } from '../types.ts';
+import { SearchIcon } from './icons/SearchIcon.tsx';
 
 interface MeetingListProps {
   meetings: Meeting[];
   onMeetingClick: (meeting: Meeting) => void;
+  meetingFilters: MeetingFilterState;
+  setMeetingFilters: React.Dispatch<React.SetStateAction<MeetingFilterState>>;
 }
 
 const MeetingCard: React.FC<{ meeting: Meeting; onClick: () => void }> = ({ meeting, onClick }) => {
@@ -23,23 +26,43 @@ const MeetingCard: React.FC<{ meeting: Meeting; onClick: () => void }> = ({ meet
 };
 
 
-const MeetingList: React.FC<MeetingListProps> = ({ meetings, onMeetingClick }) => {
-  if (meetings.length === 0) {
-    return (
-      <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800">No Meeting Notes Found</h3>
-        <p className="text-gray-500 mt-2">Click the '+' button to add your first meeting note.</p>
-      </div>
-    );
-  }
-  
-  const sortedMeetings = [...meetings].sort((a,b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
+const MeetingList: React.FC<MeetingListProps> = ({ meetings, onMeetingClick, meetingFilters, setMeetingFilters }) => {
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMeetingFilters({ searchTerm: e.target.value });
+  };
 
   return (
-    <div className="space-y-4">
-      {sortedMeetings.map(meeting => (
-        <MeetingCard key={meeting.id} meeting={meeting} onClick={() => onMeetingClick(meeting)} />
-      ))}
+    <div>
+      <div className="mb-6 relative">
+        <input
+          type="text"
+          value={meetingFilters.searchTerm}
+          onChange={handleSearchChange}
+          placeholder="Search meetings by name, date, attendees, or notes..."
+          className="w-full p-3 pl-10 text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <SearchIcon className="w-5 h-5 text-gray-400" />
+        </div>
+      </div>
+
+      {meetings.length === 0 ? (
+        <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800">No Meeting Notes Found</h3>
+          <p className="text-gray-500 mt-2">
+            {meetingFilters.searchTerm
+              ? `No meetings match your search for "${meetingFilters.searchTerm}".`
+              : "Click the 'New Note' button to add your first meeting note."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {meetings.map(meeting => (
+            <MeetingCard key={meeting.id} meeting={meeting} onClick={() => onMeetingClick(meeting)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

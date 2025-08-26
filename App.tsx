@@ -137,6 +137,7 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
     if (commentText && authorName.trim() && updateDate && textContentLength <= MAX_COMMENT_LENGTH) {
       onAddUpdate(commentHtml, authorName.trim(), updateDate);
       setNewUpdate('');
+      setAuthorName('');
       setTextContentLength(0);
       setIsCommentEmpty(true);
       if (commentEditorRef.current) {
@@ -588,18 +589,19 @@ const App: React.FC = () => {
         const searchTermLower = meetingFilters.searchTerm.toLowerCase();
         if (!searchTermLower) return true;
 
-        // Create a temporary div to parse HTML and get plain text for searching
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = meeting.notes;
         const notesText = tempDiv.textContent || tempDiv.innerText || "";
 
         const matchesSearch =
           meeting.name.toLowerCase().includes(searchTermLower) ||
+          new Date(meeting.meetingDate).toLocaleDateString().includes(searchTermLower) ||
           notesText.toLowerCase().includes(searchTermLower) ||
           meeting.attendees.some(attendee => attendee.toLowerCase().includes(searchTermLower));
         
         return matchesSearch;
-      });
+      })
+      .sort((a,b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
   }, [meetings, meetingFilters]);
 
   const performanceInsights = useMemo(() => {
@@ -708,13 +710,21 @@ const App: React.FC = () => {
 
   const handleAddUpdateToTicket = (ticketId: string, comment: string, author: string, date: string) => {
     const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
-    setTickets(prevTickets =>
-      prevTickets.map(ticket =>
+    setTickets(prevTickets => {
+      const newTickets = prevTickets.map(ticket =>
         ticket.id === ticketId
           ? { ...ticket, updates: [...(ticket.updates || []), newUpdate] }
           : ticket
-      )
-    );
+      );
+      
+      if (selectedTicket && selectedTicket.id === ticketId) {
+          const updatedTicket = newTickets.find(t => t.id === ticketId);
+          if (updatedTicket) {
+              setSelectedTicket(updatedTicket);
+          }
+      }
+      return newTickets;
+    });
   };
   
   const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
@@ -776,13 +786,19 @@ const App: React.FC = () => {
 
   const handleAddUpdateToProject = (projectId: string, comment: string, author: string, date: string) => {
     const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
-    setProjects(prevProjects =>
-      prevProjects.map(project =>
+    setProjects(prevProjects => {
+      const newProjects = prevProjects.map(project =>
         project.id === projectId
           ? { ...project, updates: [...(project.updates || []), newUpdate] }
           : project
-      )
-    );
+      );
+      
+      const updatedProject = newProjects.find(p => p.id === projectId);
+      if (selectedProject && selectedProject.id === projectId && updatedProject) {
+          setSelectedProject(updatedProject);
+      }
+      return newProjects;
+    });
   };
 
   // Dealership CRUD
@@ -868,7 +884,10 @@ const App: React.FC = () => {
     if (updates && updates.length > 0) {
       content += "\n--- Updates ---\n";
       updates.forEach(u => {
-        content += `[${new Date(u.date).toLocaleString()}] ${u.author}:\n${u.comment}\n\n`;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = u.comment;
+        const commentText = tempDiv.textContent || tempDiv.innerText || "";
+        content += `[${new Date(u.date).toLocaleString()}] ${u.author}:\n${commentText}\n\n`;
       });
     }
     const blob = new Blob([content], { type: 'text/plain' });
@@ -894,46 +913,177 @@ const App: React.FC = () => {
       window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
   
+  const convertToCSV = (data: any[]) => {
+    if (data.length === 0) return '';
+    const headers = Object.keys(data[0]);
+    const csvRows = [headers.join(',')];
+
+    for (const row of data) {
+      const values = headers.map(header => {
+        let value = row[header];
+        if (value === null || value === undefined) {
+          value = '';
+        } else if (typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      });
+      csvRows.push(values.join(','));
+    }
+    return csvRows.join('\n');
+  };
+
+  const parseCSV = (csvText: string): any[] => {
+    const lines = csvText.split('\n');
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const data = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Basic CSV parsing, may not handle all edge cases like quoted commas perfectly
+        const values = line.split(',');
+        const row: { [key: string]: any } = {};
+
+        for (let j = 0; j < headers.length; j++) {
+            const header = headers[j];
+            let value: any = values[j] || '';
+             try {
+              value = value.trim().replace(/^"/, '').replace(/"$/, '').replace(/""/g, '"');
+            } catch (e) { /* ignore */ }
+
+
+            if (value.startsWith('[') || value.startsWith('{')) {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) { /* ignore if not valid JSON */ }
+            }
+            row[header] = value;
+        }
+        data.push(row);
+    }
+    return data;
+  };
+
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target?.result as string);
-          if (data.tickets && data.projects && data.dealerships && data.tasks && data.features && data.meetings) {
-            setTickets(data.tickets);
-            setProjects(data.projects);
-            setDealerships(data.dealerships);
-            setTasks(data.tasks);
-            setFeatures(data.features);
-            setMeetings(data.meetings);
-            showToast('Data imported successfully!', 'success');
-          } else {
-            showToast('Invalid data file format.', 'error');
-          }
-        } catch (error) {
-          showToast('Failed to parse data file.', 'error');
-        } finally {
-            // Reset the file input value to allow re-uploading the same file
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
+    if (file && file.type === "text/csv") {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const csvText = e.target?.result as string;
+                const data = parseCSV(csvText);
+
+                if (data.length === 0) {
+                    showToast('CSV file is empty or invalid.', 'error');
+                    return;
+                }
+
+                if (!window.confirm(`Are you sure you want to add ${data.length} items to the current "${currentView}" view? This will append the data.`)) {
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    return;
+                }
+
+                const addDataWithIds = (items: any[]) => items.map(item => ({...item, id: item.id || crypto.randomUUID()}));
+
+                switch(currentView) {
+                    case 'tickets':
+                        setTickets(prev => [...prev, ...addDataWithIds(data) as Ticket[]]);
+                        break;
+                    case 'projects':
+                        setProjects(prev => [...prev, ...addDataWithIds(data) as Project[]]);
+                        break;
+                    case 'dealerships':
+                        setDealerships(prev => [...prev, ...addDataWithIds(data) as Dealership[]]);
+                        break;
+                    case 'meetings':
+                        setMeetings(prev => [...prev, ...addDataWithIds(data) as Meeting[]]);
+                        break;
+                    case 'features':
+                        setFeatures(prev => [...prev, ...addDataWithIds(data) as FeatureAnnouncement[]]);
+                        break;
+                    default:
+                        showToast(`Import not supported for the ${currentView} view.`, 'error');
+                        return;
+                }
+                showToast('Data imported successfully!', 'success');
+            } catch (error) {
+                console.error("CSV Import Error:", error);
+                showToast('Failed to parse CSV file.', 'error');
+            } finally {
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             }
-        }
-      };
-      reader.readAsText(file);
+        };
+        reader.readAsText(file);
+    } else if (file) {
+        showToast('Please select a valid .csv file.', 'error');
+        if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
+
   const handleExportData = () => {
-    const data = { tickets, projects, dealerships, tasks, features, meetings };
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
+    let dataToExport: any[] = [];
+    let fileName = `curator_export.csv`;
+
+    switch (currentView) {
+        case 'tickets':
+            dataToExport = tickets;
+            fileName = `tickets_export_${new Date().toISOString().split('T')[0]}.csv`;
+            break;
+        case 'projects':
+            dataToExport = projects;
+            fileName = `projects_export_${new Date().toISOString().split('T')[0]}.csv`;
+            break;
+        case 'dealerships':
+            dataToExport = dealerships;
+            fileName = `dealerships_export_${new Date().toISOString().split('T')[0]}.csv`;
+            break;
+        case 'tasks':
+            const allTasks = [
+                ...tasks.map(t => ({...t, project_name: 'General'})),
+                ...projects.flatMap(p => (p.tasks || []).map(t => ({ ...t, project_name: p.name })))
+            ];
+            dataToExport = allTasks;
+            fileName = `tasks_export_${new Date().toISOString().split('T')[0]}.csv`;
+            break;
+        case 'features':
+            dataToExport = features;
+            fileName = `features_export_${new Date().toISOString().split('T')[0]}.csv`;
+            break;
+        case 'meetings':
+            dataToExport = meetings;
+            fileName = `meetings_export_${new Date().toISOString().split('T')[0]}.csv`;
+            break;
+        default:
+            showToast('No data to export for this view.', 'error');
+            return;
+    }
+
+    if (dataToExport.length === 0) {
+        showToast('There is no data to export.', 'error');
+        return;
+    }
+
+    const csvString = convertToCSV(dataToExport);
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `curator_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = fileName;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('Data exported successfully!', 'success');
   };
@@ -951,7 +1101,7 @@ const App: React.FC = () => {
       case 'features':
         return <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={(feature) => { setFeatureToEdit(feature); setIsFeatureFormOpen(true); }} />;
       case 'meetings':
-        return <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} />;
+        return <MeetingList meetings={filteredMeetings} onMeetingClick={handleMeetingClick} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />;
       default:
         return <div>Select a view</div>;
     }
@@ -1057,7 +1207,7 @@ const App: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-800 capitalize">{currentView}</h1>
           </div>
           <div className="flex items-center gap-3">
-             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".json" className="hidden" />
+             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv" className="hidden" />
             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm">
                 <UploadIcon className="w-4 h-4" />
                 <span>Import</span>

@@ -142,6 +142,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
         if (newUpdate.trim() && authorName.trim() && updateDate) {
           onAddUpdate(project.id, newUpdate.trim(), authorName.trim(), updateDate);
           setNewUpdate('');
+          setAuthorName('');
         }
     };
     
@@ -325,21 +326,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             {/* Sub-Tasks Section */}
             <div className="mb-6 pb-6 border-b border-gray-200">
                 <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({projectTasks.length})</h3>
-                <form onSubmit={handleNewTaskSubmit} className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto] gap-2 items-center mb-4 p-3 bg-gray-50 rounded-md border">
-                    <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-                    <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full sm:w-auto text-sm p-2 border border-gray-300 rounded-md"/>
-                     <div className="col-span-1 sm:col-span-3 grid grid-cols-1 sm:grid-cols-[auto,auto,auto,1fr] gap-2 items-center mt-2">
-                        <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" required className="text-sm p-2 border border-gray-300 rounded-md"/>
-                        <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white">
-                            {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-                        <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
-                        <button type="submit" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
-                            <PlusIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                </form>
-
+                
                 <div className="space-y-2">
                     {projectTasks.length > 0 ? projectTasks.map(task => (
                         <div
@@ -371,6 +358,21 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                         <p className="text-sm text-gray-500 italic">No tasks have been added to this project yet.</p>
                     )}
                 </div>
+
+                <form onSubmit={handleNewTaskSubmit} className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto] gap-2 items-center mt-4 p-3 bg-gray-50 rounded-md border">
+                    <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                    <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full sm:w-auto text-sm p-2 border border-gray-300 rounded-md"/>
+                     <div className="col-span-1 sm:col-span-3 grid grid-cols-1 sm:grid-cols-[auto,auto,auto,1fr] gap-2 items-center mt-2">
+                        <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" required className="text-sm p-2 border border-gray-300 rounded-md"/>
+                        <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white">
+                            {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                        <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
+                        <button type="submit" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
+                            <PlusIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                </form>
             </div>
 
              {/* Linked Meetings Section */}
