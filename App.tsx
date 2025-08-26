@@ -2,7 +2,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
-import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
 import SideView from './components/common/SideView.tsx';
 import { PencilIcon } from './components/icons/PencilIcon.tsx';
@@ -14,13 +13,10 @@ import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTION
 import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
-import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
 import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings } from './mockData.ts';
-import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
-import ProjectForm from './components/ProjectForm.tsx';
 import DealershipList from './components/DealershipList.tsx';
 import DealershipDetailView from './components/DealershipDetailView.tsx';
 import DealershipInsights from './components/DealershipInsights.tsx';
@@ -32,7 +28,7 @@ import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
 import MeetingList from './components/MeetingList.tsx';
 import MeetingDetailView from './components/MeetingDetailView.tsx';
-import MeetingForm from './components/MeetingForm.tsx';
+import AddSideView from './components/common/AddSideView.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -94,7 +90,19 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects, tickets }: { ticket: Ticket, onUpdate: (ticket: Ticket) => void, onAddUpdate: (comment: string, author: string, date: string) => void, onExport: () => void, onEmail: () => void, onUpdateCompletionNotes: (notes: string) => void, onDelete: (ticketId: string) => void, projects: Project[], tickets: Ticket[] }) => {
+const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects, tickets, onLinkTicket, onUnlinkTicket }: { 
+    ticket: Ticket, 
+    onUpdate: (ticket: Ticket) => void, 
+    onAddUpdate: (comment: string, author: string, date: string) => void, 
+    onExport: () => void, 
+    onEmail: () => void, 
+    onUpdateCompletionNotes: (notes: string) => void, 
+    onDelete: (ticketId: string) => void, 
+    projects: Project[], 
+    tickets: Ticket[],
+    onLinkTicket: (fromTicketId: string, toTicketId: string) => void,
+    onUnlinkTicket: (fromTicketId: string, toTicketId: string) => void
+ }) => {
   const [newUpdate, setNewUpdate] = useState('');
   const [authorName, setAuthorName] = useState('');
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
@@ -104,42 +112,25 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   const [editableTicket, setEditableTicket] = useState<Ticket>(ticket);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [ticketToLink, setTicketToLink] = useState('');
+  const [projectToLink, setProjectToLink] = useState('');
   
-  const commentEditorRef = useRef<HTMLDivElement>(null);
   const MAX_COMMENT_LENGTH = 2000;
-  const [textContentLength, setTextContentLength] = useState(0);
-  const [isCommentEmpty, setIsCommentEmpty] = useState(true);
 
   useEffect(() => {
     setEditableTicket(ticket);
-    setIsEditing(false); // Exit edit mode if the selected ticket changes
+    setCompletionNotes(ticket.completionNotes || '');
+    if (isEditing && ticket.id !== editableTicket.id) {
+        setIsEditing(false);
+    }
   }, [ticket]);
 
-  const handleCommentInput = () => {
-    if (commentEditorRef.current) {
-        const textLength = commentEditorRef.current.textContent?.length || 0;
-        setNewUpdate(commentEditorRef.current.innerHTML);
-        setTextContentLength(textLength);
-        setIsCommentEmpty(!commentEditorRef.current.textContent?.trim());
-    }
-  };
-
-  const handleFormat = (command: string) => {
-      document.execCommand(command, false, undefined);
-      commentEditorRef.current?.focus();
-      handleCommentInput();
-  };
-  
   const handleUpdateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newUpdate.trim() && authorName.trim() && updateDate) {
-      onAddUpdate(newUpdate, authorName, updateDate);
-       if (commentEditorRef.current) {
-            commentEditorRef.current.innerHTML = '';
-        }
-        setNewUpdate('');
-        setTextContentLength(0);
-        setIsCommentEmpty(true);
+      // Convert newlines to <br> tags for HTML rendering
+      const commentAsHtml = newUpdate.replace(/\n/g, '<br />');
+      onAddUpdate(commentAsHtml, authorName, updateDate);
+      setNewUpdate('');
     }
   };
   
@@ -166,30 +157,144 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
   
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditableTicket(prev => ({
-      ...prev,
-      [name]: value ? new Date(`${value}T00:00:00`).toISOString() : undefined,
-    }));
+    setEditableTicket(prev => {
+      // submissionDate is a required field, prevent it from being cleared by reverting to previous state if empty.
+      if (name === 'submissionDate') {
+        return { ...prev, submissionDate: value ? new Date(`${value}T00:00:00`).toISOString() : prev.submissionDate }
+      }
+      return {
+        ...prev,
+        [name]: value ? new Date(`${value}T00:00:00`).toISOString() : undefined,
+      };
+    });
   };
   
   const handleLinkTicket = () => {
     if (!ticketToLink) return;
-    setEditableTicket(prev => ({
-      ...prev,
-      linkedTicketIds: [...(prev.linkedTicketIds || []), ticketToLink]
-    }));
+    onLinkTicket(ticket.id, ticketToLink);
     setTicketToLink('');
   };
 
   const handleUnlinkTicket = (ticketIdToUnlink: string) => {
-    setEditableTicket(prev => ({
-      ...prev,
-      linkedTicketIds: (prev.linkedTicketIds || []).filter(id => id !== ticketIdToUnlink)
-    }));
+    onUnlinkTicket(ticket.id, ticketIdToUnlink);
+  };
+  
+  const handleLinkProject = () => {
+    if (!projectToLink) return;
+    const updatedTicket = { ...ticket, projectId: projectToLink };
+    onUpdate(updatedTicket);
+    setProjectToLink('');
+  };
+
+  const handleUnlinkProject = () => {
+    const updatedTicket = { ...ticket, projectId: undefined };
+    onUpdate(updatedTicket);
   };
 
   const projectName = ticket.projectId ? projects.find(p => p.id === ticket.projectId)?.name : 'N/A';
   const linkedTickets = ticket.linkedTicketIds?.map(id => tickets.find(t => t.id === id)).filter(Boolean) as Ticket[];
+
+  const renderViewMode = () => (
+    <>
+      <FormSection title="Core Information" gridCols={3}>
+        <DetailTag label="Type" value={ticket.type} />
+        <DetailTag label="Status" value={ticket.status} />
+        <DetailTag label="Priority" value={ticket.priority} />
+        <DetailTag label="Product Area" value={ticket.productArea} />
+        <DetailTag label="Platform" value={ticket.platform} />
+        <DetailField label="Location" value={ticket.location} />
+        {ticket.onHoldReason && ticket.status === Status.OnHold && (
+            <div className="col-span-3">
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason for 'On Hold'</h4>
+                <p className="mt-1 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">{ticket.onHoldReason}</p>
+            </div>
+        )}
+      </FormSection>
+
+      <FormSection title="Dates" gridCols={3}>
+        <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString()} />
+        <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'} />
+        <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A'} />
+        {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : 'N/A'} />}
+      </FormSection>
+      
+      <FormSection title="Tracking & Ownership">
+        <DetailField label="Submitter" value={ticket.submitterName} />
+        <DetailField label="Client" value={ticket.client} />
+        <DetailField label="PMR Number" value={ticket.pmrNumber} />
+        <DetailField label="FP Ticket Number" value={ticket.fpTicketNumber} />
+        <div className="col-span-2"><DetailField label="Ticket Thread ID" value={ticket.ticketThreadId} /></div>
+      </FormSection>
+
+      {ticket.type === TicketType.Issue && (
+        <FormSection title="Issue Information">
+            <div className="col-span-2"><DetailField label="Problem" value={(ticket as IssueTicket).problem} /></div>
+            <div className="col-span-2"><DetailField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} /></div>
+            <div className="col-span-2"><DetailField label="Workaround" value={(ticket as IssueTicket).workaround} /></div>
+            <div className="col-span-2"><DetailField label="Frequency" value={(ticket as IssueTicket).frequency} /></div>
+        </FormSection>
+      )}
+      {ticket.type === TicketType.FeatureRequest && (
+        <FormSection title="Feature Request Information">
+            <div className="col-span-2"><DetailField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} /></div>
+            <div className="col-span-2"><DetailField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} /></div>
+            <div className="col-span-2"><DetailField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} /></div>
+            <div className="col-span-2"><DetailField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} /></div>
+        </FormSection>
+      )}
+    </>
+  );
+
+  const renderEditMode = () => (
+     <>
+        <FormSection title="Core Information" gridCols={3}>
+            <div><label className={labelClasses}>Type</label><select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>{Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+            <div><label className={labelClasses}>Status</label><select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>{STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
+            <div><label className={labelClasses}>Priority</label><select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>{(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
+            <div><label className={labelClasses}>Product Area</label><select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>{Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}</select></div>
+            <div><label className={labelClasses}>Platform</label><select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>{Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+            <div><label className={labelClasses}>Location</label><input type="text" name="location" value={editableTicket.location} onChange={handleFormChange} required className={formElementClasses}/></div>
+            {editableTicket.status === Status.OnHold && (<div className="col-span-3"><label className={labelClasses}>Reason for On Hold</label><textarea name="onHoldReason" value={editableTicket.onHoldReason || ''} onChange={handleFormChange} rows={2} required className={formElementClasses}/></div>)}
+        </FormSection>
+        
+        <FormSection title="Dates" gridCols={3}>
+            <div><label className={labelClasses}>Submission Date</label><input type="date" name="submissionDate" value={editableTicket.submissionDate.split('T')[0] || ''} onChange={handleDateChange} required className={formElementClasses} /></div>
+            <div><label className={labelClasses}>Start Date</label><input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
+            <div><label className={labelClasses}>Est. Completion Date</label><input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
+            {editableTicket.status === Status.Completed && (<div><label className={labelClasses}>Completion Date</label><input type="date" name="completionDate" value={editableTicket.completionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>)}
+        </FormSection>
+        
+        <FormSection title="Tracking & Ownership">
+            <div><label className={labelClasses}>Submitter</label><input type="text" name="submitterName" value={editableTicket.submitterName} onChange={handleFormChange} required className={formElementClasses}/></div>
+            <div><label className={labelClasses}>Client</label><input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses}/></div>
+            <div><label className={labelClasses}>PMR Number</label><input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses}/></div>
+            <div><label className={labelClasses}>FP Ticket Number</label><input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses}/></div>
+            <div className="col-span-2"><label className={labelClasses}>Ticket Thread ID</label><input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses}/></div>
+        </FormSection>
+
+        {editableTicket.type === TicketType.Issue && (
+          <FormSection title="Issue Details">
+              <div className="col-span-2"><label className={labelClasses}>Problem</label><textarea name="problem" value={(editableTicket as IssueTicket).problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+              <div className="col-span-2"><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={(editableTicket as IssueTicket).duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+              <div className="col-span-2"><label className={labelClasses}>Workaround</label><textarea name="workaround" value={(editableTicket as IssueTicket).workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
+              <div className="col-span-2"><label className={labelClasses}>Frequency</label><textarea name="frequency" value={(editableTicket as IssueTicket).frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+          </FormSection>
+        )}
+        {editableTicket.type === TicketType.FeatureRequest && (
+          <FormSection title="Feature Request Details">
+              <div className="col-span-2"><label className={labelClasses}>Improvement</label><textarea name="improvement" value={(editableTicket as FeatureRequestTicket).improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+              <div className="col-span-2"><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={(editableTicket as FeatureRequestTicket).currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+              <div className="col-span-2"><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={(editableTicket as FeatureRequestTicket).suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
+              <div className="col-span-2"><label className={labelClasses}>Benefits</label><textarea name="benefits" value={(editableTicket as FeatureRequestTicket).benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
+          </FormSection>
+        )}
+        
+        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button type="button" onClick={() => setIsEditing(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+            <button type="button" onClick={handleSave} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
+        </div>
+     </>
+  );
 
   return (
     <div>
@@ -203,229 +308,68 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
         </Modal>
       )}
 
-      <div className="flex justify-end items-center gap-3 mb-6">
-          <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><EmailIcon className="w-4 h-4"/><span>Email</span></button>
-          <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
-          <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-          <button onClick={() => { setEditableTicket(ticket); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+      {!isEditing && (
+        <div className="flex justify-end items-center gap-3 mb-6">
+            <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><EmailIcon className="w-4 h-4"/><span>Email</span></button>
+            <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
+            <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
+            <button onClick={() => { setEditableTicket(ticket); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+        </div>
+      )}
+      
+      <div className="space-y-6">
+        {isEditing ? renderEditMode() : renderViewMode()}
       </div>
       
-      {isEditing ? (
-        <div className="space-y-6">
-            <FormSection title="Core Information">
-                 <div className="col-span-2">
-                    <label className={labelClasses}>Title</label>
-                    <input type="text" name="title" value={editableTicket.title} onChange={handleFormChange} required className={formElementClasses}/>
-                </div>
-                 <div>
-                    <label className={labelClasses}>Type</label>
-                    <select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>
-                        {Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label className={labelClasses}>Product Area</label>
-                    <select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>
-                        {Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label className={labelClasses}>Platform</label>
-                    <select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>
-                        {Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label className={labelClasses}>Client</label>
-                    <input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses}/>
-                </div>
-                 <div>
-                    <label className={labelClasses}>Location</label>
-                    <input type="text" name="location" value={editableTicket.location} onChange={handleFormChange} required className={formElementClasses}/>
-                </div>
-            </FormSection>
-             <FormSection title="Tracking & Ownership">
-                <div>
-                    <label className={labelClasses}>PMR Number</label>
-                    <input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses}/>
-                </div>
-                <div>
-                    <label className={labelClasses}>FP Ticket Number</label>
-                    <input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses}/>
-                </div>
-                <div className="col-span-2">
-                    <label className={labelClasses}>Ticket Thread ID</label>
-                    <input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses}/>
-                </div>
-                <div>
-                    <label className={labelClasses}>Status</label>
-                    <select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>
-                        {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label className={labelClasses}>Priority</label>
-                    <select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>
-                        {(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                </div>
-                <div className="col-span-2">
-                    <label className={labelClasses}>Project</label>
-                    <select name="projectId" value={editableTicket.projectId || ''} onChange={handleFormChange} className={formElementClasses}>
-                        <option value="">None</option>
-                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                </div>
-                {editableTicket.status === Status.OnHold && (
-                    <div className="col-span-2">
-                        <label className={labelClasses}>Reason for On Hold Status</label>
-                        <textarea name="onHoldReason" value={editableTicket.onHoldReason || ''} onChange={handleFormChange} rows={2} required className={formElementClasses}/>
-                    </div>
-                )}
-            </FormSection>
-            <FormSection title="Dates">
-                <div>
-                    <label className={labelClasses}>Start Date</label>
-                    <input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
-                </div>
-                <div>
-                    <label className={labelClasses}>Est. Time of Completion</label>
-                    <input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
-                </div>
-                {editableTicket.status === Status.Completed && (
+      <FormSection title="Linked Tickets" gridCols={1} className="mt-6">
+        <div className="flex items-center gap-2">
+            <select value={ticketToLink} onChange={e => setTicketToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
+                <option value="">Select a ticket to link...</option>
+                {tickets.filter(t => t.id !== ticket.id && !(ticket.linkedTicketIds || []).includes(t.id)).map(t => (<option key={t.id} value={t.id}>{t.title}</option>))}
+            </select>
+            <button type="button" onClick={handleLinkTicket} disabled={!ticketToLink} className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300 hover:bg-blue-600">Link Ticket</button>
+        </div>
+        <div className="mt-3 space-y-2">
+            {linkedTickets.length > 0 ? linkedTickets.map(linked => (
+                <div key={linked.id} className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-md p-3">
                     <div>
-                        <label className={labelClasses}>Completion Date</label>
-                        <input type="date" name="completionDate" value={editableTicket.completionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+                        <p className="text-sm font-medium text-gray-800">{linked.title}</p>
+                        {(linked.pmrNumber || linked.fpTicketNumber) && (
+                            <div className="text-xs text-gray-500 mt-1">
+                                {linked.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{linked.pmrNumber}</span></span>}
+                                {linked.pmrNumber && linked.fpTicketNumber && <span className="mx-1.5">•</span>}
+                                {linked.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{linked.fpTicketNumber}</span></span>}
+                            </div>
+                        )}
                     </div>
-                )}
-            </FormSection>
-            {editableTicket.type === TicketType.Issue && (
-                <FormSection title="Issue Details">
-                    <div className="col-span-2"><label className={labelClasses}>Problem</label><textarea name="problem" value={(editableTicket as IssueTicket).problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                    <div className="col-span-2"><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={(editableTicket as IssueTicket).duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                    <div className="col-span-2"><label className={labelClasses}>Workaround</label><textarea name="workaround" value={(editableTicket as IssueTicket).workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
-                    <div className="col-span-2"><label className={labelClasses}>Frequency</label><textarea name="frequency" value={(editableTicket as IssueTicket).frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-                </FormSection>
-            )}
-            {editableTicket.type === TicketType.FeatureRequest && (
-                 <FormSection title="Feature Request Details">
-                    <div className="col-span-2"><label className={labelClasses}>Improvement</label><textarea name="improvement" value={(editableTicket as FeatureRequestTicket).improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                    <div className="col-span-2"><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={(editableTicket as FeatureRequestTicket).currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                    <div className="col-span-2"><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={(editableTicket as FeatureRequestTicket).suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-                    <div className="col-span-2"><label className={labelClasses}>Benefits</label><textarea name="benefits" value={(editableTicket as FeatureRequestTicket).benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-                </FormSection>
-            )}
-             <FormSection title="Linked Tickets" gridCols={1}>
-              <div className="flex items-center gap-2">
-                  <select value={ticketToLink} onChange={e => setTicketToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
-                      <option value="">Select a ticket to link...</option>
-                      {tickets.filter(t => t.id !== editableTicket.id && !(editableTicket.linkedTicketIds || []).includes(t.id)).map(t => (
-                          <option key={t.id} value={t.id}>{t.title}</option>
-                      ))}
-                  </select>
-                  <button type="button" onClick={handleLinkTicket} disabled={!ticketToLink} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link Ticket</button>
-              </div>
-              <div className="mt-3 space-y-2">
-                  {(editableTicket.linkedTicketIds || []).length > 0 ? editableTicket.linkedTicketIds!.map(linkedId => {
-                      const linkedTicket = tickets.find(t => t.id === linkedId);
-                      if (!linkedTicket) return null;
-                      return (
-                          <div key={linkedId} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md text-sm">
-                              <span className="text-gray-800">{linkedTicket.title}</span>
-                              <button type="button" onClick={() => handleUnlinkTicket(linkedId)} className="p-1 text-gray-400 hover:text-red-600 rounded-full" aria-label={`Unlink ticket ${linkedTicket.title}`}>
-                                  <XIcon className="w-4 h-4" />
-                              </button>
-                          </div>
-                      );
-                  }) : <p className="text-sm text-gray-500 italic mt-2">No tickets are linked yet.</p>}
-              </div>
-            </FormSection>
-             <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setIsEditing(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                <button type="button" onClick={handleSave} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
-            </div>
-        </div>
-      ) : (
-      <div className="space-y-8">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5">
-            <DetailTag label="Type" value={ticket.type} />
-            <DetailTag label="Status" value={ticket.status} />
-            <DetailTag label="Priority" value={ticket.priority} />
-            <DetailTag label="Product Area" value={ticket.productArea} />
-            <DetailTag label="Platform" value={ticket.platform} />
-        </div>
-        
-        <FormSection title="Details" className="pt-6 border-t border-gray-200">
-          <DetailField label="Project" value={projectName} />
-          <DetailField label="Submitter" value={ticket.submitterName} />
-          <DetailField label="Client" value={ticket.client} />
-          <DetailField label="Location" value={ticket.location} />
-        </FormSection>
-
-        {ticket.type === TicketType.Issue && (
-          <FormSection title="Issue Information" className="pt-6 border-t border-gray-200">
-            <div className="col-span-2"><DetailField label="Problem" value={(ticket as IssueTicket).problem} /></div>
-            <div className="col-span-2"><DetailField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} /></div>
-            <DetailField label="Workaround" value={(ticket as IssueTicket).workaround} />
-            <DetailField label="Frequency" value={(ticket as IssueTicket).frequency} />
-          </FormSection>
-        )}
-
-        {ticket.type === TicketType.FeatureRequest && (
-          <FormSection title="Feature Request Information" className="pt-6 border-t border-gray-200">
-            <div className="col-span-2"><DetailField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} /></div>
-            <div className="col-span-2"><DetailField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} /></div>
-            <div className="col-span-2"><DetailField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} /></div>
-            <div className="col-span-2"><DetailField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} /></div>
-          </FormSection>
-        )}
-
-        <FormSection title="Tracking" className="pt-6 border-t border-gray-200">
-            <DetailField label="PMR Number" value={ticket.pmrNumber} />
-            <DetailField label="FP Ticket Number" value={ticket.fpTicketNumber} />
-            <DetailField label="Ticket Thread ID" value={ticket.ticketThreadId} />
-        </FormSection>
-        
-        <FormSection title="Timeline" className="pt-6 border-t border-gray-200" gridCols={3}>
-            <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString()} />
-            <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'} />
-            <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A'} />
-            {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : 'N/A'} />}
-        </FormSection>
-
-        {linkedTickets && linkedTickets.length > 0 && (
-          <div className="pt-6 border-t border-gray-200">
-              <h3 className="text-md font-semibold text-gray-800 mb-2">Linked Tickets</h3>
-              <div className="space-y-2">
-                  {linkedTickets.map(linked => (
-                      <div key={linked.id} className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                          <p className="text-sm font-medium text-gray-800">{linked.title}</p>
-                          <div className="text-xs text-gray-500 mt-1">
-                              <span>{linked.type}</span>
-                              <span className="mx-1.5">•</span>
-                              <span>{linked.status}</span>
-                              <span className="mx-1.5">•</span>
-                              <span>{linked.priority}</span>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
-        )}
-
-        {ticket.onHoldReason && ticket.status === Status.OnHold && (
-             <div className="pt-6 border-t border-gray-200">
-                <h3 className="text-md font-semibold text-gray-800 mb-2">Reason for 'On Hold'</h3>
-                <p className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">{ticket.onHoldReason}</p>
-             </div>
-        )}
-
-        {ticket.completionNotes && ticket.status === Status.Completed && (
-            <div className="pt-6 border-t border-gray-200">
-                <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-md font-semibold text-gray-800">Completion Notes</h3>
-                     <button onClick={() => setIsEditingNotes(true)} className="text-sm text-blue-600 hover:underline font-semibold flex items-center gap-1.5"><PencilIcon className="w-3.5 h-3.5"/> Edit</button>
+                    <button type="button" onClick={() => handleUnlinkTicket(linked.id)} className="text-red-600 hover:text-red-800 font-semibold text-xs" aria-label={`Unlink ticket ${linked.title}`}>Unlink</button>
                 </div>
+            )) : <p className="text-sm text-gray-500 italic mt-2">No tickets linked.</p>}
+        </div>
+      </FormSection>
+
+      <FormSection title="Linked Project" gridCols={1} className="mt-6">
+          {ticket.projectId ? (
+              <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-md p-3">
+                  <p className="text-sm font-medium text-gray-800">{projectName}</p>
+                  <button type="button" onClick={handleUnlinkProject} className="text-red-600 hover:text-red-800 font-semibold text-xs" aria-label="Unlink project">Unlink</button>
+              </div>
+          ) : (
+              <div className="flex items-center gap-2">
+                  <select value={projectToLink} onChange={e => setProjectToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
+                      <option value="">Select a project to link...</option>
+                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <button type="button" onClick={handleLinkProject} disabled={!projectToLink} className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300 hover:bg-blue-600">Link Project</button>
+              </div>
+          )}
+      </FormSection>
+
+
+      {ticket.status === Status.Completed && (
+        <div className="mt-6">
+            <FormSection title="Completion Notes" gridCols={1}>
+                {!isEditing && <div className="flex justify-end mb-2"><button onClick={() => setIsEditingNotes(true)} className="text-sm text-blue-600 hover:underline font-semibold flex items-center gap-1.5"><PencilIcon className="w-3.5 h-3.5"/> Edit</button></div>}
                 {isEditingNotes ? (
                     <div>
                         <textarea value={completionNotes} onChange={(e) => setCompletionNotes(e.target.value)} rows={4} className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"></textarea>
@@ -435,65 +379,46 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
                         </div>
                     </div>
                 ) : (
-                    <p className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 whitespace-pre-wrap">{ticket.completionNotes}</p>
+                    <p className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 whitespace-pre-wrap">{ticket.completionNotes || 'No completion notes have been added.'}</p>
                 )}
-            </div>
-        )}
-
-        <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
-             <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
-                <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-                
-                <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-                <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-
-                 <div className="relative border border-gray-300 rounded-md focus-within:ring-2 focus-within:ring-blue-500">
-                    <div className="p-1 border-b border-gray-300 bg-gray-50 flex items-center gap-1 rounded-t-md">
-                        <button type="button" onClick={() => handleFormat('bold')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 font-bold text-sm w-8 h-8 flex items-center justify-center" aria-label="Bold">B</button>
-                        <button type="button" onClick={() => handleFormat('italic')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 italic text-sm w-8 h-8 flex items-center justify-center" aria-label="Italic">I</button>
-                        <button type="button" onClick={() => handleFormat('insertUnorderedList')} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 text-sm w-8 h-8 flex items-center justify-center" aria-label="Bulleted List">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
-                        </button>
-                    </div>
-                    <div
-                        ref={commentEditorRef}
-                        contentEditable
-                        onInput={handleCommentInput}
-                        className="w-full text-sm p-2 min-h-[90px] focus:outline-none rich-text-content"
-                        role="textbox"
-                        aria-multiline="true"
-                        aria-label="New update comment"
-                        aria-describedby="char-count"
-                    ></div>
-                    {/* FIX: Use a conditional div to simulate a placeholder for the contentEditable div. */}
-                    {isCommentEmpty && (
-                        <div className="absolute top-[49px] left-2 text-sm text-gray-500 pointer-events-none select-none">
-                            Type your comment here...
-                        </div>
-                    )}
-                </div>
-
-                <div className="flex justify-between items-center">
-                    <p id="char-count" className="text-xs text-gray-500">{textContentLength} / {MAX_COMMENT_LENGTH}</p>
-                    <button type="submit" disabled={isCommentEmpty || !authorName.trim() || textContentLength > MAX_COMMENT_LENGTH} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">Add Update</button>
-                </div>
-            </form>
-            <div className="space-y-4">
-            {[...(ticket.updates || [])].reverse().map((update, index) => (
-                <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                    <p className="text-xs text-gray-500 font-medium">
-                        <span className="font-semibold text-gray-700">{update.author}</span>
-                        <span className="mx-1.5">•</span>
-                        <span>{new Date(update.date).toLocaleString()}</span>
-                    </p>
-                    <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
-                </div>
-            ))}
-            </div>
+            </FormSection>
         </div>
-      </div>
       )}
+
+      <div className="pt-6 mt-6 border-t border-gray-200">
+          <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
+            <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
+              <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
+              <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+              <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+              <textarea 
+                value={newUpdate} 
+                onChange={e => setNewUpdate(e.target.value)}
+                placeholder="Type your comment here..."
+                required
+                rows={4}
+                className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxLength={MAX_COMMENT_LENGTH}
+              />
+              <div className="flex justify-between items-center">
+                  <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
+                  <button 
+                    type="submit" 
+                    disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
+                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
+                      Add Update
+                  </button>
+              </div>
+            </form>
+          <div className="space-y-4">
+          {[...(ticket.updates || [])].reverse().map((update, index) => (
+              <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleString()}</span></p>
+                  <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
+              </div>
+          ))}
+          </div>
+      </div>
     </div>
   );
 };
@@ -512,7 +437,7 @@ function App() {
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isAddViewOpen, setIsAddViewOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
@@ -531,7 +456,6 @@ function App() {
   const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
   
   const [currentView, setCurrentView] = useState<View>('tickets');
-  const [editingDealership, setEditingDealership] = useState<Dealership | null>(null);
   const [editingFeature, setEditingFeature] = useState<FeatureAnnouncement | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
@@ -562,7 +486,6 @@ function App() {
     setTickets(prev => [...prev, newTicket]);
     showToast('Ticket created successfully!', 'success');
     
-    // If a project was selected, add this ticket ID to that project
     if (newTicket.projectId) {
       setProjects(prevProjects => prevProjects.map(p => 
         p.id === newTicket.projectId 
@@ -617,6 +540,9 @@ function App() {
   const handleUpdateTicket = (updatedTicket: Ticket) => {
     setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
     showToast('Ticket updated successfully!', 'success');
+    if (selectedTicket?.id === updatedTicket.id) {
+        setSelectedTicket(updatedTicket);
+    }
   };
   
   const handleUpdateProject = (updatedProject: Project) => {
@@ -651,7 +577,6 @@ function App() {
 
     setTickets(prev => prev.filter(t => t.id !== ticketId));
 
-    // Also remove from any associated project
     if (ticketToDelete.projectId) {
         setProjects(prev => prev.map(p => {
             if (p.id === ticketToDelete.projectId) {
@@ -661,14 +586,13 @@ function App() {
         }));
     }
     showToast('Ticket deleted successfully!', 'success');
-    setSelectedTicket(null); // Close side view
+    setSelectedTicket(null); 
   };
   
   const handleDeleteProject = (projectId: string) => {
       const projectToDelete = projects.find(p => p.id === projectId);
       if (!projectToDelete) return;
       
-      // Unlink all tickets associated with this project
       setTickets(prevTickets => prevTickets.map(t => {
           if (t.projectId === projectId) {
               const { projectId, ...rest } = t;
@@ -696,7 +620,6 @@ function App() {
   };
   
   const handleDeleteMeeting = (meetingId: string) => {
-      // Also unlink from any projects
       setProjects(prevProjects => prevProjects.map(p => ({
           ...p,
           meetingIds: (p.meetingIds || []).filter(id => id !== meetingId)
@@ -711,11 +634,13 @@ function App() {
     const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
     
     if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
-        setSelectedTicket(prev => prev ? { ...prev, updates: [...(prev.updates || []), newUpdate] } : null);
-        setTickets(prevTickets => prevTickets.map(t => t.id === id ? { ...t, updates: [...(t.updates || []), newUpdate] } : t));
+        const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate] };
+        setSelectedTicket(updatedTicket);
+        setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
     } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
-        setSelectedProject(prev => prev ? { ...prev, updates: [...(prev.updates || []), newUpdate] } : null);
-        setProjects(prevProjects => prevProjects.map(p => p.id === id ? { ...p, updates: [...(p.updates || []), newUpdate] } : p));
+        const updatedProject = { ...selectedProject, updates: [...(selectedProject.updates || []), newUpdate] };
+        setSelectedProject(updatedProject);
+        setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
     }
     showToast('Update added!', 'success');
   };
@@ -732,269 +657,261 @@ function App() {
       setTickets(prev => prev.map(t => {
           if (t.id === ticketId) {
               const updatedTicket: Ticket = { ...t, status: newStatus };
+              if (newStatus === Status.OnHold) {
+                  updatedTicket.onHoldReason = onHoldReason;
+              } else {
+                  delete updatedTicket.onHoldReason;
+              }
               if (newStatus === Status.Completed && !t.completionDate) {
                   updatedTicket.completionDate = new Date().toISOString();
-              }
-              if (newStatus === Status.OnHold) {
-                  updatedTicket.onHoldReason = onHoldReason || t.onHoldReason;
               }
               return updatedTicket;
           }
           return t;
       }));
-      showToast('Status updated!', 'success');
   };
 
-  const filteredTickets = useMemo(() => {
-    return tickets.filter(ticket => {
-      const searchTerm = ticketFilters.searchTerm.toLowerCase();
-      const matchSearch = searchTerm === '' ||
-        ticket.title.toLowerCase().includes(searchTerm) ||
-        ticket.submitterName.toLowerCase().includes(searchTerm) ||
-        (ticket.client && ticket.client.toLowerCase().includes(searchTerm)) ||
-        (ticket.pmrNumber && ticket.pmrNumber.toLowerCase().includes(searchTerm)) ||
-        (ticket.fpTicketNumber && ticket.fpTicketNumber.toLowerCase().includes(searchTerm));
-      
-      const matchStatus = ticketFilters.status === 'all' || ticket.status === ticketFilters.status;
-      const matchPriority = ticketFilters.priority === 'all' || ticket.priority === ticketFilters.priority;
-      const matchType = ticketFilters.type === 'all' || ticket.type === ticketFilters.type;
-      const matchProductArea = ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea;
+    const handleExportTicket = (ticket: Ticket) => {
+        let content = `Title: ${ticket.title}\n`;
+        content += `Type: ${ticket.type}\n`;
+        content += `Status: ${ticket.status}\n`;
+        content += `Priority: ${ticket.priority}\n`;
+        content += `Submitter: ${ticket.submitterName}\n`;
+        content += `Submission Date: ${new Date(ticket.submissionDate).toLocaleDateString()}\n\n`;
 
-      return matchSearch && matchStatus && matchPriority && matchType && matchProductArea;
-    }).sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
-  }, [tickets, ticketFilters]);
-  
-  const filteredDealerships = useMemo(() => {
-      return dealerships.filter(d => {
-          const searchTerm = dealershipFilters.searchTerm.toLowerCase();
-          const matchSearch = searchTerm === '' ||
-              d.name.toLowerCase().includes(searchTerm) ||
-              d.accountNumber.toLowerCase().includes(searchTerm) ||
-              (d.enterprise && d.enterprise.toLowerCase().includes(searchTerm)) ||
-              (d.assignedSpecialist && d.assignedSpecialist.toLowerCase().includes(searchTerm));
+        if (ticket.type === TicketType.Issue) {
+            content += `Problem: ${ticket.problem}\n`;
+            content += `Duplication Steps: ${ticket.duplicationSteps}\n`;
+        } else {
+            content += `Improvement: ${ticket.improvement}\n`;
+            content += `Current Functionality: ${ticket.currentFunctionality}\n`;
+        }
+        
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${ticket.title.replace(/\s+/g, '_')}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleEmailTicket = (ticket: Ticket) => {
+        const subject = encodeURIComponent(`Ticket Details: ${ticket.title}`);
+        let body = `Ticket: ${ticket.title}\n`;
+        body += `Status: ${ticket.status}\n`;
+        body += `Link: ${window.location.href}\n\n`; // A simple link back, though it won't select the ticket
+        body = encodeURIComponent(body);
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    };
+
+    const handleLinkTicket = (fromTicketId: string, toTicketId: string) => {
+    setTickets(prevTickets => {
+        const newTickets = [...prevTickets];
+        const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
+        const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
+
+        if (fromTicketIndex === -1 || toTicketIndex === -1) {
+            console.error("One or both tickets not found for linking");
+            return prevTickets;
+        }
+        
+        const fromTicket = { ...newTickets[fromTicketIndex] };
+        if (!(fromTicket.linkedTicketIds || []).includes(toTicketId)) {
+            fromTicket.linkedTicketIds = [...(fromTicket.linkedTicketIds || []), toTicketId];
+        }
+        newTickets[fromTicketIndex] = fromTicket;
+
+        const toTicket = { ...newTickets[toTicketIndex] };
+        if (!(toTicket.linkedTicketIds || []).includes(fromTicketId)) {
+            toTicket.linkedTicketIds = [...(toTicket.linkedTicketIds || []), fromTicketId];
+        }
+        newTickets[toTicketIndex] = toTicket;
+
+        if (selectedTicket?.id === fromTicketId) {
+            setSelectedTicket(fromTicket);
+        }
+        
+        return newTickets;
+    });
+    showToast('Tickets linked successfully!', 'success');
+  };
+
+  const handleUnlinkTicket = (fromTicketId: string, toTicketId: string) => {
+      setTickets(prevTickets => {
+          const newTickets = [...prevTickets];
+          const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
+          const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
+
+          if (fromTicketIndex === -1 || toTicketIndex === -1) {
+              console.error("One or both tickets not found for unlinking");
+              return prevTickets;
+          }
+
+          const fromTicket = { ...newTickets[fromTicketIndex] };
+          fromTicket.linkedTicketIds = (fromTicket.linkedTicketIds || []).filter(id => id !== toTicketId);
+          newTickets[fromTicketIndex] = fromTicket;
+
+          const toTicket = { ...newTickets[toTicketIndex] };
+          toTicket.linkedTicketIds = (toTicket.linkedTicketIds || []).filter(id => id !== fromTicketId);
+          newTickets[toTicketIndex] = toTicket;
+
+          if (selectedTicket?.id === fromTicketId) {
+              setSelectedTicket(fromTicket);
+          }
           
-          const matchStatus = dealershipFilters.status === 'all' || d.status === dealershipFilters.status;
-          return matchSearch && matchStatus;
-      }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [dealerships, dealershipFilters]);
-  
-  const filteredMeetings = useMemo(() => {
-      return meetings.filter(m => {
-          const searchTerm = meetingFilters.searchTerm.toLowerCase();
-          if (searchTerm === '') return true;
-          return m.name.toLowerCase().includes(searchTerm) ||
-                 m.attendees.some(a => a.toLowerCase().includes(searchTerm)) ||
-                 new Date(m.meetingDate).toLocaleDateString().includes(searchTerm) ||
-                 m.notes.toLowerCase().includes(searchTerm);
-      }).sort((a,b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
+          return newTickets;
+      });
+      showToast('Ticket unlinked successfully!', 'success');
+  };
+
+
+    const filteredTickets = useMemo(() => {
+        return tickets.filter(ticket => {
+        const searchLower = ticketFilters.searchTerm.toLowerCase();
+        return (
+            (ticket.title.toLowerCase().includes(searchLower) ||
+            ticket.submitterName.toLowerCase().includes(searchLower) ||
+            (ticket.client || '').toLowerCase().includes(searchLower) ||
+            (ticket.pmrNumber || '').toLowerCase().includes(searchLower) ||
+            (ticket.fpTicketNumber || '').toLowerCase().includes(searchLower)) &&
+            (ticketFilters.status === 'all' || ticket.status === ticketFilters.status) &&
+            (ticketFilters.priority === 'all' || ticket.priority === ticketFilters.priority) &&
+            (ticketFilters.type === 'all' || ticket.type === ticketFilters.type) &&
+            (ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea)
+        );
+        });
+    }, [tickets, ticketFilters]);
+
+    const filteredProjects = useMemo(() => {
+        // For now, no filters on projects, but setup for future.
+        return projects;
+    }, [projects]);
+    
+    const filteredDealerships = useMemo(() => {
+        return dealerships.filter(d => {
+            const searchLower = dealershipFilters.searchTerm.toLowerCase();
+            return (
+                (d.name.toLowerCase().includes(searchLower) ||
+                 d.accountNumber.toLowerCase().includes(searchLower) ||
+                 (d.enterprise || '').toLowerCase().includes(searchLower)) &&
+                (dealershipFilters.status === 'all' || d.status === dealershipFilters.status)
+            );
+        });
+    }, [dealerships, dealershipFilters]);
+    
+    const filteredMeetings = useMemo(() => {
+      const searchLower = meetingFilters.searchTerm.toLowerCase();
+      if (!searchLower) return meetings;
+      return meetings.filter(m => 
+          m.name.toLowerCase().includes(searchLower) ||
+          m.attendees.some(a => a.toLowerCase().includes(searchLower)) ||
+          m.notes.toLowerCase().includes(searchLower) ||
+          new Date(m.meetingDate).toLocaleDateString().includes(searchLower)
+      );
   }, [meetings, meetingFilters]);
 
-  const performanceInsights = useMemo(() => {
-    const completedLast30Days = tickets.filter(t => 
-      t.status === Status.Completed && 
-      t.completionDate && 
-      new Date(t.completionDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    );
-    const completedWithDates = tickets.filter(t => 
-      t.status === Status.Completed && t.completionDate && t.startDate
-    );
-    const totalCompletionDays = completedWithDates.reduce((acc, t) => {
-      const start = new Date(t.startDate!).getTime();
-      const end = new Date(t.completionDate!).getTime();
-      return acc + (end - start) / (1000 * 3600 * 24);
-    }, 0);
+    const performanceInsights = useMemo(() => {
+        const completedLast30Days = tickets.filter(t => {
+        if (t.status !== Status.Completed || !t.completionDate) return false;
+        const completionDate = new Date(t.completionDate);
+        const diffDays = (new Date().getTime() - completionDate.getTime()) / (1000 * 3600 * 24);
+        return diffDays <= 30;
+        });
 
-    return {
-      openTickets: tickets.filter(t => t.status !== Status.Completed).length,
-      completedLast30Days: completedLast30Days.length,
-      avgCompletionDays: completedWithDates.length > 0 ? totalCompletionDays / completedWithDates.length : null,
-    };
-  }, [tickets]);
-  
-  const dealershipInsights = useMemo(() => {
-    return {
-      totalDealerships: dealerships.length,
-      liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
-      onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
-    }
-  }, [dealerships]);
+        const completableTickets = tickets.filter(t => t.status === Status.Completed && t.startDate && t.completionDate);
+        const totalCompletionDays = completableTickets.reduce((acc, t) => {
+        const start = new Date(t.startDate!).getTime();
+        const end = new Date(t.completionDate!).getTime();
+        return acc + (end - start);
+        }, 0);
+        
+        const avgCompletionMs = totalCompletionDays / (completableTickets.length || 1);
+        const avgCompletionDays = completableTickets.length > 0 ? avgCompletionMs / (1000 * 3600 * 24) : null;
+        
+        return {
+        openTickets: tickets.filter(t => t.status !== Status.Completed).length,
+        completedLast30Days: completedLast30Days.length,
+        avgCompletionDays,
+        };
+    }, [tickets]);
 
-  const handleExportTicket = (ticket: Ticket) => {
-    let content = `Ticket Title: ${ticket.title}\n`;
-    content += `ID: ${ticket.id}\n`;
-    content += `Status: ${ticket.status}\n`;
-    content += `Priority: ${ticket.priority}\n`;
-    // ... add all fields
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ticket-${ticket.id}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('Ticket exported!', 'success');
-  };
-  
-  const handleEmailTicket = (ticket: Ticket) => {
-      let subject = `Ticket: ${ticket.title}`;
-      let body = `Details for ticket #${ticket.id}:\n\n`;
-      body += `Title: ${ticket.title}\n`;
-      body += `Status: ${ticket.status}\n`;
-      body += `Priority: ${ticket.priority}\n`;
-      // ... add all fields
-      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
-  
-  const handleViewChange = (view: View) => {
-      setCurrentView(view);
-      setSelectedTicket(null);
-      setSelectedProject(null);
-      setSelectedDealership(null);
-      setSelectedMeeting(null);
-      setIsFormOpen(false);
-      setIsSidebarOpen(false);
-  }
+    const dealershipInsights = useMemo(() => ({
+        totalDealerships: dealerships.length,
+        liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
+        onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
+    }), [dealerships]);
 
-  const getFormTitle = () => {
-    switch(currentView) {
-      case 'tickets': return 'Create New Ticket';
-      case 'projects': return 'Create New Project';
-      case 'dealerships': return 'Create New Account';
-      case 'features': return 'Add New Feature';
-      case 'meetings': return 'Create New Note';
-      default: return 'New Item';
+    const handleViewChange = (view: View) => {
+        setCurrentView(view);
+        setSelectedTicket(null);
+        setSelectedProject(null);
+        setSelectedDealership(null);
+        setSelectedMeeting(null);
     }
-  };
-  
-  const getNewButtonText = () => {
-    switch(currentView) {
-        case 'tickets': return 'New Ticket';
-        case 'projects': return 'New Project';
-        case 'dealerships': return 'New Account';
-        case 'features': return 'New Feature';
-        case 'meetings': return 'New Note';
-        default: return 'New Item';
-    }
-  };
-
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'tickets':
-        return <TicketList tickets={filteredTickets} onRowClick={setSelectedTicket} onStatusChange={handleStatusChange} projects={projects} />;
-      case 'projects':
-        return <ProjectList projects={projects} onProjectClick={setSelectedProject} tickets={tickets} />;
-      case 'dealerships':
-        return <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />;
-      case 'tasks':
-        return <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} />;
-      case 'features':
-        return <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={setEditingFeature} />;
-      case 'meetings':
-        return <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />;
-      default:
-        return null;
-    }
-  };
-  
-  const renderSideViewContent = () => {
-    if (selectedTicket) {
-      return <TicketDetailView ticket={selectedTicket} onUpdate={handleUpdateTicket} onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)} onExport={() => handleExportTicket(selectedTicket)} onEmail={() => handleEmailTicket(selectedTicket)} onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)} onDelete={handleDeleteTicket} projects={projects} tickets={tickets} />
-    }
-    if (selectedProject) {
-      return <ProjectDetailView project={selectedProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} tickets={tickets} onUpdateTicket={handleUpdateTicket} onAddUpdate={(projectId, comment, author, date) => handleAddUpdate(projectId, comment, author, date)} meetings={meetings} onUpdateMeeting={handleUpdateMeeting} allTasks={allTasks} />;
-    }
-    if (selectedDealership) {
-        return <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} />
-    }
-    if (selectedMeeting) {
-        return <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} projects={projects} tickets={tickets} onUpdateProject={handleUpdateProject} onUpdateTicket={handleUpdateTicket} />
-    }
-    return null;
-  };
-
-  const renderModalContent = () => {
-    if (isFormOpen && currentView === 'tickets') {
-        return <TicketForm onSubmit={(data) => { handleTicketSubmit(data); setIsFormOpen(false); }} projects={projects} />
-    }
-    if (isFormOpen && currentView === 'projects') {
-        return <ProjectForm onSubmit={(data) => { handleProjectSubmit(data); setIsFormOpen(false); }} />
-    }
-    if (isFormOpen && currentView === 'dealerships') {
-        return <DealershipForm onSubmit={(data) => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} dealershipToEdit={null} onClose={() => setIsFormOpen(false)} />
-    }
-     if ((isFormOpen || editingFeature) && currentView === 'features') {
-        return <FeatureForm onSubmit={(data) => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={(data) => { handleUpdateFeature(data); setEditingFeature(null); }} featureToEdit={editingFeature} onClose={() => { setIsFormOpen(false); setEditingFeature(null); }} />
-    }
-    if (isFormOpen && currentView === 'meetings') {
-        return <MeetingForm onSubmit={(data) => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />
-    }
-    return null;
-  };
-  
-  const getSideViewTitle = () => {
-      if (selectedTicket) return selectedTicket.title;
-      if (selectedProject) return selectedProject.name;
-      if (selectedDealership) return selectedDealership.name;
-      if (selectedMeeting) return selectedMeeting.name;
-      return 'Details';
-  };
-  
-  const getModalTitle = () => {
-      if (editingFeature) return 'Edit Feature Announcement';
-      return getFormTitle();
-  }
-
-  return (
+    
+    return (
     <div className="flex h-screen bg-gray-100">
-      <Toast 
-        message={toast.message}
-        type={toast.type}
-        isVisible={toast.isVisible}
-        onClose={hideToast}
-      />
-      <LeftSidebar 
-        ticketFilters={ticketFilters} 
-        setTicketFilters={setTicketFilters} 
+      <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
+      <LeftSidebar
+        ticketFilters={ticketFilters}
+        setTicketFilters={setTicketFilters}
         dealershipFilters={dealershipFilters}
         setDealershipFilters={setDealershipFilters}
-        isOpen={isSidebarOpen} 
+        isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentView={currentView}
         onViewChange={handleViewChange}
       />
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-            <div className="flex items-center">
-                <button onClick={() => setIsSidebarOpen(true)} className="md:hidden mr-4 p-2 rounded-md text-gray-500 hover:bg-gray-200" aria-label="Open sidebar">
-                    <MenuIcon className="w-6 h-6"/>
-                </button>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 tracking-tight">
-                    {currentView.charAt(0).toUpperCase() + currentView.slice(1)}
-                </h1>
-            </div>
-            { (currentView === 'tickets' || currentView === 'projects' || currentView === 'dealerships' || currentView === 'features' || currentView === 'meetings') &&
-                <button onClick={() => { setIsFormOpen(true); setEditingFeature(null); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                    <PlusIcon className="w-5 h-5" />
-                    <span className="hidden sm:inline">{getNewButtonText()}</span>
-                </button>
-            }
-        </div>
-        
-        {currentView === 'tickets' && <PerformanceInsights {...performanceInsights} />}
-        {currentView === 'dealerships' && <DealershipInsights {...dealershipInsights} />}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800" aria-label="Open sidebar">
+            <MenuIcon className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView} Dashboard</h1>
+        </header>
 
-        {renderCurrentView()}
+        <div className="flex-1 p-6 overflow-y-auto">
+          {currentView === 'tickets' && (
+            <>
+              <PerformanceInsights {...performanceInsights} />
+              <TicketList 
+                tickets={filteredTickets} 
+                onRowClick={setSelectedTicket} 
+                onStatusChange={handleStatusChange}
+                projects={projects}
+              />
+            </>
+          )}
+          {currentView === 'projects' && <ProjectList projects={filteredProjects} onProjectClick={setSelectedProject} tickets={tickets}/>}
+          {currentView === 'dealerships' && (
+              <>
+                <DealershipInsights {...dealershipInsights} />
+                <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />
+              </>
+          )}
+          {currentView === 'tasks' && <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} />}
+          {currentView === 'features' && <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={setEditingFeature}/>}
+          {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
+        </div>
       </main>
       
-      {(isFormOpen || editingFeature) && currentView !== 'tasks' && (
-        <Modal title={getModalTitle()} onClose={() => { setIsFormOpen(false); setEditingFeature(null); }}>
-          {renderModalContent()}
+      {editingFeature && (
+        <Modal title="Edit Feature Announcement" onClose={() => setEditingFeature(null)}>
+            <FeatureForm 
+                onSubmit={() => {}}
+                onUpdate={(feature) => { handleUpdateFeature(feature); setEditingFeature(null); }}
+                featureToEdit={editingFeature}
+                onClose={() => setEditingFeature(null)}
+            />
         </Modal>
       )}
 
       <SideView 
-        title={getSideViewTitle()}
-        isOpen={!!selectedTicket || !!selectedProject || !!selectedDealership || !!selectedMeeting}
+        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || ''}
+        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting)}
         onClose={() => {
             setSelectedTicket(null);
             setSelectedProject(null);
@@ -1002,8 +919,44 @@ function App() {
             setSelectedMeeting(null);
         }}
       >
-        {renderSideViewContent()}
+        {selectedTicket && (
+          <TicketDetailView
+            ticket={selectedTicket}
+            onUpdate={handleUpdateTicket}
+            onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
+            onExport={() => handleExportTicket(selectedTicket)}
+            onEmail={() => handleEmailTicket(selectedTicket)}
+            onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
+            onDelete={handleDeleteTicket}
+            projects={projects}
+            tickets={tickets}
+            onLinkTicket={handleLinkTicket}
+            onUnlinkTicket={handleUnlinkTicket}
+          />
+        )}
+        {selectedProject && <ProjectDetailView project={selectedProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} tickets={tickets} onUpdateTicket={handleUpdateTicket} onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} meetings={meetings} onUpdateMeeting={handleUpdateMeeting} allTasks={allTasks}/>}
+        {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} />}
+        {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} projects={projects} tickets={tickets} onUpdateProject={handleUpdateProject} onUpdateTicket={handleUpdateTicket}/>}
       </SideView>
+
+      <AddSideView
+        isOpen={isAddViewOpen}
+        onClose={() => setIsAddViewOpen(false)}
+        projects={projects}
+        onTicketSubmit={handleTicketSubmit}
+        onProjectSubmit={handleProjectSubmit}
+        onDealershipSubmit={handleDealershipSubmit}
+        onFeatureSubmit={handleFeatureSubmit}
+        onMeetingSubmit={handleMeetingSubmit}
+      />
+      
+      <button
+        onClick={() => setIsAddViewOpen(true)}
+        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 z-40 transition-transform hover:scale-105"
+        aria-label="Add New Item"
+      >
+        <PlusIcon className="w-6 h-6" />
+      </button>
     </div>
   );
 }
