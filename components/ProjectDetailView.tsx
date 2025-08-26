@@ -317,16 +317,18 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                     )}
                 </div>
 
-                <form onSubmit={handleNewTaskSubmit} className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto] gap-2 items-center mt-4 p-3 bg-gray-50 rounded-md border">
-                    <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-                    <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full sm:w-auto text-sm p-2 border border-gray-300 rounded-md"/>
-                     <div className="col-span-1 sm:col-span-3 grid grid-cols-1 sm:grid-cols-[auto,auto,auto,1fr] gap-2 items-center mt-2">
+                <form onSubmit={handleNewTaskSubmit} className="space-y-3 mt-4 p-3 bg-gray-50 rounded-md border">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                        <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-[auto,auto,auto,1fr] gap-3 items-center">
                         <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" required className="text-sm p-2 border border-gray-300 rounded-md"/>
-                        <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white">
+                        <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white h-full">
                             {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                         <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
-                        <button type="submit" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
+                        <button type="submit" aria-label="Add Task" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
                             <PlusIcon className="w-5 h-5" />
                         </button>
                     </div>

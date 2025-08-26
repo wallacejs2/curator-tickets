@@ -555,6 +555,9 @@ function App() {
   const handleUpdateProject = (updatedProject: Project) => {
     setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
     showToast('Project updated successfully!', 'success');
+    if (selectedProject?.id === updatedProject.id) {
+      setSelectedProject(updatedProject);
+    }
   };
   
   const handleUpdateDealership = (updatedDealership: Dealership) => {
