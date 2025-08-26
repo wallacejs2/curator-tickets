@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useRef } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
@@ -87,6 +88,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const [ticketToAdd, setTicketToAdd] = useState<string>('');
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [meetingToLink, setMeetingToLink] = useState('');
+    const [involvedPeopleString, setInvolvedPeopleString] = useState('');
 
     // Form state for new sub-task
     const [newDescription, setNewDescription] = useState('');
@@ -172,7 +174,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     };
 
     const handleSave = () => {
-        onUpdate(editableProject);
+        const people = involvedPeopleString.split(',').map(p => p.trim()).filter(Boolean);
+        onUpdate({ ...editableProject, involvedPeople: people });
         setIsEditing(false);
     };
     
@@ -268,14 +271,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700">Who's Involved (comma-separated)</label>
-                    <input 
-                        type="text" 
-                        name="involvedPeople" 
-                        value={(editableProject.involvedPeople || []).join(', ')} 
-                        onChange={(e) => {
-                            const people = e.target.value.split(',').map(p => p.trim()).filter(Boolean);
-                            setEditableProject(prev => ({ ...prev, involvedPeople: people }));
-                        }}
+                    <input
+                        type="text"
+                        name="involvedPeople"
+                        value={involvedPeopleString}
+                        onChange={(e) => setInvolvedPeopleString(e.target.value)}
                         className="mt-1 block w-full bg-gray-50 text-gray-900 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
                  <div>
@@ -308,7 +308,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
 
             <div className="flex justify-end items-center gap-3 mb-6">
                 <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-                <button onClick={() => { setEditableProject(project); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+                <button onClick={() => { 
+                    setEditableProject(project); 
+                    setInvolvedPeopleString((project.involvedPeople || []).join(', '));
+                    setIsEditing(true); 
+                }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
             </div>
             
             <div className="mb-6 pb-6 border-b border-gray-200">
