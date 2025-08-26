@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo } from 'react';
 import { Project, Task, TaskPriority, TaskStatus } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
@@ -14,8 +15,7 @@ interface TaskListProps {
   onUpdateProject: (project: Project) => void;
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  // FIX: Added projectId to the allTasks prop type to match the data shape from App.tsx.
-  allTasks: (Task & { projectName?: string; projectId: string | null })[];
+  allTasks: (Task & { projectName?: string; projectId: string | null; })[];
 }
 
 type TaskView = 'active' | 'completed';
