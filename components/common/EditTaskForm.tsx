@@ -3,11 +3,13 @@ import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, F
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
 
+// FIX: Correct the type for the `allTasks` prop to include `projectId`.
+// This fixes a type mismatch with the data passed from `TaskList.tsx`.
 interface EditTaskFormProps {
   task: Task & { projectId: string | null };
   onSave: (task: Task) => void;
   onClose: () => void;
-  allTasks: (Task & { projectName?: string })[];
+  allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   // Add all other entities for linking
   allTickets: Ticket[];
   allProjects: Project[];
