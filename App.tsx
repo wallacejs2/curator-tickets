@@ -148,6 +148,70 @@ const ImportSection: React.FC<{
     );
 };
 
+// New Component for Export Field Selection
+const ExportSelector: React.FC<{
+    title: string;
+    data: any[];
+    onExport: (data: any[], fileName: string, fields: string[]) => void;
+}> = ({ title, data, onExport }) => {
+    const allFields = useMemo(() => {
+        if (data.length === 0) return [];
+        const fieldSet = new Set<string>();
+        data.forEach(item => Object.keys(item).forEach(key => fieldSet.add(key)));
+        return Array.from(fieldSet);
+    }, [data]);
+
+    const [selectedFields, setSelectedFields] = useState<string[]>(allFields);
+
+    useEffect(() => {
+        setSelectedFields(allFields);
+    }, [allFields]);
+
+    const handleFieldToggle = (field: string) => {
+        setSelectedFields(prev =>
+            prev.includes(field) ? prev.filter(f => f !== field) : [...prev, field]
+        );
+    };
+
+    const handleSelectAll = () => setSelectedFields(allFields);
+    const handleDeselectAll = () => setSelectedFields([]);
+
+    const handleExportClick = () => {
+        onExport(data, `${title.toLowerCase().replace(/\s+/g, '_')}.csv`, selectedFields);
+    };
+
+    return (
+        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <h4 className="font-semibold text-gray-800">{title} ({data.length})</h4>
+            <div className="mt-3 max-h-48 overflow-y-auto border border-gray-200 bg-white rounded-md p-3 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                {allFields.map(field => (
+                    <label key={field} className="flex items-center space-x-2 text-sm">
+                        <input
+                            type="checkbox"
+                            checked={selectedFields.includes(field)}
+                            onChange={() => handleFieldToggle(field)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700">{field}</span>
+                    </label>
+                ))}
+            </div>
+            <div className="mt-3 flex flex-col sm:flex-row gap-2 items-center">
+                 <div className="flex-grow flex gap-2">
+                     <button onClick={handleSelectAll} className="text-xs font-semibold text-blue-600 hover:underline">Select All</button>
+                    <span className="text-gray-300">|</span>
+                    <button onClick={handleDeselectAll} className="text-xs font-semibold text-blue-600 hover:underline">Deselect All</button>
+                </div>
+                <button onClick={handleExportClick} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 text-sm">
+                   <DownloadIcon className="w-4 h-4" />
+                   <span>Export {title}</span>
+                </button>
+            </div>
+        </div>
+    );
+};
+
+
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
 function App() {
@@ -647,20 +711,38 @@ function App() {
         onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
     }), [dealerships]);
 
-    const handleExport = (data: any[], fileName: string) => {
+    const handleExport = (data: any[], fileName: string, fields: string[]) => {
         if (data.length === 0) {
             showToast('No data to export.', 'error');
             return;
         }
+        if (fields.length === 0) {
+            showToast('Please select at least one field to export.', 'error');
+            return;
+        }
 
-        const allKeys = new Set<string>();
-        data.forEach(row => {
-            Object.keys(row).forEach(key => allKeys.add(key));
-        });
-        const headers = Array.from(allKeys);
+        const headers = fields;
         const csvRows = [headers.join(',')];
 
-        data.forEach(row => {
+        const isISODateString = (value: any) => {
+            if (typeof value !== 'string') return false;
+            return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value);
+        }
+
+        const processedData = data.map(row => {
+            const newRow: { [key: string]: any } = {};
+            headers.forEach(header => {
+                let value = row[header];
+                if (isISODateString(value)) {
+                    newRow[header] = value.split('T')[0];
+                } else {
+                    newRow[header] = value;
+                }
+            });
+            return newRow;
+        });
+
+        processedData.forEach(row => {
             const values = headers.map(header => {
                 let value = row[header];
                 if (value === null || value === undefined) {
@@ -691,6 +773,7 @@ function App() {
         URL.revokeObjectURL(url);
         showToast(`${fileName} exported successfully!`, 'success');
     };
+
 
     const handleImport = (file: File, setter: React.Dispatch<React.SetStateAction<any[]>>, mode: 'append' | 'replace') => {
         if (!file) {
@@ -877,26 +960,13 @@ function App() {
       {isExportModalOpen && (
         <Modal title="Export Data" onClose={() => setIsExportModalOpen(false)}>
             <div className="space-y-4">
-                <p className="text-gray-600">Download your data as CSV files. Each file corresponds to a data type in the application.</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    {[
-                        { data: tickets, name: 'Tickets', filename: 'tickets.csv' },
-                        { data: projects, name: 'Projects', filename: 'projects.csv' },
-                        { data: dealerships, name: 'Dealerships', filename: 'dealerships.csv' },
-                        { data: tasks, name: 'Standalone Tasks', filename: 'tasks.csv' },
-                        { data: features, name: 'Features', filename: 'features.csv' },
-                        { data: meetings, name: 'Meetings', filename: 'meetings.csv' },
-                    ].map(item => (
-                         <button
-                            key={item.name}
-                            onClick={() => handleExport(item.data, item.filename)}
-                            className="w-full flex items-center justify-center gap-2 bg-green-600 text-white font-semibold px-4 py-2.5 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm transition-colors"
-                        >
-                            <DownloadIcon className="w-4 h-4"/>
-                            <span>Export {item.name} ({item.data.length})</span>
-                        </button>
-                    ))}
-                </div>
+                <p className="text-sm text-gray-600">Select which fields you would like to include in your CSV export for each data type.</p>
+                <ExportSelector title="Tickets" data={tickets} onExport={handleExport} />
+                <ExportSelector title="Projects" data={projects} onExport={handleExport} />
+                <ExportSelector title="Dealerships" data={dealerships} onExport={handleExport} />
+                <ExportSelector title="Standalone Tasks" data={tasks} onExport={handleExport} />
+                <ExportSelector title="Features" data={features} onExport={handleExport} />
+                <ExportSelector title="Meetings" data={meetings} onExport={handleExport} />
             </div>
         </Modal>
       )}

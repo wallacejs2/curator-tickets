@@ -357,7 +357,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                             <p className="text-xs text-gray-500 font-medium">
                                 <span className="font-semibold text-gray-700">{update.author}</span>
                                 <span className="mx-1.5">•</span>
-                                <span>{new Date(update.date).toLocaleString()}</span>
+                                <span>{new Date(update.date).toLocaleDateString()}</span>
                             </p>
                             <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">{update.comment}</div>
                         </div>

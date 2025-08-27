@@ -359,7 +359,7 @@ const TicketDetailView = ({
           <div className="space-y-4">
           {[...(ticket.updates || [])].reverse().map((update, index) => (
               <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleString()}</span></p>
+                  <p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleDateString()}</span></p>
                   <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
               </div>
           ))}

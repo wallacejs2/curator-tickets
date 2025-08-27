@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
@@ -87,7 +88,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Most Recent Update</h4>
                 <p className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">
                     {mostRecentUpdate
-                        ? `${new Date(mostRecentUpdate.date).toLocaleString()} - ${mostRecentUpdate.author}:\n${mostRecentUpdate.comment}`
+                        ? `${new Date(mostRecentUpdate.date).toLocaleDateString()} - ${mostRecentUpdate.author}:\n${mostRecentUpdate.comment}`
                         : "No updates have been added yet."
                     }
                 </p>

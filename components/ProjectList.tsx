@@ -56,7 +56,7 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
             <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Most Recent Update</h4>
                 {mostRecentUpdate ? (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{new Date(mostRecentUpdate.date).toLocaleString()} - {mostRecentUpdate.author}:<br/>{mostRecentUpdate.comment}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{new Date(mostRecentUpdate.date).toLocaleDateString()} - {mostRecentUpdate.author}:<br/>{mostRecentUpdate.comment}</p>
                 ) : <p className="text-sm text-gray-500 italic">No updates posted.</p>}
             </div>
         </div>
