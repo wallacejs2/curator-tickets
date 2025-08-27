@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 // FIX: Import missing constants
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState } from '../types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -124,10 +124,10 @@ const TicketDetailView = ({
   const linkedDealerships = allDealerships.filter(item => (ticket.dealershipIds || []).includes(item.id));
   const linkedFeatures = allFeatures.filter(item => (ticket.featureIds || []).includes(item.id));
 
-  // Available items for linking
-  const availableTickets = allTickets.filter(item => item.id !== ticket.id && !(ticket.linkedTicketIds || []).includes(item.id));
-  const availableProjects = allProjects.filter(item => !(ticket.projectIds || []).includes(item.id));
-  const availableTasks = allTasks.filter(item => !(ticket.taskIds || []).includes(item.id));
+  // Available items for linking (filter out completed items)
+  const availableTickets = allTickets.filter(item => item.status !== Status.Completed && item.id !== ticket.id && !(ticket.linkedTicketIds || []).includes(item.id));
+  const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(ticket.projectIds || []).includes(item.id));
+  const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !(ticket.taskIds || []).includes(item.id));
   const availableMeetings = allMeetings.filter(item => !(ticket.meetingIds || []).includes(item.id));
   const availableDealerships = allDealerships.filter(item => !(ticket.dealershipIds || []).includes(item.id));
   const availableFeatures = allFeatures.filter(item => !(ticket.featureIds || []).includes(item.id));

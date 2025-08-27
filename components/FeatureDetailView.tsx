@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership } from '../types.ts';
+import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership, Status, ProjectStatus, TaskStatus } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -63,10 +63,10 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
     const linkedDealerships = allDealerships.filter(item => (feature.dealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (feature.linkedFeatureIds || []).includes(item.id));
     
-    // Available items for linking
-    const availableTickets = allTickets.filter(item => !(feature.ticketIds || []).includes(item.id));
-    const availableProjects = allProjects.filter(item => !(feature.projectIds || []).includes(item.id));
-    const availableTasks = allTasks.filter(item => !(feature.taskIds || []).includes(item.id));
+    // Available items for linking (filter out completed items)
+    const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(feature.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(feature.projectIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !(feature.taskIds || []).includes(item.id));
     const availableMeetings = allMeetings.filter(item => !(feature.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(feature.dealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => item.id !== feature.id && !(feature.linkedFeatureIds || []).includes(item.id));

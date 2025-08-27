@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement } from '../../types.ts';
+import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
 
@@ -57,13 +57,13 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     const linkedFeatures = allFeatures.filter(item => (editedTask.featureIds || []).includes(item.id));
     const linkedTasks = allTasks.filter(item => (editedTask.linkedTaskIds || []).includes(item.id));
     
-    // Available items for linking
-    const availableTickets = allTickets.filter(item => !(editedTask.ticketIds || []).includes(item.id));
-    const availableProjects = allProjects.filter(item => !(editedTask.projectIds || []).includes(item.id));
+    // Available items for linking (filter out completed items)
+    const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(editedTask.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(editedTask.projectIds || []).includes(item.id));
     const availableMeetings = allMeetings.filter(item => !(editedTask.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(editedTask.dealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => !(editedTask.featureIds || []).includes(item.id));
-    const availableTasks = allTasks.filter(item => item.id !== task.id && !(editedTask.linkedTaskIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && item.id !== task.id && !(editedTask.linkedTaskIds || []).includes(item.id));
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">

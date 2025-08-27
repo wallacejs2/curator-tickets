@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
+import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -81,10 +81,10 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const linkedDealerships = allDealerships.filter(item => (project.dealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (project.featureIds || []).includes(item.id));
 
-    // Available items for linking
-    const availableTickets = allTickets.filter(item => !(project.ticketIds || []).includes(item.id));
-    const availableProjects = allProjects.filter(item => item.id !== project.id && !(project.linkedProjectIds || []).includes(item.id));
-    const availableTasks = allTasks.filter(item => !(project.taskIds || []).includes(item.id) && item.projectId !== project.id);
+    // Available items for linking (filter out completed items)
+    const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(project.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && item.id !== project.id && !(project.linkedProjectIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !(project.taskIds || []).includes(item.id) && item.projectId !== project.id);
     const availableMeetings = allMeetings.filter(item => !(project.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(project.dealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => !(project.featureIds || []).includes(item.id));
