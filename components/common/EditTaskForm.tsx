@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
@@ -32,6 +32,14 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     onUnlink
 }) => {
     const [editedTask, setEditedTask] = useState(task);
+
+    // FIX: Add this useEffect to synchronize the form's internal state
+    // with the task prop. This is crucial for when the parent component
+    // updates the task (e.g., after a linking action) and passes down
+    // the new version.
+    useEffect(() => {
+        setEditedTask(task);
+    }, [task]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setEditedTask({ ...editedTask, [e.target.name]: e.target.value });
