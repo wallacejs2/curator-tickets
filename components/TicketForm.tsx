@@ -98,16 +98,18 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
     });
   };
 
+  // FIX: This function was using `projectId` which does not exist on the Ticket type.
+  // It has been updated to use `projectIds` (an array of strings) to correctly link a ticket to a project.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { type, ...rest } = formData;
+    const { type, projectId, ...rest } = formData;
 
     const dataToSubmit = {
       ...rest,
       estimatedCompletionDate: rest.estimatedCompletionDate ? new Date(`${rest.estimatedCompletionDate}T00:00:00`).toISOString() : undefined,
       startDate: rest.startDate ? new Date(`${rest.startDate}T00:00:00`).toISOString() : undefined,
-      projectId: rest.projectId || undefined,
+      projectIds: projectId ? [projectId] : [],
     }
 
     if (type === TicketType.Issue) {

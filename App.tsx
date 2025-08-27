@@ -32,7 +32,6 @@ import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
 import MeetingList from './components/MeetingList.tsx';
 import MeetingDetailView from './components/MeetingDetailView.tsx';
-// FIX: Import the MeetingForm component.
 import MeetingForm from './components/MeetingForm.tsx';
 import TicketDetailView from './components/TicketDetailView.tsx';
 import FeatureDetailView from './components/FeatureDetailView.tsx';
@@ -97,27 +96,6 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-// FIX: This local component definition is outdated and should be removed. 
-// The app will now use the imported TicketDetailView from its own file.
-/*
-const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects, tickets, onLinkTicket, onUnlinkTicket }: { 
-    ticket: Ticket, 
-    onUpdate: (ticket: Ticket) => void, 
-    onAddUpdate: (comment: string, author: string, date: string) => void, 
-    onExport: () => void, 
-    onEmail: () => void, 
-    onUpdateCompletionNotes: (notes: string) => void, 
-    onDelete: (ticketId: string) => void, 
-    projects: Project[], 
-    tickets: Ticket[],
-    onLinkTicket: (fromTicketId: string, toTicketId: string) => void,
-    onUnlinkTicket: (fromTicketId: string, toTicketId: string) => void
- }) => {
-  // ... old component code
-};
-*/
-
-
 const ImportSection: React.FC<{
     title: string;
     onImport: (file: File, mode: 'append' | 'replace') => void;
@@ -170,7 +148,6 @@ const ImportSection: React.FC<{
     );
 };
 
-// FIX: Define a generic EntityType for the linking system
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
 function App() {
@@ -209,6 +186,45 @@ function App() {
   
   const [currentView, setCurrentView] = useState<View>('tickets');
   const { toast, showToast, hideToast } = useToast();
+
+  // FIX: Add useEffect hooks to synchronize selected items with their master data arrays.
+  // This ensures that when an item is updated (e.g., by linking another item to it),
+  // the detail view re-renders with the fresh data.
+  useEffect(() => {
+    if (selectedTicket) {
+      const freshTicket = tickets.find(t => t.id === selectedTicket.id);
+      setSelectedTicket(freshTicket || null);
+    }
+  }, [tickets]);
+
+  useEffect(() => {
+    if (selectedProject) {
+      const freshProject = projects.find(p => p.id === selectedProject.id);
+      setSelectedProject(freshProject || null);
+    }
+  }, [projects]);
+
+  useEffect(() => {
+    if (selectedDealership) {
+      const freshDealership = dealerships.find(d => d.id === selectedDealership.id);
+      setSelectedDealership(freshDealership || null);
+    }
+  }, [dealerships]);
+  
+  useEffect(() => {
+    if (selectedMeeting) {
+      const freshMeeting = meetings.find(m => m.id === selectedMeeting.id);
+      setSelectedMeeting(freshMeeting || null);
+    }
+  }, [meetings]);
+
+  useEffect(() => {
+    if (selectedFeature) {
+      const freshFeature = features.find(f => f.id === selectedFeature.id);
+      setSelectedFeature(freshFeature || null);
+    }
+  }, [features]);
+
 
   const allTasks = useMemo(() => {
     const projectTasks = projects.flatMap(p => 
@@ -397,6 +413,7 @@ function App() {
     } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
         const updatedProject = { ...selectedProject, updates: [...(selectedProject.updates || []), newUpdate] };
         setSelectedProject(updatedProject);
+        // FIX: The variable 't' was used here instead of 'p', causing an error.
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
     }
     showToast('Update added!', 'success');
@@ -464,7 +481,7 @@ function App() {
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
     };
     
-    // FIX: Add generic linking handlers
+    // Linking logic
     const getSetterForType = (type: EntityType) => {
       switch (type) {
           case 'ticket': return setTickets;
@@ -494,62 +511,61 @@ function App() {
         }
     };
     
-    const handleLinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
-        const toLinkKey = `${toType}Ids` as keyof any;
-        const fromLinkKey = toType === 'project' ? 'ticketIds' : `${fromType}Ids` as keyof any;
-        const fromLinkedKey = fromType === 'project' ? 'linkedProjectIds' : `${fromType}Ids` as keyof any;
-
-
-        // Special handling for ticket-to-project linking which is one-way from ticket
-        if (fromType === 'ticket' && toType === 'project') {
-             updateEntity(fromType, fromId, (entity) => ({
-                ...entity,
-                [toLinkKey]: [...new Set([...(entity[toLinkKey] || []), toId])]
-            }));
-            updateEntity(toType, toId, (entity) => ({
-                ...entity,
-                [fromLinkKey]: [...new Set([...(entity[fromLinkKey] || []), fromId])]
-            }));
-        } else {
-            updateEntity(fromType, fromId, (entity) => ({
-                ...entity,
-                [toLinkKey]: [...new Set([...(entity[toLinkKey] || []), toId])]
-            }));
-            
-            updateEntity(toType, toId, (entity) => ({
-                ...entity,
-                [fromType === 'project' ? 'linkedProjectIds' : fromLinkKey]: [...new Set([...(entity[fromType === 'project' ? 'linkedProjectIds' : fromLinkKey] || []), fromId])]
-            }));
+    // FIX: Refactored linking logic for robustness and clarity.
+    const getLinkKeys = (fromType: EntityType, toType: EntityType): { forwardKey: string, reverseKey: string } => {
+        const getSelfLinkKey = (type: EntityType) => {
+            switch (type) {
+                case 'ticket': return 'linkedTicketIds';
+                case 'project': return 'linkedProjectIds';
+                case 'task': return 'linkedTaskIds';
+                case 'meeting': return 'linkedMeetingIds';
+                case 'dealership': return 'linkedDealershipIds';
+                case 'feature': return 'linkedFeatureIds';
+                default: return `${type}Ids`;
+            }
         }
+
+        const forwardKey = fromType === toType ? getSelfLinkKey(fromType) : `${toType}Ids`;
+        const reverseKey = fromType === toType ? getSelfLinkKey(toType) : `${fromType}Ids`;
+        
+        return { forwardKey, reverseKey };
+    }
     
-        showToast(`${fromType} and ${toType} linked successfully!`, 'success');
+    const handleLinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
+        const { forwardKey, reverseKey } = getLinkKeys(fromType, toType);
+
+        // Update the 'from' entity
+        updateEntity(fromType, fromId, (entity) => ({
+            ...entity,
+            [forwardKey]: [...new Set([...(entity[forwardKey] || []), toId])]
+        }));
+        
+        // Update the 'to' entity
+        updateEntity(toType, toId, (entity) => ({
+            ...entity,
+            [reverseKey]: [...new Set([...(entity[reverseKey] || []), fromId])]
+        }));
+
+        showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} linked successfully!`, 'success');
     };
     
     const handleUnlinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
-        const toLinkKey = `${toType}Ids` as keyof any;
-        const fromLinkKey = `${fromType}Ids` as keyof any;
+        const { forwardKey, reverseKey } = getLinkKeys(fromType, toType);
         
+        // Update the 'from' entity
         updateEntity(fromType, fromId, (entity) => ({
             ...entity,
-            [toLinkKey]: (entity[toLinkKey] || []).filter((id: string) => id !== toId)
+            [forwardKey]: (entity[forwardKey] || []).filter((id: string) => id !== toId)
         }));
         
+        // Update the 'to' entity
         updateEntity(toType, toId, (entity) => ({
             ...entity,
-            [fromType === 'project' ? 'linkedProjectIds' : fromLinkKey]: (entity[fromType === 'project' ? 'linkedProjectIds' : fromLinkKey] || []).filter((id: string) => id !== fromId)
+            [reverseKey]: (entity[reverseKey] || []).filter((id: string) => id !== fromId)
         }));
         
-        showToast(`${fromType} and ${toType} unlinked successfully!`, 'success');
+        showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} unlinked successfully!`, 'success');
     };
-
-    const handleLinkTicket = (fromTicketId: string, toTicketId: string) => {
-      handleLinkItem('ticket', fromTicketId, 'ticket', toTicketId);
-    };
-
-  const handleUnlinkTicket = (fromTicketId: string, toTicketId: string) => {
-      handleUnlinkItem('ticket', fromTicketId, 'ticket', toTicketId);
-  };
-
 
     const filteredTickets = useMemo(() => {
         return tickets.filter(ticket => {
@@ -850,7 +866,6 @@ function App() {
                 <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />
               </>
           )}
-          {/* FIX: Pass missing props for linking functionality to TaskList */}
           {currentView === 'tasks' && <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} />}
           {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature}/>}
           {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
