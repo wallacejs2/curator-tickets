@@ -1,17 +1,37 @@
 import React, { useState } from 'react';
-import { Task, TaskPriority, TaskStatus } from '../../types.ts';
+import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
+import LinkingSection from './LinkingSection.tsx';
 
 interface EditTaskFormProps {
-  task: Task;
+  task: Task & { projectId: string | null };
   onSave: (task: Task) => void;
   onClose: () => void;
   allTasks: (Task & { projectName?: string })[];
+  // Add all other entities for linking
+  allTickets: Ticket[];
+  allProjects: Project[];
+  allMeetings: Meeting[];
+  allDealerships: Dealership[];
+  allFeatures: FeatureAnnouncement[];
+  onLink: (toType: string, toId: string) => void;
+  onUnlink: (toType: string, toId: string) => void;
 }
 
-const EditTaskForm: React.FC<EditTaskFormProps> = ({ task, onSave, onClose, allTasks }) => {
+const EditTaskForm: React.FC<EditTaskFormProps> = ({ 
+    task, 
+    onSave, 
+    onClose, 
+    allTasks,
+    allTickets,
+    allProjects,
+    allMeetings,
+    allDealerships,
+    allFeatures,
+    onLink,
+    onUnlink
+}) => {
     const [editedTask, setEditedTask] = useState(task);
-    const [taskToLink, setTaskToLink] = useState('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setEditedTask({ ...editedTask, [e.target.name]: e.target.value });
@@ -19,16 +39,6 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({ task, onSave, onClose, allT
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEditedTask({ ...editedTask, dueDate: e.target.value ? new Date(`${e.target.value}T00:00:00`).toISOString() : undefined });
-    };
-
-    const handleLinkTask = () => {
-        if (!taskToLink || (editedTask.linkedTaskIds || []).includes(taskToLink)) return;
-        setEditedTask(prev => ({ ...prev, linkedTaskIds: [...(prev.linkedTaskIds || []), taskToLink] }));
-        setTaskToLink('');
-    };
-    
-    const handleUnlinkTask = (idToUnlink: string) => {
-        setEditedTask(prev => ({ ...prev, linkedTaskIds: (prev.linkedTaskIds || []).filter(id => id !== idToUnlink) }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -39,7 +49,21 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({ task, onSave, onClose, allT
     const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
     const labelClasses = "block text-sm font-medium text-gray-700";
     
-    const potentialLinks = allTasks.filter(t => t.id !== task.id && !(editedTask.linkedTaskIds || []).includes(t.id));
+    // Linked items
+    const linkedTickets = allTickets.filter(item => (editedTask.ticketIds || []).includes(item.id));
+    const linkedProjects = allProjects.filter(item => (editedTask.projectIds || []).includes(item.id));
+    const linkedMeetings = allMeetings.filter(item => (editedTask.meetingIds || []).includes(item.id));
+    const linkedDealerships = allDealerships.filter(item => (editedTask.dealershipIds || []).includes(item.id));
+    const linkedFeatures = allFeatures.filter(item => (editedTask.featureIds || []).includes(item.id));
+    const linkedTasks = allTasks.filter(item => (editedTask.linkedTaskIds || []).includes(item.id));
+    
+    // Available items for linking
+    const availableTickets = allTickets.filter(item => !(editedTask.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => !(editedTask.projectIds || []).includes(item.id));
+    const availableMeetings = allMeetings.filter(item => !(editedTask.meetingIds || []).includes(item.id));
+    const availableDealerships = allDealerships.filter(item => !(editedTask.dealershipIds || []).includes(item.id));
+    const availableFeatures = allFeatures.filter(item => !(editedTask.featureIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => item.id !== task.id && !(editedTask.linkedTaskIds || []).includes(item.id));
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -76,35 +100,14 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({ task, onSave, onClose, allT
                 <input type="date" name="dueDate" value={editedTask.dueDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
             </div>
 
-            {/* Task Linking Section */}
-            <div className="pt-4 border-t border-gray-200">
-                <label className={labelClasses}>Linked Tasks</label>
-                <div className="flex items-center gap-2 mt-1">
-                    <select value={taskToLink} onChange={e => setTaskToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
-                        <option value="">Select a task to link...</option>
-                        {potentialLinks.map(t => (
-                            <option key={t.id} value={t.id}>{t.projectName ? `[${t.projectName}] ` : ''}{t.description}</option>
-                        ))}
-                    </select>
-                    <button type="button" onClick={handleLinkTask} disabled={!taskToLink} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link</button>
-                </div>
-                 <div className="mt-3 space-y-2">
-                    {(editedTask.linkedTaskIds || []).length > 0 ? (editedTask.linkedTaskIds || []).map(linkedId => {
-                        const linkedTask = allTasks.find(t => t.id === linkedId);
-                        if (!linkedTask) return null;
-                        return (
-                            <div key={linkedId} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md text-sm">
-                                <span className="text-gray-800">{linkedTask.projectName ? `[${linkedTask.projectName}] ` : ''}{linkedTask.description}</span>
-                                <button type="button" onClick={() => handleUnlinkTask(linkedId)} className="p-1 text-gray-400 hover:text-red-600 rounded-full" aria-label={`Unlink task ${linkedTask.description}`}>
-                                    <XIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        );
-                    }) : <p className="text-sm text-gray-500 italic mt-2">No tasks are linked yet.</p>}
-                </div>
-            </div>
+            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} />
+            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} />
+            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} />
+            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} />
+            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} />
+            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} />
 
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
                 <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
             </div>

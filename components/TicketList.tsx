@@ -176,7 +176,9 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
       ) : (
         <div className="space-y-4">
           {ticketsToShow.map(ticket => {
-            const projectName = ticket.projectId ? projects.find(p => p.id === ticket.projectId)?.name : null;
+            // FIX: The Ticket type uses `projectIds` (an array) instead of `projectId`.
+            // We will display the name of the first linked project if it exists.
+            const projectName = ticket.projectIds && ticket.projectIds.length > 0 ? projects.find(p => p.id === ticket.projectIds[0])?.name : null;
             const linkedTicketObjects = (ticket.linkedTicketIds || [])
               .map(id => tickets.find(t => t.id === id))
               .filter((t): t is Ticket => t !== undefined);

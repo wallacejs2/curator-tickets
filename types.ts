@@ -1,3 +1,4 @@
+
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -49,6 +50,13 @@ export interface FeatureAnnouncement {
   version?: string;
   platform: Platform;
   status: FeatureStatus;
+  // Linking fields
+  ticketIds?: string[];
+  projectIds?: string[];
+  meetingIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  linkedFeatureIds?: string[];
 }
 
 export interface Update {
@@ -78,8 +86,14 @@ interface BaseTicket {
   updates?: Update[];
   completionNotes?: string;
   onHoldReason?: string;
-  projectId?: string;
+  
+  // Linking fields
+  projectIds?: string[];
   linkedTicketIds?: string[];
+  meetingIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
 }
 
 export interface IssueTicket extends BaseTicket {
@@ -147,7 +161,13 @@ export interface Task {
   priority: TaskPriority;
   type: string;
   dueDate?: string;
+  // Linking fields
   linkedTaskIds?: string[];
+  ticketIds?: string[];
+  projectIds?: string[];
+  meetingIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
 }
 
 export interface Project {
@@ -157,10 +177,15 @@ export interface Project {
   status: ProjectStatus;
   tasks: Task[];
   creationDate: string;
-  ticketIds: string[];
   updates?: Update[];
   involvedPeople?: string[];
+  // Linking fields
+  ticketIds: string[];
   meetingIds?: string[];
+  linkedProjectIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
 }
 
 // New types for Meeting Notes
@@ -170,8 +195,13 @@ export interface Meeting {
   meetingDate: string;
   attendees: string[];
   notes: string; // Rich text content
+  // Linking fields
   projectIds: string[];
   ticketIds: string[];
+  linkedMeetingIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
 }
 
 // Type for main application view
@@ -202,4 +232,11 @@ export interface Dealership {
   buId?: string;
   address?: string;
   assignedSpecialist?: string;
+  // Linking fields
+  ticketIds?: string[];
+  projectIds?: string[];
+  meetingIds?: string[];
+  taskIds?: string[];
+  linkedDealershipIds?: string[];
+  featureIds?: string[];
 }

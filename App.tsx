@@ -32,7 +32,10 @@ import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
 import MeetingList from './components/MeetingList.tsx';
 import MeetingDetailView from './components/MeetingDetailView.tsx';
+// FIX: Import the MeetingForm component.
 import MeetingForm from './components/MeetingForm.tsx';
+import TicketDetailView from './components/TicketDetailView.tsx';
+import FeatureDetailView from './components/FeatureDetailView.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -94,6 +97,9 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
+// FIX: This local component definition is outdated and should be removed. 
+// The app will now use the imported TicketDetailView from its own file.
+/*
 const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, projects, tickets, onLinkTicket, onUnlinkTicket }: { 
     ticket: Ticket, 
     onUpdate: (ticket: Ticket) => void, 
@@ -107,327 +113,10 @@ const TicketDetailView = ({ ticket, onUpdate, onAddUpdate, onExport, onEmail, on
     onLinkTicket: (fromTicketId: string, toTicketId: string) => void,
     onUnlinkTicket: (fromTicketId: string, toTicketId: string) => void
  }) => {
-  const [newUpdate, setNewUpdate] = useState('');
-  const [authorName, setAuthorName] = useState('');
-  const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [completionNotes, setCompletionNotes] = useState(ticket.completionNotes || '');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editableTicket, setEditableTicket] = useState<Ticket>(ticket);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [ticketToLink, setTicketToLink] = useState('');
-  const [projectToLink, setProjectToLink] = useState('');
-  
-  const MAX_COMMENT_LENGTH = 2000;
-
-  useEffect(() => {
-    setEditableTicket(ticket);
-    setCompletionNotes(ticket.completionNotes || '');
-    if (isEditing && ticket.id !== editableTicket.id) {
-        setIsEditing(false);
-    }
-  }, [ticket]);
-
-  const handleUpdateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newUpdate.trim() && authorName.trim() && updateDate) {
-      // Convert newlines to <br> tags for HTML rendering
-      const commentAsHtml = newUpdate.replace(/\n/g, '<br />');
-      onAddUpdate(commentAsHtml, authorName, updateDate);
-      setNewUpdate('');
-    }
-  };
-  
-  const handleNotesSave = () => {
-    onUpdateCompletionNotes(completionNotes);
-    setIsEditingNotes(false);
-  };
-  
-  const handleSave = () => {
-      onUpdate(editableTicket);
-      setIsEditing(false);
-  };
-  
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setEditableTicket(prev => {
-        const newState = { ...prev, [name]: value };
-        if (name === 'type') {
-            newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P5;
-        }
-        return newState;
-    });
-  };
-  
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEditableTicket(prev => {
-      // submissionDate is a required field, prevent it from being cleared by reverting to previous state if empty.
-      if (name === 'submissionDate') {
-        return { ...prev, submissionDate: value ? new Date(`${value}T00:00:00`).toISOString() : prev.submissionDate }
-      }
-      return {
-        ...prev,
-        [name]: value ? new Date(`${value}T00:00:00`).toISOString() : undefined,
-      };
-    });
-  };
-  
-  const handleLinkTicket = () => {
-    if (!ticketToLink) return;
-    onLinkTicket(ticket.id, ticketToLink);
-    setTicketToLink('');
-  };
-
-  const handleUnlinkTicket = (ticketIdToUnlink: string) => {
-    onUnlinkTicket(ticket.id, ticketIdToUnlink);
-  };
-  
-  const handleLinkProject = () => {
-    if (!projectToLink) return;
-    const updatedTicket = { ...ticket, projectId: projectToLink };
-    onUpdate(updatedTicket);
-    setProjectToLink('');
-  };
-
-  const handleUnlinkProject = () => {
-    const updatedTicket = { ...ticket, projectId: undefined };
-    onUpdate(updatedTicket);
-  };
-
-  const projectName = ticket.projectId ? projects.find(p => p.id === ticket.projectId)?.name : 'N/A';
-  const linkedTickets = (ticket.linkedTicketIds || [])
-    .map(id => tickets.find(t => t.id === id))
-    .filter((t): t is Ticket => Boolean(t));
-
-  const renderViewMode = () => (
-    <>
-      <FormSection title="Core Information" gridCols={3}>
-        <DetailTag label="Type" value={ticket.type} />
-        <DetailTag label="Status" value={ticket.status} />
-        <DetailTag label="Priority" value={ticket.priority} />
-        <DetailTag label="Product Area" value={ticket.productArea} />
-        <DetailTag label="Platform" value={ticket.platform} />
-        <DetailField label="Location" value={ticket.location} />
-        {ticket.onHoldReason && ticket.status === Status.OnHold && (
-            <div className="col-span-3">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason for 'On Hold'</h4>
-                <p className="mt-1 p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-800">{ticket.onHoldReason}</p>
-            </div>
-        )}
-      </FormSection>
-
-      <FormSection title="Dates" gridCols={3}>
-        <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString()} />
-        <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'} />
-        <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A'} />
-        {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : 'N/A'} />}
-      </FormSection>
-      
-      <FormSection title="Tracking & Ownership">
-        <DetailField label="Submitter" value={ticket.submitterName} />
-        <DetailField label="Client" value={ticket.client} />
-        <DetailField label="PMR Number" value={ticket.pmrNumber} />
-        <DetailField label="FP Ticket Number" value={ticket.fpTicketNumber} />
-        <div className="col-span-2"><DetailField label="Ticket Thread ID" value={ticket.ticketThreadId} /></div>
-      </FormSection>
-
-      {ticket.type === TicketType.Issue && (
-        <FormSection title="Issue Information">
-            <div className="col-span-2"><DetailField label="Problem" value={(ticket as IssueTicket).problem} /></div>
-            <div className="col-span-2"><DetailField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} /></div>
-            <div className="col-span-2"><DetailField label="Workaround" value={(ticket as IssueTicket).workaround} /></div>
-            <div className="col-span-2"><DetailField label="Frequency" value={(ticket as IssueTicket).frequency} /></div>
-        </FormSection>
-      )}
-      {ticket.type === TicketType.FeatureRequest && (
-        <FormSection title="Feature Request Information">
-            <div className="col-span-2"><DetailField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} /></div>
-            <div className="col-span-2"><DetailField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} /></div>
-            <div className="col-span-2"><DetailField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} /></div>
-            <div className="col-span-2"><DetailField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} /></div>
-        </FormSection>
-      )}
-    </>
-  );
-
-  const renderEditMode = () => (
-     <>
-        <FormSection title="Core Information" gridCols={3}>
-            <div><label className={labelClasses}>Type</label><select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>{Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-            <div><label className={labelClasses}>Status</label><select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>{STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
-            <div><label className={labelClasses}>Priority</label><select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>{(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
-            <div><label className={labelClasses}>Product Area</label><select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>{Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}</select></div>
-            <div><label className={labelClasses}>Platform</label><select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>{Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}</select></div>
-            <div><label className={labelClasses}>Location</label><input type="text" name="location" value={editableTicket.location} onChange={handleFormChange} required className={formElementClasses}/></div>
-            {editableTicket.status === Status.OnHold && (<div className="col-span-3"><label className={labelClasses}>Reason for On Hold</label><textarea name="onHoldReason" value={editableTicket.onHoldReason || ''} onChange={handleFormChange} rows={2} required className={formElementClasses}/></div>)}
-        </FormSection>
-        
-        <FormSection title="Dates" gridCols={3}>
-            <div><label className={labelClasses}>Submission Date</label><input type="date" name="submissionDate" value={editableTicket.submissionDate.split('T')[0] || ''} onChange={handleDateChange} required className={formElementClasses} /></div>
-            <div><label className={labelClasses}>Start Date</label><input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
-            <div><label className={labelClasses}>Est. Completion Date</label><input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
-            {editableTicket.status === Status.Completed && (<div><label className={labelClasses}>Completion Date</label><input type="date" name="completionDate" value={editableTicket.completionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>)}
-        </FormSection>
-        
-        <FormSection title="Tracking & Ownership">
-            <div><label className={labelClasses}>Submitter</label><input type="text" name="submitterName" value={editableTicket.submitterName} onChange={handleFormChange} required className={formElementClasses}/></div>
-            <div><label className={labelClasses}>Client</label><input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses}/></div>
-            <div><label className={labelClasses}>PMR Number</label><input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses}/></div>
-            <div><label className={labelClasses}>FP Ticket Number</label><input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses}/></div>
-            <div className="col-span-2"><label className={labelClasses}>Ticket Thread ID</label><input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses}/></div>
-        </FormSection>
-
-        {editableTicket.type === TicketType.Issue && (
-          <FormSection title="Issue Details">
-              <div className="col-span-2"><label className={labelClasses}>Problem</label><textarea name="problem" value={(editableTicket as IssueTicket).problem} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-              <div className="col-span-2"><label className={labelClasses}>Duplication Steps</label><textarea name="duplicationSteps" value={(editableTicket as IssueTicket).duplicationSteps} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-              <div className="col-span-2"><label className={labelClasses}>Workaround</label><textarea name="workaround" value={(editableTicket as IssueTicket).workaround} onChange={handleFormChange} rows={2} className={formElementClasses}></textarea></div>
-              <div className="col-span-2"><label className={labelClasses}>Frequency</label><textarea name="frequency" value={(editableTicket as IssueTicket).frequency} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-          </FormSection>
-        )}
-        {editableTicket.type === TicketType.FeatureRequest && (
-          <FormSection title="Feature Request Details">
-              <div className="col-span-2"><label className={labelClasses}>Improvement</label><textarea name="improvement" value={(editableTicket as FeatureRequestTicket).improvement} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-              <div className="col-span-2"><label className={labelClasses}>Current Functionality</label><textarea name="currentFunctionality" value={(editableTicket as FeatureRequestTicket).currentFunctionality} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-              <div className="col-span-2"><label className={labelClasses}>Suggested Solution</label><textarea name="suggestedSolution" value={(editableTicket as FeatureRequestTicket).suggestedSolution} onChange={handleFormChange} rows={3} required className={formElementClasses}></textarea></div>
-              <div className="col-span-2"><label className={labelClasses}>Benefits</label><textarea name="benefits" value={(editableTicket as FeatureRequestTicket).benefits} onChange={handleFormChange} rows={2} required className={formElementClasses}></textarea></div>
-          </FormSection>
-        )}
-        
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-            <button type="button" onClick={() => setIsEditing(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-            <button type="button" onClick={handleSave} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
-        </div>
-     </>
-  );
-
-  return (
-    <div>
-      {isDeleteModalOpen && (
-        <Modal title="Confirm Deletion" onClose={() => setIsDeleteModalOpen(false)}>
-            <p className="text-gray-700">Are you sure you want to delete this ticket? This action cannot be undone.</p>
-            <div className="flex justify-end gap-3 mt-6">
-                <button onClick={() => setIsDeleteModalOpen(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                <button onClick={() => onDelete(ticket.id)} className="bg-red-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-red-700">Delete Ticket</button>
-            </div>
-        </Modal>
-      )}
-
-      {!isEditing && (
-        <div className="flex justify-end items-center gap-3 mb-6">
-            <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><EmailIcon className="w-4 h-4"/><span>Email</span></button>
-            <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
-            <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-            <button onClick={() => { setEditableTicket(ticket); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
-        </div>
-      )}
-      
-      <div className="space-y-6">
-        {isEditing ? renderEditMode() : renderViewMode()}
-      </div>
-      
-      <FormSection title="Linked Tickets" gridCols={1} className="mt-6">
-        <div className="flex items-center gap-2">
-            <select value={ticketToLink} onChange={e => setTicketToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
-                <option value="">Select a ticket to link...</option>
-                {tickets.filter(t => t.id !== ticket.id && !(ticket.linkedTicketIds || []).includes(t.id)).map(t => (<option key={t.id} value={t.id}>{t.title}</option>))}
-            </select>
-            <button type="button" onClick={handleLinkTicket} disabled={!ticketToLink} className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300 hover:bg-blue-600">Link Ticket</button>
-        </div>
-        <div className="mt-3 space-y-2">
-            {linkedTickets.length > 0 ? linkedTickets.map(linked => (
-                <div key={linked.id} className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-md p-3">
-                    <div>
-                        <p className="text-sm font-medium text-gray-800">{linked.title}</p>
-                        {(linked.pmrNumber || linked.fpTicketNumber) && (
-                            <div className="text-xs text-gray-500 mt-1">
-                                {linked.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{linked.pmrNumber}</span></span>}
-                                {linked.pmrNumber && linked.fpTicketNumber && <span className="mx-1.5">•</span>}
-                                {linked.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{linked.fpTicketNumber}</span></span>}
-                            </div>
-                        )}
-                    </div>
-                    <button type="button" onClick={() => handleUnlinkTicket(linked.id)} className="text-red-600 hover:text-red-800 font-semibold text-xs" aria-label={`Unlink ticket ${linked.title}`}>Unlink</button>
-                </div>
-            )) : <p className="text-sm text-gray-500 italic mt-2">No tickets linked.</p>}
-        </div>
-      </FormSection>
-
-      <FormSection title="Linked Project" gridCols={1} className="mt-6">
-          {ticket.projectId ? (
-              <div className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-md p-3">
-                  <p className="text-sm font-medium text-gray-800">{projectName}</p>
-                  <button type="button" onClick={handleUnlinkProject} className="text-red-600 hover:text-red-800 font-semibold text-xs" aria-label="Unlink project">Unlink</button>
-              </div>
-          ) : (
-              <div className="flex items-center gap-2">
-                  <select value={projectToLink} onChange={e => setProjectToLink(e.target.value)} className={`flex-grow ${formElementClasses} mt-0`}>
-                      <option value="">Select a project to link...</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                  <button type="button" onClick={handleLinkProject} disabled={!projectToLink} className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300 hover:bg-blue-600">Link Project</button>
-              </div>
-          )}
-      </FormSection>
-
-
-      {ticket.status === Status.Completed && (
-        <div className="mt-6">
-            <FormSection title="Completion Notes" gridCols={1}>
-                {!isEditing && <div className="flex justify-end mb-2"><button onClick={() => setIsEditingNotes(true)} className="text-sm text-blue-600 hover:underline font-semibold flex items-center gap-1.5"><PencilIcon className="w-3.5 h-3.5"/> Edit</button></div>}
-                {isEditingNotes ? (
-                    <div>
-                        <textarea value={completionNotes} onChange={(e) => setCompletionNotes(e.target.value)} rows={4} className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"></textarea>
-                        <div className="flex justify-end gap-2 mt-2">
-                            <button onClick={() => setIsEditingNotes(false)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
-                            <button onClick={handleNotesSave} className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm">Save</button>
-                        </div>
-                    </div>
-                ) : (
-                    <p className="p-3 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 whitespace-pre-wrap">{ticket.completionNotes || 'No completion notes have been added.'}</p>
-                )}
-            </FormSection>
-        </div>
-      )}
-
-      <div className="pt-6 mt-6 border-t border-gray-200">
-          <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
-            <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-              <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-              <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-              <textarea 
-                value={newUpdate} 
-                onChange={e => setNewUpdate(e.target.value)}
-                placeholder="Type your comment here..."
-                required
-                rows={4}
-                className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                maxLength={MAX_COMMENT_LENGTH}
-              />
-              <div className="flex justify-between items-center">
-                  <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
-                  <button 
-                    type="submit" 
-                    disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
-                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
-                      Add Update
-                  </button>
-              </div>
-            </form>
-          <div className="space-y-4">
-          {[...(ticket.updates || [])].reverse().map((update, index) => (
-              <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleString()}</span></p>
-                  <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
-              </div>
-          ))}
-          </div>
-      </div>
-    </div>
-  );
+  // ... old component code
 };
+*/
+
 
 const ImportSection: React.FC<{
     title: string;
@@ -481,6 +170,9 @@ const ImportSection: React.FC<{
     );
 };
 
+// FIX: Define a generic EntityType for the linking system
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+
 function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
@@ -493,6 +185,7 @@ function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -515,8 +208,6 @@ function App() {
   const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
   
   const [currentView, setCurrentView] = useState<View>('tickets');
-  const [editingDealership, setEditingDealership] = useState<Dealership | null>(null);
-  const [editingFeature, setEditingFeature] = useState<FeatureAnnouncement | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
   const allTasks = useMemo(() => {
@@ -546,9 +237,9 @@ function App() {
     setTickets(prev => [...prev, newTicket]);
     showToast('Ticket created successfully!', 'success');
     
-    if (newTicket.projectId) {
+    if (newTicket.projectIds) {
       setProjects(prevProjects => prevProjects.map(p => 
-        p.id === newTicket.projectId 
+        newTicket.projectIds!.includes(p.id)
           ? { ...p, ticketIds: [...p.ticketIds, newTicket.id] }
           : p
       ));
@@ -624,6 +315,9 @@ function App() {
   const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
       setFeatures(prev => prev.map(f => f.id === updatedFeature.id ? updatedFeature : f));
       showToast('Feature announcement updated!', 'success');
+      if (selectedFeature?.id === updatedFeature.id) {
+          setSelectedFeature(updatedFeature);
+      }
   };
   
   const handleUpdateMeeting = (updatedMeeting: Meeting) => {
@@ -640,9 +334,9 @@ function App() {
 
     setTickets(prev => prev.filter(t => t.id !== ticketId));
 
-    if (ticketToDelete.projectId) {
+    if (ticketToDelete.projectIds) {
         setProjects(prev => prev.map(p => {
-            if (p.id === ticketToDelete.projectId) {
+            if (ticketToDelete.projectIds!.includes(p.id)) {
                 return { ...p, ticketIds: p.ticketIds.filter(id => id !== ticketId) };
             }
             return p;
@@ -657,9 +351,8 @@ function App() {
       if (!projectToDelete) return;
       
       setTickets(prevTickets => prevTickets.map(t => {
-          if (t.projectId === projectId) {
-              const { projectId, ...rest } = t;
-              return rest as Ticket;
+          if ((t.projectIds || []).includes(projectId)) {
+              return { ...t, projectIds: t.projectIds?.filter(id => id !== projectId) };
           }
           return t;
       }));
@@ -679,6 +372,7 @@ function App() {
     if (window.confirm('Are you sure you want to delete this feature announcement?')) {
         setFeatures(prev => prev.filter(f => f.id !== featureId));
         showToast('Feature announcement deleted!', 'success');
+        setSelectedFeature(null);
     }
   };
   
@@ -769,65 +463,91 @@ function App() {
         body = encodeURIComponent(body);
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
     };
+    
+    // FIX: Add generic linking handlers
+    const getSetterForType = (type: EntityType) => {
+      switch (type) {
+          case 'ticket': return setTickets;
+          case 'project': return setProjects;
+          case 'task': return setTasks;
+          case 'meeting': return setMeetings;
+          case 'dealership': return setDealerships;
+          case 'feature': return setFeatures;
+      }
+    };
+    
+    const updateEntity = (type: EntityType, id: string, updateFn: (entity: any) => any) => {
+        if (type === 'task') {
+            const task = allTasks.find(t => t.id === id);
+            if (task?.projectId) {
+                setProjects(prev => prev.map(p => 
+                    p.id === task.projectId 
+                    ? { ...p, tasks: p.tasks.map(t => t.id === id ? updateFn(t) : t) }
+                    : p
+                ));
+            } else {
+                setTasks(prev => prev.map(t => t.id === id ? updateFn(t) : t));
+            }
+        } else {
+            const setter = getSetterForType(type);
+            setter((prev: any[]) => prev.map(e => e.id === id ? updateFn(e) : e));
+        }
+    };
+    
+    const handleLinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
+        const toLinkKey = `${toType}Ids` as keyof any;
+        const fromLinkKey = toType === 'project' ? 'ticketIds' : `${fromType}Ids` as keyof any;
+        const fromLinkedKey = fromType === 'project' ? 'linkedProjectIds' : `${fromType}Ids` as keyof any;
+
+
+        // Special handling for ticket-to-project linking which is one-way from ticket
+        if (fromType === 'ticket' && toType === 'project') {
+             updateEntity(fromType, fromId, (entity) => ({
+                ...entity,
+                [toLinkKey]: [...new Set([...(entity[toLinkKey] || []), toId])]
+            }));
+            updateEntity(toType, toId, (entity) => ({
+                ...entity,
+                [fromLinkKey]: [...new Set([...(entity[fromLinkKey] || []), fromId])]
+            }));
+        } else {
+            updateEntity(fromType, fromId, (entity) => ({
+                ...entity,
+                [toLinkKey]: [...new Set([...(entity[toLinkKey] || []), toId])]
+            }));
+            
+            updateEntity(toType, toId, (entity) => ({
+                ...entity,
+                [fromType === 'project' ? 'linkedProjectIds' : fromLinkKey]: [...new Set([...(entity[fromType === 'project' ? 'linkedProjectIds' : fromLinkKey] || []), fromId])]
+            }));
+        }
+    
+        showToast(`${fromType} and ${toType} linked successfully!`, 'success');
+    };
+    
+    const handleUnlinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
+        const toLinkKey = `${toType}Ids` as keyof any;
+        const fromLinkKey = `${fromType}Ids` as keyof any;
+        
+        updateEntity(fromType, fromId, (entity) => ({
+            ...entity,
+            [toLinkKey]: (entity[toLinkKey] || []).filter((id: string) => id !== toId)
+        }));
+        
+        updateEntity(toType, toId, (entity) => ({
+            ...entity,
+            [fromType === 'project' ? 'linkedProjectIds' : fromLinkKey]: (entity[fromType === 'project' ? 'linkedProjectIds' : fromLinkKey] || []).filter((id: string) => id !== fromId)
+        }));
+        
+        showToast(`${fromType} and ${toType} unlinked successfully!`, 'success');
+    };
 
     const handleLinkTicket = (fromTicketId: string, toTicketId: string) => {
-    setTickets(prevTickets => {
-        const newTickets = [...prevTickets];
-        const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
-        const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
-
-        if (fromTicketIndex === -1 || toTicketIndex === -1) {
-            console.error("One or both tickets not found for linking");
-            return prevTickets;
-        }
-        
-        const fromTicket = { ...newTickets[fromTicketIndex] };
-        if (!(fromTicket.linkedTicketIds || []).includes(toTicketId)) {
-            fromTicket.linkedTicketIds = [...(fromTicket.linkedTicketIds || []), toTicketId];
-        }
-        newTickets[fromTicketIndex] = fromTicket;
-
-        const toTicket = { ...newTickets[toTicketIndex] };
-        if (!(toTicket.linkedTicketIds || []).includes(fromTicketId)) {
-            toTicket.linkedTicketIds = [...(toTicket.linkedTicketIds || []), fromTicketId];
-        }
-        newTickets[toTicketIndex] = toTicket;
-
-        if (selectedTicket?.id === fromTicketId) {
-            setSelectedTicket(fromTicket);
-        }
-        
-        return newTickets;
-    });
-    showToast('Tickets linked successfully!', 'success');
-  };
+      handleLinkItem('ticket', fromTicketId, 'ticket', toTicketId);
+    };
 
   const handleUnlinkTicket = (fromTicketId: string, toTicketId: string) => {
-      setTickets(prevTickets => {
-          const newTickets = [...prevTickets];
-          const fromTicketIndex = newTickets.findIndex(t => t.id === fromTicketId);
-          const toTicketIndex = newTickets.findIndex(t => t.id === toTicketId);
-
-          if (fromTicketIndex === -1 || toTicketIndex === -1) {
-              console.error("One or both tickets not found for unlinking");
-              return prevTickets;
-          }
-
-          const fromTicket = { ...newTickets[fromTicketIndex] };
-          fromTicket.linkedTicketIds = (fromTicket.linkedTicketIds || []).filter(id => id !== toTicketId);
-          newTickets[fromTicketIndex] = fromTicket;
-
-          const toTicket = { ...newTickets[toTicketIndex] };
-          toTicket.linkedTicketIds = (toTicket.linkedTicketIds || []).filter(id => id !== fromTicketId);
-          newTickets[toTicketIndex] = toTicket;
-
-          if (selectedTicket?.id === fromTicketId) {
-              setSelectedTicket(fromTicket);
-          }
-          
-          return newTickets;
-      });
-      showToast('Ticket unlinked successfully!', 'success');
+      handleUnlinkItem('ticket', fromTicketId, 'ticket', toTicketId);
   };
 
 
@@ -845,12 +565,11 @@ function App() {
             (ticketFilters.type === 'all' || ticket.type === ticketFilters.type) &&
             (ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea)
         );
-        });
+        }).sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
     }, [tickets, ticketFilters]);
 
     const filteredProjects = useMemo(() => {
-        // For now, no filters on projects, but setup for future.
-        return projects;
+        return [...projects].sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime());
     }, [projects]);
     
     const filteredDealerships = useMemo(() => {
@@ -862,19 +581,28 @@ function App() {
                  (d.enterprise || '').toLowerCase().includes(searchLower)) &&
                 (dealershipFilters.status === 'all' || d.status === dealershipFilters.status)
             );
+        }).sort((a, b) => {
+            const dateA = a.orderReceivedDate ? new Date(a.orderReceivedDate).getTime() : 0;
+            const dateB = b.orderReceivedDate ? new Date(b.orderReceivedDate).getTime() : 0;
+            return dateB - dateA;
         });
     }, [dealerships, dealershipFilters]);
     
     const filteredMeetings = useMemo(() => {
       const searchLower = meetingFilters.searchTerm.toLowerCase();
-      if (!searchLower) return meetings;
-      return meetings.filter(m => 
+      const filtered = meetings.filter(m => 
+          !searchLower ||
           m.name.toLowerCase().includes(searchLower) ||
           m.attendees.some(a => a.toLowerCase().includes(searchLower)) ||
           m.notes.toLowerCase().includes(searchLower) ||
           new Date(m.meetingDate).toLocaleDateString().includes(searchLower)
       );
+      return filtered.sort((a, b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
   }, [meetings, meetingFilters]);
+
+    const filteredFeatures = useMemo(() => {
+        return [...features].sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime());
+    }, [features]);
 
     const performanceInsights = useMemo(() => {
         const completedLast30Days = tickets.filter(t => {
@@ -1071,6 +799,7 @@ function App() {
         setSelectedProject(null);
         setSelectedDealership(null);
         setSelectedMeeting(null);
+        setSelectedFeature(null);
     }
     
     return (
@@ -1121,8 +850,9 @@ function App() {
                 <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />
               </>
           )}
-          {currentView === 'tasks' && <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} />}
-          {currentView === 'features' && <FeatureList features={features} onDelete={handleDeleteFeature} onEdit={setEditingFeature}/>}
+          {/* FIX: Pass missing props for linking functionality to TaskList */}
+          {currentView === 'tasks' && <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} />}
+          {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature}/>}
           {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
         </div>
       </main>
@@ -1131,17 +861,6 @@ function App() {
           <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
               {renderForm()}
           </Modal>
-      )}
-
-      {editingFeature && (
-        <Modal title="Edit Feature Announcement" onClose={() => setEditingFeature(null)}>
-            <FeatureForm 
-                onSubmit={() => {}}
-                onUpdate={(feature) => { handleUpdateFeature(feature); setEditingFeature(null); }}
-                featureToEdit={editingFeature}
-                onClose={() => setEditingFeature(null)}
-            />
-        </Modal>
       )}
 
       {isExportModalOpen && (
@@ -1194,13 +913,14 @@ function App() {
 
 
       <SideView 
-        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || ''}
-        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting)}
+        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || ''}
+        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature)}
         onClose={() => {
             setSelectedTicket(null);
             setSelectedProject(null);
             setSelectedDealership(null);
             setSelectedMeeting(null);
+            setSelectedFeature(null);
         }}
       >
         {selectedTicket && (
@@ -1212,15 +932,20 @@ function App() {
             onEmail={() => handleEmailTicket(selectedTicket)}
             onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
             onDelete={handleDeleteTicket}
-            projects={projects}
-            tickets={tickets}
-            onLinkTicket={handleLinkTicket}
-            onUnlinkTicket={handleUnlinkTicket}
+            allTickets={tickets}
+            allProjects={projects}
+            allTasks={allTasks}
+            allMeetings={meetings}
+            allDealerships={dealerships}
+            allFeatures={features}
+            onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
+            onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
           />
         )}
-        {selectedProject && <ProjectDetailView project={selectedProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} tickets={tickets} onUpdateTicket={handleUpdateTicket} onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} meetings={meetings} onUpdateMeeting={handleUpdateMeeting} allTasks={allTasks}/>}
-        {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} />}
-        {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} projects={projects} tickets={tickets} onUpdateProject={handleUpdateProject} onUpdateTicket={handleUpdateTicket}/>}
+        {selectedProject && <ProjectDetailView project={selectedProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)} />}
+        {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} />}
+        {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} />}
+        {selectedFeature && <FeatureDetailView feature={selectedFeature} onUpdate={handleUpdateFeature} onDelete={handleDeleteFeature} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} />}
       </SideView>
     </div>
   );

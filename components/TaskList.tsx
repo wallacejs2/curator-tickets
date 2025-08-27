@@ -1,7 +1,6 @@
 
-
 import React, { useState, useMemo } from 'react';
-import { Project, Task, TaskPriority, TaskStatus } from '../types.ts';
+import { Project, Task, TaskPriority, TaskStatus, Ticket, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -9,18 +8,34 @@ import { PlusIcon } from './icons/PlusIcon.tsx';
 import EditTaskForm from './common/EditTaskForm.tsx';
 import { LinkIcon } from './icons/LinkIcon.tsx';
 
+// Define EntityType for linking
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+
 interface TaskListProps {
   projects: Project[];
   onUpdateProject: (project: Project) => void;
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  // FIX: Added projectId to the allTasks prop type to match the data shape from App.tsx.
-  allTasks: (Task & { projectName?: string; projectId: string | null })[];
+  allTasks: (Task & { projectName?: string; projectId: string | null; })[];
+
+  // Add all other entities for linking
+  allTickets: Ticket[];
+  allMeetings: Meeting[];
+  allDealerships: Dealership[];
+  allFeatures: FeatureAnnouncement[];
+
+  // Linking handlers
+  onLinkItem: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+  onUnlinkItem: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
 }
 
 type TaskView = 'active' | 'completed';
 
-const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, setTasks, allTasks }) => {
+const TaskList: React.FC<TaskListProps> = ({ 
+    projects, onUpdateProject, tasks, setTasks, allTasks,
+    allTickets, allMeetings, allDealerships, allFeatures,
+    onLinkItem, onUnlinkItem
+}) => {
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [taskType, setTaskType] = useState('');
@@ -32,26 +47,34 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
   const [taskView, setTaskView] = useState<TaskView>('active');
 
   const { activeTasks, completedTasks } = useMemo(() => {
-    const sortedTasks = [...allTasks].sort((a,b) => {
-        const aHasDate = !!a.dueDate;
-        const bHasDate = !!b.dueDate;
-        if (aHasDate && bHasDate) {
-            return new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime();
+    const active: typeof allTasks = [];
+    const completed: typeof allTasks = [];
+
+    for (const task of allTasks) {
+        if (task.status === TaskStatus.Done) {
+            completed.push(task);
+        } else {
+            active.push(task);
         }
-        return aHasDate ? -1 : bHasDate ? 1 : 0;
+    }
+
+    // Sort active tasks: soonest due date first, tasks without due date last
+    active.sort((a, b) => {
+        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        if (a.dueDate) return -1; // a has date, b doesn't, a comes first
+        if (b.dueDate) return 1;  // b has date, a doesn't, b comes first
+        return 0; // neither has a date
     });
 
-    return sortedTasks.reduce(
-        (acc, task) => {
-            if (task.status === TaskStatus.Done) {
-                acc.completedTasks.push(task);
-            } else {
-                acc.activeTasks.push(task);
-            }
-            return acc;
-        },
-        { activeTasks: [] as typeof sortedTasks, completedTasks: [] as typeof sortedTasks }
-    );
+    // Sort completed tasks: most recent due date first
+    completed.sort((a, b) => {
+        if (a.dueDate && b.dueDate) return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return 0;
+    });
+
+    return { activeTasks: active, completedTasks: completed };
   }, [allTasks]);
   
   const tasksToShow = taskView === 'active' ? activeTasks : completedTasks;
@@ -157,6 +180,13 @@ const TaskList: React.FC<TaskListProps> = ({ projects, onUpdateProject, tasks, s
                 onSave={handleUpdateTask} 
                 onClose={() => setEditingTask(null)}
                 allTasks={allTasks}
+                allTickets={allTickets}
+                allProjects={projects}
+                allMeetings={allMeetings}
+                allDealerships={allDealerships}
+                allFeatures={allFeatures}
+                onLink={(toType, toId) => onLinkItem('task', editingTask.id, toType as EntityType, toId)}
+                onUnlink={(toType, toId) => onUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
             />
         </Modal>
       )}

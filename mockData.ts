@@ -34,7 +34,12 @@ export const initialTickets: Ticket[] = [
         date: new Date('2024-07-23T15:30:00Z').toISOString(),
         comment: 'Identified the issue is related to event propagation in WebKit. Working on a fix.'
       }
-    ]
+    ],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: '2',
@@ -57,14 +62,19 @@ export const initialTickets: Ticket[] = [
     currentFunctionality: 'The application currently only has a light theme, which can cause eye strain in low-light environments.',
     suggestedSolution: 'Implement a theme switcher in the user settings that toggles CSS variables for colors across the entire UI.',
     benefits: 'Improved user experience, reduced eye strain, modern look and feel, and better accessibility for some users.',
-    projectId: 'proj-1',
+    projectIds: ['proj-1'],
     updates: [
       {
         author: 'Product Team',
         date: new Date('2024-07-16T10:00:00Z').toISOString(),
         comment: 'Feature request has been received and is under review for the next quarter planning.'
       }
-    ]
+    ],
+    linkedTicketIds: [],
+    meetingIds: ['meet-1'],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: '3',
@@ -85,7 +95,13 @@ export const initialTickets: Ticket[] = [
     duplicationSteps: '1. Go to profile settings. 2. Upload a new avatar. 3. Observe that the old avatar is still displayed.',
     workaround: 'Perform a hard refresh (Ctrl+Shift+R) or clear the browser cache.',
     frequency: 'Always.',
-    updates: []
+    updates: [],
+    projectIds: [],
+    linkedTicketIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: '4',
@@ -112,7 +128,13 @@ export const initialTickets: Ticket[] = [
         { author: 'Dev Team', date: new Date('2024-07-12T14:20:00Z').toISOString(), comment: 'Fix has been implemented and deployed to staging for verification.' },
         { author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
     ],
-    completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.'
+    completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.',
+    projectIds: [],
+    linkedTicketIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: '5',
@@ -132,7 +154,12 @@ export const initialTickets: Ticket[] = [
     workaround: 'None.',
     frequency: 'During peak hours.',
     linkedTicketIds: ['1'],
-    updates: []
+    updates: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   }
 ];
 
@@ -159,6 +186,10 @@ export const initialProjects: Project[] = [
       { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
       { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
     ],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: 'proj-2',
@@ -174,6 +205,10 @@ export const initialProjects: Project[] = [
        { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation' },
        { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'QA', dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
     ],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
     {
     id: 'proj-3',
@@ -189,6 +224,11 @@ export const initialProjects: Project[] = [
        { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Documentation' },
        { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P4, type: 'Meeting' },
     ],
+    meetingIds: [],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   }
 ];
 
@@ -201,6 +241,12 @@ export const initialTasks: Task[] = [
     priority: TaskPriority.P2,
     type: 'Documentation',
     dueDate: new Date('2024-08-15T17:00:00Z').toISOString(),
+    linkedTaskIds: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: 'task-2',
@@ -209,6 +255,12 @@ export const initialTasks: Task[] = [
     status: TaskStatus.ToDo,
     priority: TaskPriority.P4,
     type: 'Planning',
+    linkedTaskIds: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    dealershipIds: [],
+    featureIds: [],
   }
 ];
 
@@ -229,6 +281,12 @@ export const initialDealerships: Dealership[] = [
     buId: 'BU-PM-01',
     address: '123 Luxury Lane, Beverly Hills, CA 90210',
     assignedSpecialist: 'John Smith',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
   },
   {
     id: 'dealership-2',
@@ -243,6 +301,12 @@ export const initialDealerships: Dealership[] = [
     branchNumber: 'B-10',
     address: '456 Main Street, Anytown, USA 12345',
     assignedSpecialist: 'Jane Doe',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
   },
   {
     id: 'dealership-3',
@@ -256,6 +320,12 @@ export const initialDealerships: Dealership[] = [
     enterprise: 'Value Vehicles',
     address: '789 Budget Ave, Thriftyville, TX 75001',
     assignedSpecialist: 'Peter Jones',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
   },
 ];
 
@@ -269,6 +339,12 @@ export const initialFeatures: FeatureAnnouncement[] = [
     version: 'v3.0.0',
     platform: Platform.UCP,
     status: FeatureStatus.Launched,
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
   },
   {
     id: 'feat-2',
@@ -279,6 +355,12 @@ export const initialFeatures: FeatureAnnouncement[] = [
     version: 'v2.9.0',
     platform: Platform.Curator,
     status: FeatureStatus.Launched,
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
   },
   {
     id: 'feat-3',
@@ -288,6 +370,12 @@ export const initialFeatures: FeatureAnnouncement[] = [
     launchDate: new Date('2024-09-01T00:00:00Z').toISOString(),
     platform: Platform.Curator,
     status: FeatureStatus.Upcoming,
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
   }
 ];
 
@@ -300,6 +388,10 @@ export const initialMeetings: Meeting[] = [
     notes: '<h3>Agenda</h3><ul><li>Finalize design specs</li><li>Outline development tasks</li><li>Set timeline</li></ul><p>Discussion points were positive. Team is aligned.</p>',
     projectIds: ['proj-1'],
     ticketIds: ['2'],
+    linkedMeetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   },
   {
     id: 'meet-2',
@@ -309,5 +401,9 @@ export const initialMeetings: Meeting[] = [
     notes: '<p>Reviewed progress on log gathering. DevOps to provide an update on encryption verification by EOW.</p>',
     projectIds: ['proj-2'],
     ticketIds: [],
+    linkedMeetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
   }
 ];

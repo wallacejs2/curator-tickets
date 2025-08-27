@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform } from '../types.ts';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -6,7 +7,7 @@ import { PencilIcon } from './icons/PencilIcon.tsx';
 interface FeatureListProps {
   features: FeatureAnnouncement[];
   onDelete: (featureId: string) => void;
-  onEdit: (feature: FeatureAnnouncement) => void;
+  onFeatureClick: (feature: FeatureAnnouncement) => void;
 }
 
 const statusColors: Record<FeatureStatus, string> = {
@@ -20,9 +21,9 @@ const platformColors: Record<Platform, string> = {
     [Platform.FOCUS]: 'bg-orange-500 text-white',
 };
 
-const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onDelete: (id: string) => void, onEdit: (feature: FeatureAnnouncement) => void }> = ({ feature, onDelete, onEdit }) => {
+const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onClick: () => void }> = ({ feature, onClick }) => {
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-300 transition-all" onClick={onClick}>
             <div className="p-5">
                 <div className="flex justify-between items-start gap-3">
                     <h3 className="text-xl font-semibold text-gray-900">{feature.title}</h3>
@@ -43,7 +44,7 @@ const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onDelete: (id: strin
                     </span>
                     <p className="text-sm text-gray-500">{feature.location}</p>
                 </div>
-                <p className="text-gray-700 mt-4 whitespace-pre-wrap">{feature.description}</p>
+                <p className="text-gray-700 mt-4 whitespace-pre-wrap line-clamp-3">{feature.description}</p>
             </div>
             <div className="bg-gray-50 px-5 py-3 flex justify-between items-center border-t border-gray-200">
                 <div>
@@ -52,22 +53,12 @@ const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onDelete: (id: strin
                     </p>
                     <p className="text-sm text-gray-600">{new Date(feature.launchDate).toLocaleDateString()}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={() => onEdit(feature)} className="p-2 text-gray-500 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit feature ${feature.title}`}>
-                        <PencilIcon className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => onDelete(feature.id)} className="p-2 text-gray-500 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete feature ${feature.title}`}>
-                        <TrashIcon className="w-4 h-4" />
-                    </button>
-                </div>
             </div>
         </div>
     );
 };
 
-const FeatureList: React.FC<FeatureListProps> = ({ features, onDelete, onEdit }) => {
-  const sortedFeatures = [...features].sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime());
-
+const FeatureList: React.FC<FeatureListProps> = ({ features, onDelete, onFeatureClick }) => {
   if (features.length === 0) {
     return (
       <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
@@ -79,8 +70,8 @@ const FeatureList: React.FC<FeatureListProps> = ({ features, onDelete, onEdit })
 
   return (
     <div className="space-y-6">
-      {sortedFeatures.map(feature => (
-        <FeatureCard key={feature.id} feature={feature} onDelete={onDelete} onEdit={onEdit} />
+      {features.map(feature => (
+        <FeatureCard key={feature.id} feature={feature} onClick={() => onFeatureClick(feature)} />
       ))}
     </div>
   );

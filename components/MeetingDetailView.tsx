@@ -1,18 +1,28 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Meeting, Project, Ticket } from '../types.ts';
+import { Meeting, Project, Ticket, Task, Dealership, FeatureAnnouncement } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
+import LinkingSection from './common/LinkingSection.tsx';
+
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
 interface MeetingDetailViewProps {
     meeting: Meeting;
     onUpdate: (meeting: Meeting) => void;
     onDelete: (meetingId: string) => void;
-    projects: Project[];
-    tickets: Ticket[];
-    onUpdateProject: (project: Project) => void;
-    onUpdateTicket: (ticket: Ticket) => void;
+    
+    // All entities for linking
+    allTickets: Ticket[];
+    allProjects: Project[];
+    allTasks: (Task & { projectName?: string; projectId: string | null; })[];
+    allMeetings: Meeting[];
+    allDealerships: Dealership[];
+    allFeatures: FeatureAnnouncement[];
+
+    // Linking handlers
+    onLink: (toType: EntityType, toId: string) => void;
+    onUnlink: (toType: EntityType, toId: string) => void;
 }
 
 const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => (
@@ -26,29 +36,36 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     meeting, 
     onUpdate, 
     onDelete, 
-    projects, 
-    tickets,
-    onUpdateProject,
-    onUpdateTicket 
+    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
+    onLink, onUnlink
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableMeeting, setEditableMeeting] = useState(meeting);
-    const [projectToLink, setProjectToLink] = useState('');
-    const [ticketToLink, setTicketToLink] = useState('');
     const notesEditorRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        setEditableMeeting(meeting);
         if (isEditing && notesEditorRef.current) {
-            notesEditorRef.current.innerHTML = editableMeeting.notes;
+            notesEditorRef.current.innerHTML = meeting.notes;
         }
-    }, [isEditing]);
+    }, [meeting, isEditing]);
 
-    const linkedProjects = projects.filter(p => (meeting.projectIds || []).includes(p.id));
-    const unlinkedProjects = projects.filter(p => !(meeting.projectIds || []).includes(p.id));
+    // Linked items
+    const linkedTickets = allTickets.filter(item => (meeting.ticketIds || []).includes(item.id));
+    const linkedProjects = allProjects.filter(item => (meeting.projectIds || []).includes(item.id));
+    const linkedTasks = allTasks.filter(item => (meeting.taskIds || []).includes(item.id));
+    const linkedMeetings = allMeetings.filter(item => (meeting.linkedMeetingIds || []).includes(item.id));
+    const linkedDealerships = allDealerships.filter(item => (meeting.dealershipIds || []).includes(item.id));
+    const linkedFeatures = allFeatures.filter(item => (meeting.featureIds || []).includes(item.id));
     
-    const linkedTickets = tickets.filter(t => (meeting.ticketIds || []).includes(t.id));
-    const unlinkedTickets = tickets.filter(t => !(meeting.ticketIds || []).includes(t.id));
+    // Available items for linking
+    const availableTickets = allTickets.filter(item => !(meeting.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => !(meeting.projectIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => !(meeting.taskIds || []).includes(item.id));
+    const availableMeetings = allMeetings.filter(item => item.id !== meeting.id && !(meeting.linkedMeetingIds || []).includes(item.id));
+    const availableDealerships = allDealerships.filter(item => !(meeting.dealershipIds || []).includes(item.id));
+    const availableFeatures = allFeatures.filter(item => !(meeting.featureIds || []).includes(item.id));
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEditableMeeting({ ...editableMeeting, [e.target.name]: e.target.value });
@@ -73,43 +90,6 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     const handleSave = () => {
         onUpdate(editableMeeting);
         setIsEditing(false);
-    };
-
-    const handleLinkProject = () => {
-        if (!projectToLink) return;
-        const updatedMeeting = { ...meeting, projectIds: [...(meeting.projectIds || []), projectToLink] };
-        onUpdate(updatedMeeting);
-        
-        // also update the project
-        const project = projects.find(p => p.id === projectToLink);
-        if (project) {
-            const updatedProject = { ...project, meetingIds: [...(project.meetingIds || []), meeting.id] };
-            onUpdateProject(updatedProject);
-        }
-        setProjectToLink('');
-    };
-
-    const handleUnlinkProject = (projectId: string) => {
-        const updatedMeeting = { ...meeting, projectIds: (meeting.projectIds || []).filter(id => id !== projectId) };
-        onUpdate(updatedMeeting);
-        
-        const project = projects.find(p => p.id === projectId);
-        if (project) {
-            const updatedProject = { ...project, meetingIds: (project.meetingIds || []).filter(id => id !== meeting.id) };
-            onUpdateProject(updatedProject);
-        }
-    };
-    
-    const handleLinkTicket = () => {
-        if (!ticketToLink) return;
-        const updatedMeeting = { ...meeting, ticketIds: [...(meeting.ticketIds || []), ticketToLink] };
-        onUpdate(updatedMeeting);
-        setTicketToLink('');
-    };
-
-    const handleUnlinkTicket = (ticketId: string) => {
-        const updatedMeeting = { ...meeting, ticketIds: (meeting.ticketIds || []).filter(id => id !== ticketId) };
-        onUpdate(updatedMeeting);
     };
 
     const labelClasses = "block text-sm font-medium text-gray-700";
@@ -186,44 +166,13 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
                     <h3 className="text-md font-semibold text-gray-800 mb-2">Notes</h3>
                     <div className="max-w-none p-4 bg-gray-50 border border-gray-200 rounded-md rich-text-content text-gray-900" dangerouslySetInnerHTML={{ __html: meeting.notes }} />
                 </div>
-
-                <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-md font-semibold text-gray-800 mb-4">Linked Projects</h3>
-                     <div className="flex items-center gap-2 mb-4">
-                        <select value={projectToLink} onChange={e => setProjectToLink(e.target.value)} className="flex-grow bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2">
-                            <option value="">Select a project to link...</option>
-                            {unlinkedProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        <button onClick={handleLinkProject} disabled={!projectToLink} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link</button>
-                    </div>
-                    <div className="space-y-2">
-                        {linkedProjects.length > 0 ? linkedProjects.map(p => (
-                            <div key={p.id} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md">
-                                <span className="text-sm">{p.name}</span>
-                                <button onClick={() => handleUnlinkProject(p.id)} className="text-xs text-red-600 hover:underline">Unlink</button>
-                            </div>
-                        )) : <p className="text-sm text-gray-500 italic">No projects linked.</p>}
-                    </div>
-                </div>
-
-                 <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-md font-semibold text-gray-800 mb-4">Linked Tickets</h3>
-                     <div className="flex items-center gap-2 mb-4">
-                        <select value={ticketToLink} onChange={e => setTicketToLink(e.target.value)} className="flex-grow bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2">
-                            <option value="">Select a ticket to link...</option>
-                            {unlinkedTickets.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                        </select>
-                        <button onClick={handleLinkTicket} disabled={!ticketToLink} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link</button>
-                    </div>
-                    <div className="space-y-2">
-                        {linkedTickets.length > 0 ? linkedTickets.map(t => (
-                            <div key={t.id} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md">
-                                <span className="text-sm">{t.title}</span>
-                                <button onClick={() => handleUnlinkTicket(t.id)} className="text-xs text-red-600 hover:underline">Unlink</button>
-                            </div>
-                        )) : <p className="text-sm text-gray-500 italic">No tickets linked.</p>}
-                    </div>
-                </div>
+                
+                <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} />
+                <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} />
+                <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} />
+                <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} />
+                <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} />
+                <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} />
             </div>
         </div>
     );

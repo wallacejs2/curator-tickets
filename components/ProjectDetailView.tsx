@@ -1,35 +1,44 @@
-
-
-
-
 import React, { useState, useRef } from 'react';
-import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting } from '../types.ts';
+import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import EditTaskForm from './common/EditTaskForm.tsx';
 import { LinkIcon } from './icons/LinkIcon.tsx';
+import LinkingSection from './common/LinkingSection.tsx';
+
+// Define EntityType for linking
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
 interface ProjectDetailViewProps {
   project: Project;
   onUpdate: (project: Project) => void;
   onDelete: (projectId: string) => void;
-  tickets: Ticket[];
-  onUpdateTicket: (ticket: Ticket) => void;
   onAddUpdate: (projectId: string, comment: string, author: string, date: string) => void;
-  meetings: Meeting[];
-  onUpdateMeeting: (meeting: Meeting) => void;
+  
+  // All entities for linking
+  allTickets: Ticket[];
+  allProjects: Project[];
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
+  allMeetings: Meeting[];
+  allDealerships: Dealership[];
+  allFeatures: FeatureAnnouncement[];
+
+  // Linking handlers
+  onLink: (toType: EntityType, toId: string) => void;
+  onUnlink: (toType: EntityType, toId: string) => void;
 }
 
-const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate, onDelete, tickets, onUpdateTicket, onAddUpdate, meetings, onUpdateMeeting, allTasks }) => {
+const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ 
+    project, onUpdate, onDelete, onAddUpdate, 
+    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
+    onLink, onUnlink
+}) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableProject, setEditableProject] = useState(project);
-    const [ticketToAdd, setTicketToAdd] = useState<string>('');
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [meetingToLink, setMeetingToLink] = useState('');
+    const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; }) | null>(null);
     const [involvedPeopleString, setInvolvedPeopleString] = useState('');
 
     // Form state for new sub-task
@@ -44,7 +53,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
     const [authorName, setAuthorName] = useState('');
     const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
 
-
     // Drag-and-drop state
     const dragItem = useRef<string | null>(null);
     const dragOverItem = useRef<string | null>(null);
@@ -52,11 +60,21 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
 
     const projectTasks = project.tasks || [];
     
-    const linkedTickets = tickets.filter(t => t.projectId === project.id);
-    const unassignedTickets = tickets.filter(t => !t.projectId);
+    // Linked items
+    const linkedTickets = allTickets.filter(item => (project.ticketIds || []).includes(item.id));
+    const linkedProjects = allProjects.filter(item => (project.linkedProjectIds || []).includes(item.id));
+    const linkedTasks = allTasks.filter(item => (project.taskIds || []).includes(item.id));
+    const linkedMeetings = allMeetings.filter(item => (project.meetingIds || []).includes(item.id));
+    const linkedDealerships = allDealerships.filter(item => (project.dealershipIds || []).includes(item.id));
+    const linkedFeatures = allFeatures.filter(item => (project.featureIds || []).includes(item.id));
 
-    const linkedMeetings = meetings.filter(m => (project.meetingIds || []).includes(m.id));
-    const unlinkedMeetings = meetings.filter(m => !(project.meetingIds || []).includes(m.id));
+    // Available items for linking
+    const availableTickets = allTickets.filter(item => !(project.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => item.id !== project.id && !(project.linkedProjectIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => !(project.taskIds || []).includes(item.id) && item.projectId !== project.id);
+    const availableMeetings = allMeetings.filter(item => !(project.meetingIds || []).includes(item.id));
+    const availableDealerships = allDealerships.filter(item => !(project.dealershipIds || []).includes(item.id));
+    const availableFeatures = allFeatures.filter(item => !(project.featureIds || []).includes(item.id));
 
     const handleNewTaskSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -69,7 +87,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                 dueDate: newDueDate ? new Date(`${newDueDate}T00:00:00`).toISOString() : undefined,
                 priority: newPriority,
                 type: newType.trim(),
-                linkedTaskIds: [],
             };
             const updatedProject = { ...project, tasks: [...projectTasks, newTask] };
             onUpdate(updatedProject);
@@ -122,47 +139,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
         setIsEditing(false);
     };
     
-    const handleLinkTicket = () => {
-        if (!ticketToAdd) return;
-        const ticket = tickets.find(t => t.id === ticketToAdd);
-        if (ticket) {
-            onUpdateTicket({ ...ticket, projectId: project.id });
-            setTicketToAdd('');
-        }
-    };
-
-    const handleUnlinkTicket = (ticketId: string) => {
-        const ticket = tickets.find(t => t.id === ticketId);
-        if (ticket) {
-            const { projectId, ...rest } = ticket;
-            onUpdateTicket({ ...rest });
-        }
-    };
-    
-    const handleLinkMeeting = () => {
-        if (!meetingToLink) return;
-        const updatedProject = { ...project, meetingIds: [...(project.meetingIds || []), meetingToLink] };
-        onUpdate(updatedProject);
-        
-        const meeting = meetings.find(m => m.id === meetingToLink);
-        if (meeting) {
-            const updatedMeeting = { ...meeting, projectIds: [...meeting.projectIds, project.id] };
-            onUpdateMeeting(updatedMeeting);
-        }
-        setMeetingToLink('');
-    };
-
-    const handleUnlinkMeeting = (meetingId: string) => {
-        const updatedProject = { ...project, meetingIds: (project.meetingIds || []).filter(id => id !== meetingId) };
-        onUpdate(updatedProject);
-
-        const meeting = meetings.find(m => m.id === meetingId);
-        if (meeting) {
-            const updatedMeeting = { ...meeting, projectIds: meeting.projectIds.filter(id => id !== project.id) };
-            onUpdateMeeting(updatedMeeting);
-        }
-    };
-
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
         dragItem.current = id;
         e.dataTransfer.effectAllowed = 'move';
@@ -250,6 +226,13 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                       onSave={handleTaskUpdate} 
                       onClose={() => setEditingTask(null)}
                       allTasks={allTasks}
+                      allTickets={allTickets}
+                      allProjects={allProjects}
+                      allMeetings={allMeetings}
+                      allDealerships={allDealerships}
+                      allFeatures={allFeatures}
+                      onLink={(toType, toId) => onLink(toType as EntityType, toId)}
+                      onUnlink={(toType, toId) => onUnlink(toType as EntityType, toId)}
                     />
                 </Modal>
             )}
@@ -276,8 +259,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
             </div>
 
             {/* Sub-Tasks Section */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Tasks ({projectTasks.length})</h3>
+            <div className="mb-6">
+                <h3 className="text-md font-semibold text-gray-800 mb-4">Project Tasks ({projectTasks.length})</h3>
                 
                 <div className="space-y-2">
                     {projectTasks.length > 0 ? projectTasks.map(task => (
@@ -308,7 +291,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                                <button onClick={() => setEditingTask(task)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
+                                <button onClick={() => setEditingTask({ ...task, projectId: project.id })} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
                                 <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
                             </div>
                         </div>
@@ -335,48 +318,16 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ project, onUpdate
                 </form>
             </div>
 
-             {/* Linked Meetings Section */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Linked Meetings</h3>
-                <div className="flex items-center gap-2 mb-4">
-                    <select value={meetingToLink} onChange={e => setMeetingToLink(e.target.value)} className="flex-grow bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2">
-                        <option value="">Select a meeting to link...</option>
-                        {unlinkedMeetings.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
-                    <button onClick={handleLinkMeeting} disabled={!meetingToLink} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link Meeting</button>
-                </div>
-                <div className="space-y-2">
-                    {linkedMeetings.length > 0 ? linkedMeetings.map(m => (
-                        <div key={m.id} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md">
-                            <span className="text-sm">{m.name} ({new Date(m.meetingDate).toLocaleDateString()})</span>
-                            <button onClick={() => handleUnlinkMeeting(m.id)} className="text-xs text-red-600 hover:underline">Unlink</button>
-                        </div>
-                    )) : <p className="text-sm text-gray-500 italic">No meetings have been linked yet.</p>}
-                </div>
-            </div>
-
-            {/* Linked Tickets Section */}
-            <div className="mb-6 pb-6 border-b border-gray-200">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Linked Tickets</h3>
-                <div className="flex items-center gap-2 mb-4">
-                    <select value={ticketToAdd} onChange={e => setTicketToAdd(e.target.value)} className="flex-grow bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2">
-                        <option value="">Select a ticket to link...</option>
-                        {unassignedTickets.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
-                    </select>
-                    <button onClick={handleLinkTicket} disabled={!ticketToAdd} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md text-sm disabled:bg-blue-300">Link Ticket</button>
-                </div>
-                <div className="space-y-2">
-                    {linkedTickets.length > 0 ? linkedTickets.map(t => (
-                        <div key={t.id} className="flex justify-between items-center p-2 bg-gray-50 border rounded-md">
-                            <span className="text-sm">{t.title}</span>
-                            <button onClick={() => handleUnlinkTicket(t.id)} className="text-xs text-red-600 hover:underline">Unlink</button>
-                        </div>
-                    )) : <p className="text-sm text-gray-500 italic">No tickets have been linked to this project yet.</p>}
-                </div>
-            </div>
+            {/* FIX: Cast string literals to EntityType to resolve TS error */}
+            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} />
+            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} />
+            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} />
+            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} />
+            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} />
+            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} />
 
             {/* Updates Section */}
-            <div>
+            <div className="pt-6 mt-6 border-t border-gray-200">
                 <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
                 <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4 space-y-3">
                     <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
