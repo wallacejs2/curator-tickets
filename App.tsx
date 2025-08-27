@@ -592,16 +592,12 @@ function App() {
         return dealerships.filter(d => {
             const searchLower = dealershipFilters.searchTerm.toLowerCase();
             return (
-                (d.name.toLowerCase().includes(searchLower) ||
-                 d.accountNumber.toLowerCase().includes(searchLower) ||
+                ((d.name || '').toLowerCase().includes(searchLower) ||
+                 (d.accountNumber || '').toLowerCase().includes(searchLower) ||
                  (d.enterprise || '').toLowerCase().includes(searchLower)) &&
                 (dealershipFilters.status === 'all' || d.status === dealershipFilters.status)
             );
-        }).sort((a, b) => {
-            const dateA = a.orderReceivedDate ? new Date(a.orderReceivedDate).getTime() : 0;
-            const dateB = b.orderReceivedDate ? new Date(b.orderReceivedDate).getTime() : 0;
-            return dateB - dateA;
-        });
+        }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }, [dealerships, dealershipFilters]);
     
     const filteredMeetings = useMemo(() => {
