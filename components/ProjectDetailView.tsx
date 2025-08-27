@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -59,6 +59,19 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const [dragging, setDragging] = useState(false);
 
     const projectTasks = project.tasks || [];
+
+    // FIX: Add useEffect to keep editingTask state in sync with props.
+    // This ensures that when a link is added, the modal view updates immediately.
+    useEffect(() => {
+        if (editingTask) {
+            const freshTask = project.tasks.find(t => t.id === editingTask.id);
+            if (freshTask) {
+                setEditingTask({ ...freshTask, projectId: project.id });
+            } else {
+                setEditingTask(null); // Task was deleted or removed from project
+            }
+        }
+    }, [project.tasks]);
     
     // Linked items
     const linkedTickets = allTickets.filter(item => (project.ticketIds || []).includes(item.id));

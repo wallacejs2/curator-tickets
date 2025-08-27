@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { Project, Task, TaskPriority, TaskStatus, Ticket, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -45,6 +46,20 @@ const TaskList: React.FC<TaskListProps> = ({
   
   const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string }) | null>(null);
   const [taskView, setTaskView] = useState<TaskView>('active');
+
+  // FIX: Add useEffect to keep editingTask state in sync with props.
+  // This ensures that when a link is added, the modal view updates immediately.
+  useEffect(() => {
+    if (editingTask) {
+      const freshTask = allTasks.find(t => t.id === editingTask.id);
+      if (freshTask) {
+        setEditingTask(freshTask);
+      } else {
+        // The task might have been deleted, close the modal
+        setEditingTask(null);
+      }
+    }
+  }, [allTasks]);
 
   const { activeTasks, completedTasks } = useMemo(() => {
     const active: typeof allTasks = [];
