@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
@@ -132,6 +132,24 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
 
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tickets }) => {
+  const [projectView, setProjectView] = useState<'active' | 'completed'>('active');
+
+  const { activeProjects, completedProjects } = useMemo(() => {
+    return projects.reduce<{ activeProjects: Project[]; completedProjects: Project[] }>(
+      (acc, project) => {
+        if (project.status === ProjectStatus.Completed) {
+          acc.completedProjects.push(project);
+        } else {
+          acc.activeProjects.push(project);
+        }
+        return acc;
+      },
+      { activeProjects: [], completedProjects: [] }
+    );
+  }, [projects]);
+  
+  const projectsToShow = projectView === 'active' ? activeProjects : completedProjects;
+
   if (projects.length === 0) {
     return (
       <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
@@ -142,10 +160,48 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
   }
 
   return (
-    <div className="space-y-4">
-      {projects.map(project => (
-        <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
-      ))}
+    <div>
+      <div className="mb-4 flex border-b border-gray-200">
+        <button
+          onClick={() => setProjectView('active')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            projectView === 'active'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={projectView === 'active'}
+        >
+          Active ({activeProjects.length})
+        </button>
+        <button
+          onClick={() => setProjectView('completed')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            projectView === 'completed'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={projectView === 'completed'}
+        >
+          Completed ({completedProjects.length})
+        </button>
+      </div>
+      
+      {projectsToShow.length === 0 ? (
+        <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800">No {projectView} projects found</h3>
+          <p className="text-gray-500 mt-2">
+            {projectView === 'active' 
+              ? "You can create a new project using the 'New Project' button."
+              : "Completed projects will appear here once they are finished."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {projectsToShow.map(project => (
+            <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

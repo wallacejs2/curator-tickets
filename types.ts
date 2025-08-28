@@ -60,6 +60,7 @@ export interface FeatureAnnouncement {
 }
 
 export interface Update {
+  id: string;
   author: string;
   date: string;
   comment: string;
@@ -160,6 +161,7 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   type: string;
+  creationDate: string;
   dueDate?: string;
   // Linking fields
   linkedTaskIds?: string[];

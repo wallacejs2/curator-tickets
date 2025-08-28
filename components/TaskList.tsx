@@ -37,6 +37,30 @@ interface TaskListProps {
 
 type TaskView = 'active' | 'completed';
 
+const priorityOrder: Record<TaskPriority, number> = {
+    [TaskPriority.P1]: 1,
+    [TaskPriority.P2]: 2,
+    [TaskPriority.P3]: 3,
+    [TaskPriority.P4]: 4,
+};
+
+const taskSorter = (a: Task, b: Task) => {
+    // 1. Sort by Priority (P1 is highest)
+    const priorityA = priorityOrder[a.priority];
+    const priorityB = priorityOrder[b.priority];
+    if (priorityA < priorityB) return -1;
+    if (priorityA > priorityB) return 1;
+
+    // 2. Sort by Creation Date (newest to oldest)
+    return new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime();
+};
+
+const statusColorStyles: Record<TaskStatus, string> = {
+  [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
+  [TaskStatus.InProgress]: 'bg-blue-200 text-blue-800',
+  [TaskStatus.Done]: 'bg-green-200 text-green-800',
+};
+
 const TaskList: React.FC<TaskListProps> = ({ 
     projects, onUpdateProject, tasks, setTasks, allTasks,
     allTickets, allMeetings, allDealerships, allFeatures,
@@ -78,22 +102,12 @@ const TaskList: React.FC<TaskListProps> = ({
         }
     }
 
-    // Sort active tasks: soonest due date first, tasks without due date last
-    active.sort((a, b) => {
-        if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-        if (a.dueDate) return -1; // a has date, b doesn't, a comes first
-        if (b.dueDate) return 1;  // b has date, a doesn't, b comes first
-        return 0; // neither has a date
-    });
-
-    // Sort completed tasks: most recent due date first
-    completed.sort((a, b) => {
-        if (a.dueDate && b.dueDate) return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
-        if (a.dueDate) return -1;
-        if (b.dueDate) return 1;
-        return 0;
-    });
-
+    // Sort active tasks by priority then newest first
+    active.sort(taskSorter);
+    
+    // Sort completed tasks by priority then newest first
+    completed.sort(taskSorter);
+    
     return { activeTasks: active, completedTasks: completed };
   }, [allTasks]);
   
@@ -113,8 +127,10 @@ const TaskList: React.FC<TaskListProps> = ({
       status: TaskStatus.ToDo,
       priority,
       type: taskType.trim(),
+      creationDate: new Date().toISOString(),
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00`).toISOString() : undefined,
       linkedTaskIds: [],
+      projectIds: selectedProjectId ? [selectedProjectId] : [],
     };
     
     if (selectedProjectId) {
@@ -276,9 +292,14 @@ const TaskList: React.FC<TaskListProps> = ({
               aria-label={`Mark task ${task.description} as complete`}
             />
             <div className="flex-grow">
-              <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900' : 'text-gray-800'}`}>
-                {task.description}
-              </p>
+              <div className="flex justify-between items-start gap-2">
+                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900' : 'text-gray-800'}`}>
+                    {task.description}
+                </p>
+                <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ${statusColorStyles[task.status]}`}>
+                    {task.status}
+                </span>
+              </div>
               <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                  {task.assignedUser && <span>Assigned to: <span className="font-medium">{task.assignedUser}</span></span>}
                 {task.projectName && <span>Project: <span className="font-medium">{task.projectName}</span></span>}

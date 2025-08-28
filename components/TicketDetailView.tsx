@@ -74,6 +74,8 @@ interface TicketDetailViewProps {
     ticket: Ticket, 
     onUpdate: (ticket: Ticket) => void, 
     onAddUpdate: (comment: string, author: string, date: string) => void, 
+    onEditUpdate: (updatedUpdate: Update) => void;
+    onDeleteUpdate: (updateId: string) => void;
     onExport: () => void, 
     onEmail: () => void, 
     onUpdateCompletionNotes: (notes: string) => void, 
@@ -93,7 +95,7 @@ interface TicketDetailViewProps {
 }
 
 const TicketDetailView = ({ 
-    ticket, onUpdate, onAddUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, 
+    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onUpdateCompletionNotes, onDelete, 
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink
  }: TicketDetailViewProps) => {
@@ -105,6 +107,8 @@ const TicketDetailView = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editableTicket, setEditableTicket] = useState<Ticket>(ticket);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
+  const [editedComment, setEditedComment] = useState('');
   
   const MAX_COMMENT_LENGTH = 2000;
 
@@ -361,10 +365,66 @@ const TicketDetailView = ({
               </div>
             </form>
           <div className="space-y-4">
-          {[...(ticket.updates || [])].reverse().map((update, index) => (
-              <div key={index} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                  <p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleDateString()}</span></p>
-                  <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
+          {[...(ticket.updates || [])].reverse().map((update) => (
+              <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                {editingUpdateId === update.id ? (
+                    <div>
+                        <textarea
+                        value={editedComment}
+                        onChange={(e) => setEditedComment(e.target.value)}
+                        rows={4}
+                        className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
+                            <button
+                                onClick={() => {
+                                const commentAsHtml = editedComment.replace(/\n/g, '<br />');
+                                onEditUpdate({ ...update, comment: commentAsHtml });
+                                setEditingUpdateId(null);
+                                }}
+                                className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="group">
+                        <div className="flex justify-between items-start">
+                            <p className="text-xs text-gray-500 font-medium">
+                                <span className="font-semibold text-gray-700">{update.author}</span>
+                                <span className="mx-1.5">•</span>
+                                <span>{new Date(update.date).toLocaleDateString()}</span>
+                            </p>
+                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                onClick={() => {
+                                    setEditingUpdateId(update.id);
+                                    const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
+                                    setEditedComment(commentForEditing);
+                                }}
+                                className="p-1 text-gray-400 hover:text-blue-600"
+                                aria-label="Edit update"
+                                >
+                                    <PencilIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                onClick={() => {
+                                    if (window.confirm('Are you sure you want to delete this update?')) {
+                                    onDeleteUpdate(update.id);
+                                    }
+                                }}
+                                className="p-1 text-gray-400 hover:text-red-600"
+                                aria-label="Delete update"
+                                >
+                                    <TrashIcon className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
+                    </div>
+                )}
               </div>
           ))}
           </div>

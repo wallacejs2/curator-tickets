@@ -25,11 +25,13 @@ export const initialTickets: Ticket[] = [
     linkedTicketIds: ['5'],
     updates: [
       {
+        id: 'update-1-1',
         author: 'Dev Team',
         date: new Date('2024-07-22T11:00:00Z').toISOString(),
         comment: 'Assigned to John Doe. Starting investigation.'
       },
       {
+        id: 'update-1-2',
         author: 'John Doe',
         date: new Date('2024-07-23T15:30:00Z').toISOString(),
         comment: 'Identified the issue is related to event propagation in WebKit. Working on a fix.'
@@ -65,6 +67,7 @@ export const initialTickets: Ticket[] = [
     projectIds: ['proj-1'],
     updates: [
       {
+        id: 'update-2-1',
         author: 'Product Team',
         date: new Date('2024-07-16T10:00:00Z').toISOString(),
         comment: 'Feature request has been received and is under review for the next quarter planning.'
@@ -124,9 +127,9 @@ export const initialTickets: Ticket[] = [
     workaround: 'Use a different browser like Chrome or Edge.',
     frequency: 'Always on Firefox.',
     updates: [
-        { author: 'QA Team', date: new Date('2024-07-11T09:00:00Z').toISOString(), comment: 'Confirmed and reproduced the issue. Root cause seems to be related to MIME type handling on Firefox.' },
-        { author: 'Dev Team', date: new Date('2024-07-12T14:20:00Z').toISOString(), comment: 'Fix has been implemented and deployed to staging for verification.' },
-        { author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
+        { id: 'update-4-1', author: 'QA Team', date: new Date('2024-07-11T09:00:00Z').toISOString(), comment: 'Confirmed and reproduced the issue. Root cause seems to be related to MIME type handling on Firefox.' },
+        { id: 'update-4-2', author: 'Dev Team', date: new Date('2024-07-12T14:20:00Z').toISOString(), comment: 'Fix has been implemented and deployed to staging for verification.' },
+        { id: 'update-4-3', author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
     ],
     completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.',
     projectIds: [],
@@ -175,16 +178,17 @@ export const initialProjects: Project[] = [
     meetingIds: ['meet-1'],
     updates: [
       {
+        id: 'update-proj-1-1',
         author: 'Project Lead',
         date: new Date('2024-07-12T09:00:00Z').toISOString(),
         comment: 'Project kickoff complete. Design phase has begun.'
       }
     ],
     tasks: [
-      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
-      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', dueDate: new Date('2024-07-30T17:00:00Z').toISOString(), linkedTaskIds: ['sub-1-4'] },
-      { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
-      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
+      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', creationDate: new Date('2024-07-11T10:00:00Z').toISOString(), dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date('2024-07-30T17:00:00Z').toISOString(), linkedTaskIds: ['sub-1-4'] },
+      { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', creationDate: new Date('2024-07-12T10:00:00Z').toISOString(), dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
+      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', creationDate: new Date('2024-07-12T11:00:00Z').toISOString(), dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
     ],
     linkedProjectIds: [],
     taskIds: [],
@@ -202,8 +206,8 @@ export const initialProjects: Project[] = [
     meetingIds: ['meet-2'],
     updates: [],
     tasks: [
-       { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation' },
-       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'QA', dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
+       { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation', creationDate: new Date('2024-07-25T15:00:00Z').toISOString() },
+       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'QA', creationDate: new Date('2024-07-25T16:00:00Z').toISOString(), dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
     ],
     linkedProjectIds: [],
     taskIds: [],
@@ -220,9 +224,9 @@ export const initialProjects: Project[] = [
     involvedPeople: ['Marketing Team', 'PR Team'],
     updates: [],
     tasks: [
-       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Design' },
-       { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Documentation' },
-       { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P4, type: 'Meeting' },
+       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Design', creationDate: new Date('2024-05-02T10:00:00Z').toISOString() },
+       { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Documentation', creationDate: new Date('2024-05-02T11:00:00Z').toISOString() },
+       { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P4, type: 'Meeting', creationDate: new Date('2024-05-03T10:00:00Z').toISOString() },
     ],
     meetingIds: [],
     linkedProjectIds: [],
@@ -240,6 +244,7 @@ export const initialTasks: Task[] = [
     status: TaskStatus.InProgress,
     priority: TaskPriority.P2,
     type: 'Documentation',
+    creationDate: new Date('2024-07-20T10:00:00Z').toISOString(),
     dueDate: new Date('2024-08-15T17:00:00Z').toISOString(),
     linkedTaskIds: [],
     ticketIds: [],
@@ -255,6 +260,7 @@ export const initialTasks: Task[] = [
     status: TaskStatus.ToDo,
     priority: TaskPriority.P4,
     type: 'Planning',
+    creationDate: new Date('2024-07-21T10:00:00Z').toISOString(),
     linkedTaskIds: [],
     ticketIds: [],
     projectIds: [],

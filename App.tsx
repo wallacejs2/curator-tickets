@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -35,6 +35,8 @@ import MeetingForm from './components/MeetingForm.tsx';
 import TicketDetailView from './components/TicketDetailView.tsx';
 import FeatureDetailView from './components/FeatureDetailView.tsx';
 import ExportModal from './components/ExportModal.tsx';
+import ProjectInsights from './components/ProjectInsights.tsx';
+import TaskInsights from './components/TaskInsights.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -405,7 +407,7 @@ function App() {
   };
   
   const handleAddUpdate = (id: string, comment: string, author: string, date: string) => {
-    const newUpdate: Update = { author, date: new Date(date).toISOString(), comment };
+    const newUpdate: Update = { id: crypto.randomUUID(), author, date: new Date(`${date}T00:00:00`).toISOString(), comment };
     
     if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate] };
@@ -418,6 +420,44 @@ function App() {
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
     }
     showToast('Update added!', 'success');
+  };
+
+  const handleEditUpdate = (id: string, updatedUpdate: Update) => {
+    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+        const updatedTicket = { 
+            ...selectedTicket, 
+            updates: (selectedTicket.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        setSelectedTicket(updatedTicket);
+        setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
+    } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
+        const updatedProject = { 
+            ...selectedProject, 
+            updates: (selectedProject.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        setSelectedProject(updatedProject);
+        setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
+    }
+    showToast('Update modified!', 'success');
+  };
+
+  const handleDeleteUpdate = (id: string, updateId: string) => {
+    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+        const updatedTicket = { 
+            ...selectedTicket, 
+            updates: (selectedTicket.updates || []).filter(u => u.id !== updateId)
+        };
+        setSelectedTicket(updatedTicket);
+        setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
+    } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
+        const updatedProject = { 
+            ...selectedProject, 
+            updates: (selectedProject.updates || []).filter(u => u.id !== updateId)
+        };
+        setSelectedProject(updatedProject);
+        setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
+    }
+    showToast('Update deleted!', 'success');
   };
   
   const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
@@ -648,6 +688,21 @@ function App() {
         onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
     }), [dealerships]);
 
+    const projectInsights = useMemo(() => ({
+        totalProjects: projects.length,
+        inProgressProjects: projects.filter(p => p.status === ProjectStatus.InProgress).length,
+        completedProjects: projects.filter(p => p.status === ProjectStatus.Completed).length,
+    }), [projects]);
+
+    const taskInsights = useMemo(() => {
+        const activeTasks = allTasks.filter(t => t.status !== TaskStatus.Done);
+        return {
+            totalTasks: activeTasks.length,
+            toDoTasks: activeTasks.filter(t => t.status === TaskStatus.ToDo).length,
+            inProgressTasks: activeTasks.filter(t => t.status === TaskStatus.InProgress).length,
+        };
+    }, [allTasks]);
+
     const handleImport = (file: File, setter: React.Dispatch<React.SetStateAction<any[]>>, mode: 'append' | 'replace') => {
         if (!file) {
             showToast('No file selected.', 'error');
@@ -820,14 +875,24 @@ function App() {
               />
             </>
           )}
-          {currentView === 'projects' && <ProjectList projects={filteredProjects} onProjectClick={setSelectedProject} tickets={tickets}/>}
+          {currentView === 'projects' && (
+            <>
+              <ProjectInsights {...projectInsights} />
+              <ProjectList projects={filteredProjects} onProjectClick={setSelectedProject} tickets={tickets}/>
+            </>
+          )}
           {currentView === 'dealerships' && (
               <>
                 <DealershipInsights {...dealershipInsights} />
                 <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />
               </>
           )}
-          {currentView === 'tasks' && <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} />}
+          {currentView === 'tasks' && (
+            <>
+              <TaskInsights {...taskInsights} />
+              <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} />
+            </>
+          )}
           {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature}/>}
           {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
         </div>
@@ -885,6 +950,8 @@ function App() {
             ticket={selectedTicket}
             onUpdate={handleUpdateTicket}
             onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedTicket.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
             onExport={() => handleExportTicket(selectedTicket)}
             onEmail={() => handleEmailTicket(selectedTicket)}
             onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
@@ -899,7 +966,21 @@ function App() {
             onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
           />
         )}
-        {selectedProject && <ProjectDetailView project={selectedProject} onUpdate={handleUpdateProject} onDelete={handleDeleteProject} onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)} />}
+        {selectedProject && <ProjectDetailView 
+            project={selectedProject} 
+            onUpdate={handleUpdateProject} 
+            onDelete={handleDeleteProject} 
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
+            allTickets={tickets} 
+            allProjects={projects} 
+            allTasks={allTasks} 
+            allMeetings={meetings} 
+            allDealerships={dealerships} 
+            allFeatures={features} 
+            onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)} />}
         {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} />}
         {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} />}
         {selectedFeature && <FeatureDetailView feature={selectedFeature} onUpdate={handleUpdateFeature} onDelete={handleDeleteFeature} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} />}
