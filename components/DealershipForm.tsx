@@ -45,15 +45,25 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
   const [formData, setFormData] = useState(initialFormData);
   const isEditing = !!dealershipToEdit;
 
+  // This function safely converts a UTC ISO string to a YYYY-MM-DD string for date inputs.
+  const toInputDate = (isoString?: string) => {
+    if (!isoString) return '';
+    try {
+      // Slicing the string is safer than using new Date() which can have timezone issues.
+      return isoString.slice(0, 10);
+    } catch {
+      return '';
+    }
+  };
+  
   useEffect(() => {
     if (dealershipToEdit) {
       setFormData({
-        ...initialFormData, // Ensure all fields are present
+        ...initialFormData,
         ...dealershipToEdit,
-        // Format dates for input type="date"
-        orderReceivedDate: dealershipToEdit.orderReceivedDate?.split('T')[0] || '',
-        goLiveDate: dealershipToEdit.goLiveDate?.split('T')[0] || '',
-        termDate: dealershipToEdit.termDate?.split('T')[0] || '',
+        orderReceivedDate: toInputDate(dealershipToEdit.orderReceivedDate),
+        goLiveDate: toInputDate(dealershipToEdit.goLiveDate),
+        termDate: toInputDate(dealershipToEdit.termDate),
       });
     } else {
       setFormData(initialFormData);
@@ -67,11 +77,19 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // This function converts a YYYY-MM-DD string to a full ISO string at UTC midnight,
+    // which prevents timezone-related "off-by-one-day" errors.
+    const toUtcIsoString = (dateString?: string) => {
+        if (!dateString || dateString.length === 0) return undefined;
+        return `${dateString}T00:00:00.000Z`;
+    }
+
     const submissionData = {
         ...formData,
-        orderReceivedDate: formData.orderReceivedDate ? `${formData.orderReceivedDate}T00:00:00.000Z` : undefined,
-        goLiveDate: formData.goLiveDate ? `${formData.goLiveDate}T00:00:00.000Z` : undefined,
-        termDate: formData.termDate ? `${formData.termDate}T00:00:00.000Z` : undefined,
+        orderReceivedDate: toUtcIsoString(formData.orderReceivedDate),
+        goLiveDate: toUtcIsoString(formData.goLiveDate),
+        termDate: toUtcIsoString(formData.termDate),
     };
 
     if (isEditing) {
