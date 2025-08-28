@@ -7,7 +7,12 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import EditTaskForm from './common/EditTaskForm.tsx';
-import { LinkIcon } from './icons/LinkIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
+import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -280,13 +285,15 @@ const TaskList: React.FC<TaskListProps> = ({
                 {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
                 {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
                 <span>Priority: <span className="font-medium">{task.priority}</span></span>
-                {task.linkedTaskIds && task.linkedTaskIds.length > 0 && (
-                    <span className="flex items-center gap-1 text-blue-600">
-                        <LinkIcon className="w-3 h-3"/>
-                        <span>{task.linkedTaskIds.length} Linked</span>
-                    </span>
-                )}
               </div>
+               <div className="mt-2 flex items-center gap-3 text-gray-500 flex-wrap">
+                    {(task.linkedTaskIds?.length || 0) > 0 && <span title={`${task.linkedTaskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.linkedTaskIds?.length}</span></span>}
+                    {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
+                    {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
+                    {(task.meetingIds?.length || 0) > 0 && <span title={`${task.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.meetingIds?.length}</span></span>}
+                    {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
+                    {(task.featureIds?.length || 0) > 0 && <span title={`${task.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.featureIds?.length}</span></span>}
+                </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <button onClick={() => setEditingTask(task)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>

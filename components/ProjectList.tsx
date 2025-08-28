@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
-import { LinkIcon } from './icons/LinkIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
+import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
+import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 
 
 interface ProjectListProps {
@@ -71,26 +76,26 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
   const totalTasks = projectTasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const statusColor = statusColors[project.status];
-  const hasLinks = (project.ticketIds?.length || 0) > 0 ||
-                   (project.meetingIds?.length || 0) > 0 ||
-                   (project.taskIds?.length || 0) > 0 ||
-                   (project.dealershipIds?.length || 0) > 0 ||
-                   (project.featureIds?.length || 0) > 0 ||
-                   (project.linkedProjectIds?.length || 0) > 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 flex flex-col">
       <div onClick={onClick} className="p-5 cursor-pointer hover:bg-gray-50/50">
         <div className="flex justify-between items-start gap-3">
-            <div className="flex items-center gap-2">
-                 <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
-                 {hasLinks && <span title="This project has linked items"><LinkIcon className="w-4 h-4 text-gray-500 flex-shrink-0" /></span>}
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
           <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColor.bg} ${statusColor.text}`}>
             {project.status}
           </span>
         </div>
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description || 'No description provided.'}</p>
+
+        <div className="mt-3 flex items-center gap-3 text-gray-500 flex-wrap">
+            {(project.linkedProjectIds?.length || 0) > 0 && <span title={`${project.linkedProjectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.linkedProjectIds?.length}</span></span>}
+            {(project.ticketIds?.length || 0) > 0 && <span title={`${project.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.ticketIds?.length}</span></span>}
+            {(project.taskIds?.length || 0) > 0 && <span title={`${project.taskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.taskIds?.length}</span></span>}
+            {(project.meetingIds?.length || 0) > 0 && <span title={`${project.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.meetingIds?.length}</span></span>}
+            {(project.dealershipIds?.length || 0) > 0 && <span title={`${project.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.dealershipIds?.length}</span></span>}
+            {(project.featureIds?.length || 0) > 0 && <span title={`${project.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.featureIds?.length}</span></span>}
+        </div>
       </div>
       <div className="px-5 py-4 bg-gray-50/70">
         <div>

@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
+import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
+import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 
 interface DealershipListProps {
   dealerships: Dealership[];
@@ -53,6 +59,14 @@ const DealershipCard: React.FC<{ dealership: Dealership; onClick: () => void; }>
         <div className="mt-4 text-sm text-gray-600 space-y-1">
             <p>CIF: <span className="font-medium text-gray-800">{dealership.accountNumber}</span></p>
             <p>Specialist: <span className="font-medium text-gray-800">{dealership.assignedSpecialist || 'N/A'}</span></p>
+        </div>
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-gray-500 flex-wrap">
+            {(dealership.linkedDealershipIds?.length || 0) > 0 && <span title={`${dealership.linkedDealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.linkedDealershipIds?.length}</span></span>}
+            {(dealership.ticketIds?.length || 0) > 0 && <span title={`${dealership.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.ticketIds?.length}</span></span>}
+            {(dealership.projectIds?.length || 0) > 0 && <span title={`${dealership.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.projectIds?.length}</span></span>}
+            {(dealership.taskIds?.length || 0) > 0 && <span title={`${dealership.taskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.taskIds?.length}</span></span>}
+            {(dealership.meetingIds?.length || 0) > 0 && <span title={`${dealership.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.meetingIds?.length}</span></span>}
+            {(dealership.featureIds?.length || 0) > 0 && <span title={`${dealership.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.featureIds?.length}</span></span>}
         </div>
       </div>
 

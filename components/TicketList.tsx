@@ -4,7 +4,12 @@ import React, { useState, useMemo } from 'react';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
-import { LinkIcon } from './icons/LinkIcon.tsx';
+import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
+import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
 
 
 interface TicketTableProps {
@@ -176,15 +181,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
         </div>
       ) : (
         <div className="space-y-4">
-          {ticketsToShow.map(ticket => {
-            // FIX: The Ticket type uses `projectIds` (an array) instead of `projectId`.
-            // We will display the name of the first linked project if it exists.
-            const projectName = ticket.projectIds && ticket.projectIds.length > 0 ? projects.find(p => p.id === ticket.projectIds[0])?.name : null;
-            const linkedTicketObjects = (ticket.linkedTicketIds || [])
-              .map(id => tickets.find(t => t.id === id))
-              .filter((t): t is Ticket => t !== undefined);
-
-            return (
+          {ticketsToShow.map(ticket => (
             <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
               <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
                 <div className="flex justify-between items-start gap-3">
@@ -194,28 +191,14 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   <Tag label={ticket.priority} />
                 </div>
 
-                {linkedTicketObjects.length > 0 && (
-                    <div className="mt-2 flex items-start gap-2 text-gray-600">
-                        <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                        <div className="text-sm">
-                            <span className="font-medium">Linked: </span>
-                            <span className="italic">"{linkedTicketObjects[0].title}"</span>
-                            {linkedTicketObjects.length > 1 && (
-                                <span className="font-medium text-gray-500"> (+{linkedTicketObjects.length - 1} more)</span>
-                            )}
-                        </div>
-                    </div>
-                )}
-                
-                {projectName && (
-                  <div className="mt-2 flex items-start gap-2 text-gray-600">
-                      <LinkIcon className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                      <div className="text-sm">
-                          <span className="font-medium">Project: </span>
-                          <span className="italic">"{projectName}"</span>
-                      </div>
-                  </div>
-                )}
+                <div className="mt-2 flex items-center gap-3 text-gray-500 flex-wrap">
+                    {(ticket.linkedTicketIds?.length || 0) > 0 && <span title={`${ticket.linkedTicketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.linkedTicketIds?.length}</span></span>}
+                    {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
+                    {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
+                    {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
+                    {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
+                    {(ticket.featureIds?.length || 0) > 0 && <span title={`${ticket.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.featureIds?.length}</span></span>}
+                </div>
                 
                 <div className="text-sm text-gray-500 mt-2">
                   <div>
@@ -296,7 +279,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   )}
               </div>
             </div>
-          )})}
+          ))}
         </div>
       )}
     </div>

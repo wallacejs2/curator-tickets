@@ -1,8 +1,13 @@
 
+
 import React from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform } from '../types.ts';
-import { TrashIcon } from './icons/TrashIcon.tsx';
-import { PencilIcon } from './icons/PencilIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
+import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
+import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
 
 interface FeatureListProps {
   features: FeatureAnnouncement[];
@@ -45,6 +50,14 @@ const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onClick: () => void 
                     <p className="text-sm text-gray-500">{feature.location}</p>
                 </div>
                 <p className="text-gray-700 mt-4 whitespace-pre-wrap line-clamp-3">{feature.description}</p>
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-gray-500 flex-wrap">
+                    {(feature.linkedFeatureIds?.length || 0) > 0 && <span title={`${feature.linkedFeatureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{feature.linkedFeatureIds?.length}</span></span>}
+                    {(feature.ticketIds?.length || 0) > 0 && <span title={`${feature.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{feature.ticketIds?.length}</span></span>}
+                    {(feature.projectIds?.length || 0) > 0 && <span title={`${feature.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{feature.projectIds?.length}</span></span>}
+                    {(feature.taskIds?.length || 0) > 0 && <span title={`${feature.taskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{feature.taskIds?.length}</span></span>}
+                    {(feature.meetingIds?.length || 0) > 0 && <span title={`${feature.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{feature.meetingIds?.length}</span></span>}
+                    {(feature.dealershipIds?.length || 0) > 0 && <span title={`${feature.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{feature.dealershipIds?.length}</span></span>}
+                </div>
             </div>
             <div className="bg-gray-50 px-5 py-3 flex justify-between items-center border-t border-gray-200">
                 <div>

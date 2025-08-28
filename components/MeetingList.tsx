@@ -1,6 +1,12 @@
 import React from 'react';
 import { Meeting, MeetingFilterState } from '../types.ts';
 import { SearchIcon } from './icons/SearchIcon.tsx';
+import { TicketIcon } from './icons/TicketIcon.tsx';
+import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
+import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
+import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 
 interface MeetingListProps {
   meetings: Meeting[];
@@ -20,6 +26,14 @@ const MeetingCard: React.FC<{ meeting: Meeting; onClick: () => void }> = ({ meet
             <div className="mt-4">
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Attendees</h4>
                 <p className="text-sm text-gray-600 mt-1">{meeting.attendees.join(', ')}</p>
+            </div>
+             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-gray-500 flex-wrap">
+                {(meeting.linkedMeetingIds?.length || 0) > 0 && <span title={`${meeting.linkedMeetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{meeting.linkedMeetingIds?.length}</span></span>}
+                {(meeting.ticketIds?.length || 0) > 0 && <span title={`${meeting.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{meeting.ticketIds?.length}</span></span>}
+                {(meeting.projectIds?.length || 0) > 0 && <span title={`${meeting.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{meeting.projectIds?.length}</span></span>}
+                {(meeting.taskIds?.length || 0) > 0 && <span title={`${meeting.taskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{meeting.taskIds?.length}</span></span>}
+                {(meeting.dealershipIds?.length || 0) > 0 && <span title={`${meeting.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{meeting.dealershipIds?.length}</span></span>}
+                {(meeting.featureIds?.length || 0) > 0 && <span title={`${meeting.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{meeting.featureIds?.length}</span></span>}
             </div>
         </div>
     );
