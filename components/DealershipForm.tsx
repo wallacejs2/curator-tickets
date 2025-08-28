@@ -69,9 +69,9 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
     e.preventDefault();
     const submissionData = {
         ...formData,
-        orderReceivedDate: formData.orderReceivedDate ? new Date(`${formData.orderReceivedDate}T00:00:00`).toISOString() : undefined,
-        goLiveDate: formData.goLiveDate ? new Date(`${formData.goLiveDate}T00:00:00`).toISOString() : undefined,
-        termDate: formData.termDate ? new Date(`${formData.termDate}T00:00:00`).toISOString() : undefined,
+        orderReceivedDate: formData.orderReceivedDate ? `${formData.orderReceivedDate}T00:00:00.000Z` : undefined,
+        goLiveDate: formData.goLiveDate ? `${formData.goLiveDate}T00:00:00.000Z` : undefined,
+        termDate: formData.termDate ? `${formData.termDate}T00:00:00.000Z` : undefined,
     };
 
     if (isEditing) {
