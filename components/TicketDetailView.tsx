@@ -232,6 +232,10 @@ const TicketDetailView = ({
   const renderEditMode = () => (
      <>
         <FormSection title="Core Information" gridCols={3}>
+            <div className="col-span-3">
+              <label className={labelClasses}>Title</label>
+              <input type="text" name="title" value={editableTicket.title} onChange={handleFormChange} required className={formElementClasses} />
+            </div>
             <div><label className={labelClasses}>Type</label><select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>{Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
             <div><label className={labelClasses}>Status</label><select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>{STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
             <div><label className={labelClasses}>Priority</label><select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>{(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
