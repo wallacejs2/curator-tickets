@@ -286,13 +286,13 @@ const TaskList: React.FC<TaskListProps> = ({
                 {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
                 <span>Priority: <span className="font-medium">{task.priority}</span></span>
               </div>
-               <div className="mt-2 flex items-center gap-3 text-gray-500 flex-wrap">
-                    {(task.linkedTaskIds?.length || 0) > 0 && <span title={`${task.linkedTaskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.linkedTaskIds?.length}</span></span>}
-                    {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
-                    {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
-                    {(task.meetingIds?.length || 0) > 0 && <span title={`${task.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.meetingIds?.length}</span></span>}
-                    {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
-                    {(task.featureIds?.length || 0) > 0 && <span title={`${task.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.featureIds?.length}</span></span>}
+               <div className="mt-2 flex items-center gap-3 flex-wrap">
+                    {(task.linkedTaskIds?.length || 0) > 0 && <span title={`${task.linkedTaskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.linkedTaskIds?.length}</span></span>}
+                    {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
+                    {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
+                    {(task.meetingIds?.length || 0) > 0 && <span title={`${task.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.meetingIds?.length}</span></span>}
+                    {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
+                    {(task.featureIds?.length || 0) > 0 && <span title={`${task.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.featureIds?.length}</span></span>}
                 </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">

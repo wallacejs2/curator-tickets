@@ -88,13 +88,13 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
         </div>
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description || 'No description provided.'}</p>
 
-        <div className="mt-3 flex items-center gap-3 text-gray-500 flex-wrap">
-            {(project.linkedProjectIds?.length || 0) > 0 && <span title={`${project.linkedProjectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.linkedProjectIds?.length}</span></span>}
-            {(project.ticketIds?.length || 0) > 0 && <span title={`${project.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.ticketIds?.length}</span></span>}
-            {(project.taskIds?.length || 0) > 0 && <span title={`${project.taskIds?.length} linked task(s)`} className="flex items-center gap-1"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.taskIds?.length}</span></span>}
-            {(project.meetingIds?.length || 0) > 0 && <span title={`${project.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.meetingIds?.length}</span></span>}
-            {(project.dealershipIds?.length || 0) > 0 && <span title={`${project.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.dealershipIds?.length}</span></span>}
-            {(project.featureIds?.length || 0) > 0 && <span title={`${project.featureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.featureIds?.length}</span></span>}
+        <div className="mt-3 flex items-center gap-3 flex-wrap">
+            {(project.linkedProjectIds?.length || 0) > 0 && <span title={`${project.linkedProjectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.linkedProjectIds?.length}</span></span>}
+            {(project.ticketIds?.length || 0) > 0 && <span title={`${project.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.ticketIds?.length}</span></span>}
+            {(project.taskIds?.length || 0) > 0 && <span title={`${project.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.taskIds?.length}</span></span>}
+            {(project.meetingIds?.length || 0) > 0 && <span title={`${project.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.meetingIds?.length}</span></span>}
+            {(project.dealershipIds?.length || 0) > 0 && <span title={`${project.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.dealershipIds?.length}</span></span>}
+            {(project.featureIds?.length || 0) > 0 && <span title={`${project.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.featureIds?.length}</span></span>}
         </div>
       </div>
       <div className="px-5 py-4 bg-gray-50/70">
