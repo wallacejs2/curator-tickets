@@ -1,12 +1,13 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
-import EditTaskForm from './common/EditTaskForm.tsx';
 import { LinkIcon } from './icons/LinkIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
+import { DownloadIcon } from './icons/DownloadIcon.tsx';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -15,6 +16,7 @@ interface ProjectDetailViewProps {
   project: Project;
   onUpdate: (project: Project) => void;
   onDelete: (projectId: string) => void;
+  onExport: () => void;
   onAddUpdate: (projectId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
@@ -30,17 +32,17 @@ interface ProjectDetailViewProps {
   // Linking handlers
   onLink: (toType: EntityType, toId: string) => void;
   onUnlink: (toType: EntityType, toId: string) => void;
+  onSwitchView: (type: EntityType, id: string) => void;
 }
 
 const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ 
-    project, onUpdate, onDelete, onAddUpdate, onEditUpdate, onDeleteUpdate,
+    project, onUpdate, onDelete, onExport, onAddUpdate, onEditUpdate, onDeleteUpdate,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
-    onLink, onUnlink
+    onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableProject, setEditableProject] = useState(project);
-    const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; }) | null>(null);
     const [involvedPeopleString, setInvolvedPeopleString] = useState('');
 
     // Form state for new sub-task
@@ -49,6 +51,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const [newDueDate, setNewDueDate] = useState('');
     const [newPriority, setNewPriority] = useState<TaskPriority>(TaskPriority.P3);
     const [newType, setNewType] = useState('');
+    const [newNotify, setNewNotify] = useState('');
     
     // Form state for new update
     const [newUpdate, setNewUpdate] = useState('');
@@ -66,19 +69,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
     const projectTasks = project.tasks || [];
 
-    // FIX: Add useEffect to keep editingTask state in sync with props.
-    // This ensures that when a link is added, the modal view updates immediately.
-    useEffect(() => {
-        if (editingTask) {
-            const freshTask = project.tasks.find(t => t.id === editingTask.id);
-            if (freshTask) {
-                setEditingTask({ ...freshTask, projectId: project.id });
-            } else {
-                setEditingTask(null); // Task was deleted or removed from project
-            }
-        }
-    }, [project.tasks]);
-    
     // Linked items
     const linkedTickets = allTickets.filter(item => (project.ticketIds || []).includes(item.id));
     const linkedProjects = allProjects.filter(item => (project.linkedProjectIds || []).includes(item.id));
@@ -107,6 +97,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 dueDate: newDueDate ? new Date(`${newDueDate}T00:00:00`).toISOString() : undefined,
                 priority: newPriority,
                 type: newType.trim(),
+                notifyOnCompletion: newNotify.trim() || undefined,
                 projectIds: [project.id],
             };
             const updatedProject = { ...project, tasks: [...projectTasks, newTask] };
@@ -117,6 +108,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             setNewDueDate('');
             setNewPriority(TaskPriority.P3);
             setNewType('');
+            setNewNotify('');
         }
     };
 
@@ -138,12 +130,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         onUpdate({ ...project, tasks: updatedTasks });
     };
 
-    const handleTaskUpdate = (updatedTask: Task) => {
-        const updatedTasks = projectTasks.map(task => task.id === updatedTask.id ? updatedTask : task);
-        onUpdate({ ...project, tasks: updatedTasks });
-        setEditingTask(null);
-    };
-    
     const handleTaskDelete = (taskId: string) => {
         const updatedTasks = projectTasks.filter(task => task.id !== taskId);
         onUpdate({ ...project, tasks: updatedTasks });
@@ -239,26 +225,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     </div>
                 </Modal>
             )}
-            
-            {editingTask && (
-                <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-                    <EditTaskForm 
-                      task={editingTask} 
-                      onSave={handleTaskUpdate} 
-                      onClose={() => setEditingTask(null)}
-                      allTasks={allTasks}
-                      allTickets={allTickets}
-                      allProjects={allProjects}
-                      allMeetings={allMeetings}
-                      allDealerships={allDealerships}
-                      allFeatures={allFeatures}
-                      onLink={(toType, toId) => onLink(toType as EntityType, toId)}
-                      onUnlink={(toType, toId) => onUnlink(toType as EntityType, toId)}
-                    />
-                </Modal>
-            )}
 
             <div className="flex justify-end items-center gap-3 mb-6">
+                <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
+                    <DownloadIcon className="w-4 h-4"/>
+                    <span>Export</span>
+                </button>
                 <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
                 <button onClick={() => { 
                     setEditableProject(project); 
@@ -303,6 +275,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                     {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
                                     <span>Type: <span className="font-medium">{task.type}</span></span>
                                     <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                                    {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
                                     {task.linkedTaskIds && task.linkedTaskIds.length > 0 && (
                                         <span className="flex items-center gap-1 text-blue-600">
                                             <LinkIcon className="w-3 h-3"/>
@@ -312,7 +285,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                                <button onClick={() => setEditingTask({ ...task, projectId: project.id })} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
+                                <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
                                 <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
                             </div>
                         </div>
@@ -322,11 +295,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </div>
 
                 <form onSubmit={handleNewTaskSubmit} className="space-y-3 mt-4 p-3 bg-gray-50 rounded-md border">
+                    <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
                         <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                        <input type="text" value={newNotify} onChange={e => setNewNotify(e.target.value)} placeholder="Notify on completion..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-[auto,auto,auto,1fr] gap-3 items-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto,auto] gap-3 items-center">
                         <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" required className="text-sm p-2 border border-gray-300 rounded-md"/>
                         <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white h-full">
                             {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
@@ -340,12 +314,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
             </div>
 
             {/* FIX: Cast string literals to EntityType to resolve TS error */}
-            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} />
-            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} />
-            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} />
-            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} />
-            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} />
-            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} />
+            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
+            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
+            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
+            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
+            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
+            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
 
             {/* Updates Section */}
             <div className="pt-6 mt-6 border-t border-gray-200">

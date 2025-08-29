@@ -1,12 +1,10 @@
 
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Project, Task, TaskPriority, TaskStatus, Ticket, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
-import Modal from './common/Modal.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
-import EditTaskForm from './common/EditTaskForm.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
@@ -33,6 +31,7 @@ interface TaskListProps {
   // Linking handlers
   onLinkItem: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
   onUnlinkItem: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+  onSwitchView: (type: EntityType, id: string) => void;
 }
 
 type TaskView = 'active' | 'completed';
@@ -63,8 +62,7 @@ const statusColorStyles: Record<TaskStatus, string> = {
 
 const TaskList: React.FC<TaskListProps> = ({ 
     projects, onUpdateProject, tasks, setTasks, allTasks,
-    allTickets, allMeetings, allDealerships, allFeatures,
-    onLinkItem, onUnlinkItem
+    onSwitchView
 }) => {
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
@@ -72,23 +70,9 @@ const TaskList: React.FC<TaskListProps> = ({
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.P3);
   const [dueDate, setDueDate] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [notify, setNotify] = useState('');
   
-  const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string }) | null>(null);
   const [taskView, setTaskView] = useState<TaskView>('active');
-
-  // FIX: Add useEffect to keep editingTask state in sync with props.
-  // This ensures that when a link is added, the modal view updates immediately.
-  useEffect(() => {
-    if (editingTask) {
-      const freshTask = allTasks.find(t => t.id === editingTask.id);
-      if (freshTask) {
-        setEditingTask(freshTask);
-      } else {
-        // The task might have been deleted, close the modal
-        setEditingTask(null);
-      }
-    }
-  }, [allTasks]);
 
   const { activeTasks, completedTasks } = useMemo(() => {
     const active: typeof allTasks = [];
@@ -129,6 +113,7 @@ const TaskList: React.FC<TaskListProps> = ({
       type: taskType.trim(),
       creationDate: new Date().toISOString(),
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00`).toISOString() : undefined,
+      notifyOnCompletion: notify.trim() || undefined,
       linkedTaskIds: [],
       projectIds: selectedProjectId ? [selectedProjectId] : [],
     };
@@ -152,22 +137,7 @@ const TaskList: React.FC<TaskListProps> = ({
     setPriority(TaskPriority.P3);
     setDueDate('');
     setSelectedProjectId('');
-  };
-
-  const handleUpdateTask = (updatedTask: Task) => {
-      if (!editingTask) return;
-
-      if (editingTask.projectId) {
-          const project = projects.find(p => p.id === editingTask!.projectId);
-          if (project) {
-              const updatedTasks = project.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-              onUpdateProject({ ...project, tasks: updatedTasks });
-          }
-      } else {
-          setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-      }
-
-      setEditingTask(null);
+    setNotify('');
   };
   
   const handleDeleteTask = (taskToDelete: Task & { projectId: string | null }) => {
@@ -209,24 +179,6 @@ const TaskList: React.FC<TaskListProps> = ({
 
   return (
     <div>
-      {editingTask && (
-        <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-            <EditTaskForm 
-                task={editingTask} 
-                onSave={handleUpdateTask} 
-                onClose={() => setEditingTask(null)}
-                allTasks={allTasks}
-                allTickets={allTickets}
-                allProjects={projects}
-                allMeetings={allMeetings}
-                allDealerships={allDealerships}
-                allFeatures={allFeatures}
-                onLink={(toType, toId) => onLinkItem('task', editingTask.id, toType as EntityType, toId)}
-                onUnlink={(toType, toId) => onUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
-            />
-        </Modal>
-      )}
-
       <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 mb-8">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Task</h2>
         <form onSubmit={handleAddTask} className="space-y-4">
@@ -237,9 +189,10 @@ const TaskList: React.FC<TaskListProps> = ({
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <input type="text" value={assignedTo} onChange={e => setAssignedTo(e.target.value)} placeholder="Assigned to..." className={inputClasses} />
             <input type="text" value={taskType} onChange={e => setTaskType(e.target.value)} placeholder="Task Type (e.g. Dev, QA)..." className={inputClasses} />
+            <input type="text" value={notify} onChange={e => setNotify(e.target.value)} placeholder="Notify on completion..." className={inputClasses} />
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -306,6 +259,7 @@ const TaskList: React.FC<TaskListProps> = ({
                 {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
                 {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
                 <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
               </div>
                <div className="mt-2 flex items-center gap-3 flex-wrap">
                     {(task.linkedTaskIds?.length || 0) > 0 && <span title={`${task.linkedTaskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.linkedTaskIds?.length}</span></span>}
@@ -317,7 +271,7 @@ const TaskList: React.FC<TaskListProps> = ({
                 </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => setEditingTask(task)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
+              <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
                 <PencilIcon className="w-4 h-4" />
               </button>
               <button onClick={() => handleDeleteTask(task)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>

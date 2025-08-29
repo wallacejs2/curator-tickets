@@ -163,6 +163,7 @@ export interface Task {
   type: string;
   creationDate: string;
   dueDate?: string;
+  notifyOnCompletion?: string;
   // Linking fields
   linkedTaskIds?: string[];
   ticketIds?: string[];

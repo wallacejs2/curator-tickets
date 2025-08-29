@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -31,12 +32,14 @@ import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
 import MeetingList from './components/MeetingList.tsx';
 import MeetingDetailView from './components/MeetingDetailView.tsx';
-import MeetingForm from './components/MeetingForm.tsx';
 import TicketDetailView from './components/TicketDetailView.tsx';
 import FeatureDetailView from './components/FeatureDetailView.tsx';
 import ExportModal from './components/ExportModal.tsx';
 import ProjectInsights from './components/ProjectInsights.tsx';
 import TaskInsights from './components/TaskInsights.tsx';
+import EditTaskForm from './components/common/EditTaskForm.tsx';
+// FIX: Import the 'MeetingForm' component to resolve the "Cannot find name" error.
+import MeetingForm from './components/MeetingForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -101,8 +104,9 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 const ImportSection: React.FC<{
     title: string;
     onImport: (file: File, mode: 'append' | 'replace') => void;
+    onDownloadTemplate: () => void;
     showToast: (message: string, type: 'success' | 'error') => void;
-}> = ({ title, onImport, showToast }) => {
+}> = ({ title, onImport, onDownloadTemplate, showToast }) => {
     const [file, setFile] = useState<File | null>(null);
     const [mode, setMode] = useState<'append' | 'replace'>('append');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -116,10 +120,6 @@ const ImportSection: React.FC<{
     const handleImportClick = () => {
         if (file) {
             onImport(file, mode);
-            setFile(null); // Reset after import
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
         } else {
             showToast('Please select a file to import.', 'error');
         }
@@ -127,7 +127,17 @@ const ImportSection: React.FC<{
 
     return (
         <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <h4 className="font-semibold text-gray-800">{title}</h4>
+            <div className="flex justify-between items-center">
+              <h4 className="font-semibold text-gray-800">{title}</h4>
+              <button
+                  type="button"
+                  onClick={onDownloadTemplate}
+                  className="flex items-center gap-2 bg-gray-200 text-gray-700 font-semibold px-3 py-1.5 rounded-md text-xs hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+              >
+                  <DownloadIcon className="w-3.5 h-3.5" />
+                  <span>Template</span>
+              </button>
+            </div>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr,auto,auto] gap-3 items-center">
                 <input
                     type="file"
@@ -166,6 +176,7 @@ function App() {
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
+  const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string }) | null>(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -347,6 +358,23 @@ function App() {
       }
   };
 
+    const handleUpdateTask = (updatedTask: Task) => {
+        const taskInAll = allTasks.find(t => t.id === updatedTask.id);
+        if (!taskInAll) return;
+
+        if (taskInAll.projectId) {
+            const project = projects.find(p => p.id === taskInAll.projectId);
+            if (project) {
+                const updatedTasks = project.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
+                handleUpdateProject({ ...project, tasks: updatedTasks });
+            }
+        } else {
+            setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+        }
+        setEditingTask(null);
+        showToast('Task updated!', 'success');
+    };
+
   const handleDeleteTicket = (ticketId: string) => {
     const ticketToDelete = tickets.find(t => t.id === ticketId);
     if (!ticketToDelete) return;
@@ -485,6 +513,18 @@ function App() {
           return t;
       }));
   };
+    
+    const createTxtFileDownloader = (content: string, filename: string) => {
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${filename.replace(/[\s/\\?%*:|"<>]/g, '_')}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     const handleExportTicket = (ticket: Ticket) => {
         let content = `Title: ${ticket.title}\n`;
@@ -495,22 +535,77 @@ function App() {
         content += `Submission Date: ${new Date(ticket.submissionDate).toLocaleDateString()}\n\n`;
 
         if (ticket.type === TicketType.Issue) {
-            content += `Problem: ${ticket.problem}\n`;
-            content += `Duplication Steps: ${ticket.duplicationSteps}\n`;
+            content += `Problem: ${(ticket as IssueTicket).problem}\n`;
+            content += `Duplication Steps: ${(ticket as IssueTicket).duplicationSteps}\n`;
         } else {
-            content += `Improvement: ${ticket.improvement}\n`;
-            content += `Current Functionality: ${ticket.currentFunctionality}\n`;
+            content += `Improvement: ${(ticket as FeatureRequestTicket).improvement}\n`;
+            content += `Current Functionality: ${(ticket as FeatureRequestTicket).currentFunctionality}\n`;
         }
         
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${ticket.title.replace(/\s+/g, '_')}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        createTxtFileDownloader(content, ticket.title);
+    };
+
+    const handleExportProject = (project: Project) => {
+        let content = `Project Name: ${project.name}\n`;
+        content += `Status: ${project.status}\n`;
+        content += `Creation Date: ${new Date(project.creationDate).toLocaleDateString()}\n\n`;
+        content += `Description:\n${project.description}\n\n`;
+        content += `Involved People: ${(project.involvedPeople || []).join(', ')}\n\n`;
+        content += `Tasks (${(project.tasks || []).length}):\n`;
+        (project.tasks || []).forEach(task => {
+            content += `- ${task.description} (Assigned: ${task.assignedUser}, Status: ${task.status})\n`;
+        });
+        createTxtFileDownloader(content, project.name);
+    };
+
+    const handleExportTask = (task: Task) => {
+        let content = `Task: ${task.description}\n`;
+        content += `Status: ${task.status}\n`;
+        content += `Priority: ${task.priority}\n`;
+        content += `Assigned to: ${task.assignedUser}\n`;
+        content += `Type: ${task.type}\n`;
+        content += `Creation Date: ${new Date(task.creationDate).toLocaleDateString()}\n`;
+        if (task.dueDate) {
+            content += `Due Date: ${new Date(task.dueDate).toLocaleDateString()}\n`;
+        }
+        if (task.notifyOnCompletion) {
+            content += `Notify on Completion: ${task.notifyOnCompletion}\n`;
+        }
+        createTxtFileDownloader(content, task.description.substring(0, 30));
+    };
+
+    const handleExportMeeting = (meeting: Meeting) => {
+        let content = `Meeting: ${meeting.name}\n`;
+        content += `Date: ${new Date(meeting.meetingDate).toLocaleDateString()}\n`;
+        content += `Attendees: ${meeting.attendees.join(', ')}\n\n`;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = meeting.notes;
+        const notesText = tempDiv.textContent || tempDiv.innerText || "";
+        content += `Notes:\n${notesText}\n`;
+        createTxtFileDownloader(content, meeting.name);
+    };
+
+    const handleExportDealership = (dealership: Dealership) => {
+        let content = `Dealership: ${dealership.name}\n`;
+        content += `Account Number (CIF): ${dealership.accountNumber}\n`;
+        content += `Status: ${dealership.status}\n`;
+        content += `Assigned Specialist: ${dealership.assignedSpecialist || 'N/A'}\n\n`;
+        content += `Enterprise: ${dealership.enterprise || 'N/A'}\n`;
+        content += `Address: ${dealership.address || 'N/A'}\n\n`;
+        content += `Go-Live Date: ${dealership.goLiveDate ? new Date(dealership.goLiveDate).toLocaleDateString() : 'N/A'}\n`;
+        createTxtFileDownloader(content, dealership.name);
+    };
+
+    const handleExportFeature = (feature: FeatureAnnouncement) => {
+        let content = `Feature: ${feature.title}\n`;
+        content += `Status: ${feature.status}\n`;
+        content += `Platform: ${feature.platform}\n`;
+        content += `Launch Date: ${new Date(feature.launchDate).toLocaleDateString()}\n`;
+        if (feature.version) {
+            content += `Version: ${feature.version}\n`;
+        }
+        content += `\nDescription:\n${feature.description}\n`;
+        createTxtFileDownloader(content, feature.title);
     };
 
     const handleEmailTicket = (ticket: Ticket) => {
@@ -703,11 +798,66 @@ function App() {
         };
     }, [allTasks]);
 
-    const handleImport = (file: File, setter: React.Dispatch<React.SetStateAction<any[]>>, mode: 'append' | 'replace') => {
+    const getTemplateHeaders = (title: string): string[] => {
+      switch (title) {
+          case 'Tickets':
+              return ['id', 'title', 'type', 'productArea', 'platform', 'pmrNumber', 'fpTicketNumber', 'ticketThreadId', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate', 'status', 'priority', 'submitterName', 'client', 'location', 'updates', 'completionNotes', 'onHoldReason', 'projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds', 'problem', 'duplicationSteps', 'workaround', 'frequency', 'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits'];
+          case 'Projects':
+              return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
+          case 'Dealerships':
+              return ['id', 'name', 'accountNumber', 'status', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+          case 'Standalone Tasks':
+              return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
+          case 'Features':
+              return ['id', 'title', 'location', 'description', 'launchDate', 'version', 'platform', 'status', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'dealershipIds', 'linkedFeatureIds'];
+          case 'Meetings':
+              return ['id', 'name', 'meetingDate', 'attendees', 'notes', 'projectIds', 'ticketIds', 'linkedMeetingIds', 'taskIds', 'dealershipIds', 'featureIds'];
+          default:
+              return [];
+      }
+    };
+
+    const handleDownloadTemplate = (title: string) => {
+        const headers = getTemplateHeaders(title);
+        if (headers.length === 0) {
+            showToast(`Template for "${title}" is not available.`, 'error');
+            return;
+        }
+        const csvHeader = headers.join(',') + '\n';
+        const blob = new Blob([csvHeader], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${title.replace(/\s+/g, '_')}_template.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    };
+
+    const handleImport = (file: File, title: string, mode: 'append' | 'replace') => {
         if (!file) {
             showToast('No file selected.', 'error');
             return;
         }
+    
+        const requiredFieldsMap: Record<string, string[]> = {
+            'Tickets': ['title', 'type', 'submitterName'],
+            'Projects': ['name'],
+            'Dealerships': ['name', 'accountNumber'],
+            'Standalone Tasks': ['description'],
+            'Features': ['title', 'launchDate', 'status'],
+            'Meetings': ['name', 'meetingDate'],
+        };
+
+        const settersMap: Record<string, React.Dispatch<React.SetStateAction<any[]>>> = {
+            'Tickets': setTickets,
+            'Projects': setProjects,
+            'Dealerships': setDealerships,
+            'Standalone Tasks': setTasks,
+            'Features': setFeatures,
+            'Meetings': setMeetings,
+        };
+
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
@@ -727,13 +877,13 @@ function App() {
                                 inQuotes = !inQuotes;
                             }
                         } else if (char === ',' && !inQuotes) {
-                            result.push(current);
+                            result.push(current.trim());
                             current = '';
                         } else {
                             current += char;
                         }
                     }
-                    result.push(current);
+                    result.push(current.trim());
                     return result;
                 };
 
@@ -754,23 +904,62 @@ function App() {
                            if (typeof value === 'string' && ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']')))) {
                                obj[header] = JSON.parse(value);
                            } else {
-                               obj[header] = value === '' ? undefined : value;
+                               obj[header] = value === '' || value === undefined ? undefined : value;
                            }
                         } catch (e) {
-                           obj[header] = value === '' ? undefined : value;
+                           obj[header] = value === '' || value === undefined ? undefined : value;
                         }
                     });
                     return obj;
                 }).filter(Boolean);
 
+                const requiredFields = requiredFieldsMap[title] || [];
+                const validData: any[] = [];
+                let failedRowCount = 0;
+
+                data.forEach((row, index) => {
+                    if (!row) return;
+                    const missingFields = requiredFields.filter(field => !row[field] || String(row[field]).trim() === '');
+                    if (missingFields.length > 0) {
+                        console.error(`Import Error in ${file.name} (Row ${index + 2}): Missing required fields - ${missingFields.join(', ')}`);
+                        failedRowCount++;
+                    } else {
+                        validData.push(row);
+                    }
+                });
+
+                const successfulRowCount = validData.length;
+                const setter = settersMap[title];
+
+                if (!setter) {
+                    showToast(`Could not import data for "${title}".`, 'error');
+                    return;
+                }
+
                 if (mode === 'replace') {
-                    setter(data as any[]);
+                    setter(validData as any[]);
                 } else { // append
-                    const dataWithNewIds = data.map(item => ({ ...item, id: crypto.randomUUID() }));
+                    const dataWithNewIds = validData.map(item => ({ ...item, id: crypto.randomUUID() }));
                     setter((currentData: any[]) => [...currentData, ...dataWithNewIds]);
                 }
-                showToast(`Data imported from ${file.name} successfully.`, 'success');
-                setIsImportModalOpen(false);
+
+                let toastMessage = `Import from ${file.name} complete. `;
+                let toastType: 'success' | 'error' = 'success';
+                
+                if (successfulRowCount > 0) {
+                    toastMessage += `${successfulRowCount} row(s) imported. `;
+                }
+                if (failedRowCount > 0) {
+                    toastMessage += `${failedRowCount} row(s) failed. Check console for details.`;
+                    if (successfulRowCount === 0) toastType = 'error';
+                }
+                
+                showToast(toastMessage.trim(), toastType);
+                
+                if (successfulRowCount > 0 && failedRowCount === 0) {
+                    setIsImportModalOpen(false);
+                }
+
             } catch (error) {
                 console.error("Error parsing CSV:", error);
                 showToast(`Failed to parse ${file.name}. Check console for details.`, 'error');
@@ -816,13 +1005,57 @@ function App() {
         }
     }
     
-    const handleViewChange = (view: View) => {
-        setCurrentView(view);
+    const closeAllSideViews = () => {
         setSelectedTicket(null);
         setSelectedProject(null);
         setSelectedDealership(null);
         setSelectedMeeting(null);
         setSelectedFeature(null);
+    };
+
+    const handleSwitchToDetailView = (type: EntityType, id: string) => {
+        closeAllSideViews();
+        // A small delay allows for a smoother visual transition if a side view is already open.
+        setTimeout(() => {
+            switch (type) {
+                case 'ticket':
+                    const ticket = tickets.find(t => t.id === id);
+                    if (ticket) setSelectedTicket(ticket);
+                    break;
+                case 'project':
+                    const project = projects.find(p => p.id === id);
+                    if (project) setSelectedProject(project);
+                    break;
+                case 'dealership':
+                    const dealership = dealerships.find(d => d.id === id);
+                    if (dealership) setSelectedDealership(dealership);
+                    break;
+                case 'meeting':
+                    const meeting = meetings.find(m => m.id === id);
+                    if (meeting) setSelectedMeeting(meeting);
+                    break;
+                case 'feature':
+                    const feature = features.find(f => f.id === id);
+                    if (feature) setSelectedFeature(feature);
+                    break;
+                case 'task':
+                    const task = allTasks.find(t => t.id === id);
+                    if (task) setEditingTask(task);
+                    break;
+                default:
+                    break;
+            }
+        }, 100);
+    };
+
+    const handleSwitchFromTaskModal = (type: EntityType, id: string) => {
+        setEditingTask(null);
+        handleSwitchToDetailView(type, id);
+    };
+
+    const handleViewChange = (view: View) => {
+        setCurrentView(view);
+        closeAllSideViews();
     }
 
     const dataSourcesForExport = [
@@ -890,7 +1123,7 @@ function App() {
           {currentView === 'tasks' && (
             <>
               <TaskInsights {...taskInsights} />
-              <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} />
+              <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} onSwitchView={handleSwitchToDetailView} />
             </>
           )}
           {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature}/>}
@@ -902,6 +1135,26 @@ function App() {
           <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
               {renderForm()}
           </Modal>
+      )}
+
+      {editingTask && (
+        <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
+            <EditTaskForm 
+                task={editingTask} 
+                onSave={handleUpdateTask} 
+                onClose={() => setEditingTask(null)}
+                onExport={() => handleExportTask(editingTask)}
+                allTasks={allTasks}
+                allTickets={tickets}
+                allProjects={projects}
+                allMeetings={meetings}
+                allDealerships={dealerships}
+                allFeatures={features}
+                onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
+                onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
+                onSwitchView={handleSwitchFromTaskModal}
+            />
+        </Modal>
       )}
 
       {isExportModalOpen && (
@@ -923,12 +1176,12 @@ function App() {
                     </div>
                   </div>
 
-                  <ImportSection title="Tickets" onImport={(file, mode) => handleImport(file, setTickets, mode)} showToast={showToast} />
-                  <ImportSection title="Projects" onImport={(file, mode) => handleImport(file, setProjects, mode)} showToast={showToast} />
-                  <ImportSection title="Dealerships" onImport={(file, mode) => handleImport(file, setDealerships, mode)} showToast={showToast} />
-                  <ImportSection title="Standalone Tasks" onImport={(file, mode) => handleImport(file, setTasks, mode)} showToast={showToast} />
-                  <ImportSection title="Features" onImport={(file, mode) => handleImport(file, setFeatures, mode)} showToast={showToast} />
-                  <ImportSection title="Meetings" onImport={(file, mode) => handleImport(file, setMeetings, mode)} showToast={showToast} />
+                  <ImportSection title="Tickets" onImport={(file, mode) => handleImport(file, "Tickets", mode)} onDownloadTemplate={() => handleDownloadTemplate("Tickets")} showToast={showToast} />
+                  <ImportSection title="Projects" onImport={(file, mode) => handleImport(file, "Projects", mode)} onDownloadTemplate={() => handleDownloadTemplate("Projects")} showToast={showToast} />
+                  <ImportSection title="Dealerships" onImport={(file, mode) => handleImport(file, "Dealerships", mode)} onDownloadTemplate={() => handleDownloadTemplate("Dealerships")} showToast={showToast} />
+                  <ImportSection title="Standalone Tasks" onImport={(file, mode) => handleImport(file, "Standalone Tasks", mode)} onDownloadTemplate={() => handleDownloadTemplate("Standalone Tasks")} showToast={showToast} />
+                  <ImportSection title="Features" onImport={(file, mode) => handleImport(file, "Features", mode)} onDownloadTemplate={() => handleDownloadTemplate("Features")} showToast={showToast} />
+                  <ImportSection title="Meetings" onImport={(file, mode) => handleImport(file, "Meetings", mode)} onDownloadTemplate={() => handleDownloadTemplate("Meetings")} showToast={showToast} />
               </div>
           </Modal>
       )}
@@ -937,13 +1190,7 @@ function App() {
       <SideView 
         title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || ''}
         isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature)}
-        onClose={() => {
-            setSelectedTicket(null);
-            setSelectedProject(null);
-            setSelectedDealership(null);
-            setSelectedMeeting(null);
-            setSelectedFeature(null);
-        }}
+        onClose={closeAllSideViews}
       >
         {selectedTicket && (
           <TicketDetailView
@@ -964,12 +1211,14 @@ function App() {
             allFeatures={features}
             onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
           />
         )}
         {selectedProject && <ProjectDetailView 
             project={selectedProject} 
             onUpdate={handleUpdateProject} 
-            onDelete={handleDeleteProject} 
+            onDelete={handleDeleteProject}
+            onExport={() => handleExportProject(selectedProject)}
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
@@ -980,10 +1229,11 @@ function App() {
             allDealerships={dealerships} 
             allFeatures={features} 
             onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)} />}
-        {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} />}
-        {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} />}
-        {selectedFeature && <FeatureDetailView feature={selectedFeature} onUpdate={handleUpdateFeature} onDelete={handleDeleteFeature} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} />}
+            onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView} />}
+        {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} onExport={() => handleExportDealership(selectedDealership)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} onExport={() => handleExportMeeting(selectedMeeting)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedFeature && <FeatureDetailView feature={selectedFeature} onUpdate={handleUpdateFeature} onDelete={handleDeleteFeature} onExport={() => handleExportFeature(selectedFeature)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
       </SideView>
     </div>
   );

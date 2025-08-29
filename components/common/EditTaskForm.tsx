@@ -1,7 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
+import { DownloadIcon } from '../icons/DownloadIcon.tsx';
+
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
 // FIX: Correct the type for the `allTasks` prop to include `projectId`.
 // This fixes a type mismatch with the data passed from `TaskList.tsx`.
@@ -9,6 +13,7 @@ interface EditTaskFormProps {
   task: Task & { projectId: string | null };
   onSave: (task: Task) => void;
   onClose: () => void;
+  onExport: () => void;
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   // Add all other entities for linking
   allTickets: Ticket[];
@@ -18,12 +23,14 @@ interface EditTaskFormProps {
   allFeatures: FeatureAnnouncement[];
   onLink: (toType: string, toId: string) => void;
   onUnlink: (toType: string, toId: string) => void;
+  onSwitchView: (type: EntityType, id: string) => void;
 }
 
 const EditTaskForm: React.FC<EditTaskFormProps> = ({ 
     task, 
     onSave, 
-    onClose, 
+    onClose,
+    onExport,
     allTasks,
     allTickets,
     allProjects,
@@ -31,7 +38,8 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     allDealerships,
     allFeatures,
     onLink,
-    onUnlink
+    onUnlink,
+    onSwitchView
 }) => {
     const [editedTask, setEditedTask] = useState(task);
 
@@ -54,6 +62,11 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave(editedTask);
+    };
+
+    const handleItemClick = (type: EntityType, id: string) => {
+        onClose(); // Close the edit task modal first
+        onSwitchView(type, id); // Then open the new view
     };
 
     const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
@@ -105,21 +118,37 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
                     <input type="text" name="type" value={editedTask.type} onChange={handleChange} required className={formElementClasses} />
                 </div>
             </div>
-            <div>
-                <label className={labelClasses}>Due Date</label>
-                <input type="date" name="dueDate" value={editedTask.dueDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+            <div className="grid grid-cols-2 gap-4">
+                 <div>
+                    <label className={labelClasses}>Due Date</label>
+                    <input type="date" name="dueDate" value={editedTask.dueDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} />
+                </div>
+                <div>
+                    <label className={labelClasses}>Notify on Completion</label>
+                    <input type="text" name="notifyOnCompletion" value={editedTask.notifyOnCompletion || ''} onChange={handleChange} className={formElementClasses} placeholder="e.g., name, email" />
+                </div>
             </div>
 
-            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} />
-            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} />
-            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} />
-            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} />
-            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} />
-            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} />
+            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => handleItemClick('ticket', id)} />
+            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => handleItemClick('project', id)} />
+            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => handleItemClick('meeting', id)} />
+            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => handleItemClick('dealership', id)} />
+            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => handleItemClick('feature', id)} />
+            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => handleItemClick('task', id)} />
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
-                <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
+            <div className="flex justify-between items-center gap-3 pt-4 border-t border-gray-200 mt-6">
+                <button
+                    type="button"
+                    onClick={onExport}
+                    className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                    <DownloadIcon className="w-4 h-4" />
+                    <span>Export</span>
+                </button>
+                <div className="flex gap-3">
+                    <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+                    <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>
+                </div>
             </div>
         </form>
     );

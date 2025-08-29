@@ -186,7 +186,7 @@ export const initialProjects: Project[] = [
     ],
     tasks: [
       { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', creationDate: new Date('2024-07-11T10:00:00Z').toISOString(), dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
-      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date('2024-07-30T17:00:00Z').toISOString(), linkedTaskIds: ['sub-1-4'] },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date('2024-07-30T17:00:00Z').toISOString(), linkedTaskIds: ['sub-1-4'], notifyOnCompletion: 'Project Lead' },
       { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', creationDate: new Date('2024-07-12T10:00:00Z').toISOString(), dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
       { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', creationDate: new Date('2024-07-12T11:00:00Z').toISOString(), dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
     ],
@@ -246,6 +246,7 @@ export const initialTasks: Task[] = [
     type: 'Documentation',
     creationDate: new Date('2024-07-20T10:00:00Z').toISOString(),
     dueDate: new Date('2024-08-15T17:00:00Z').toISOString(),
+    notifyOnCompletion: 'design-team@example.com',
     linkedTaskIds: [],
     ticketIds: [],
     projectIds: [],
