@@ -834,6 +834,92 @@ function App() {
         URL.revokeObjectURL(link.href);
     };
 
+    const formatImportedRow = (row: any, entityType: string): any => {
+        const formattedRow = { ...row };
+    
+        const dateFields: string[] = [];
+        const arrayFields: string[] = [];
+        const jsonFields: string[] = ['updates', 'tasks'];
+    
+        switch (entityType) {
+            case 'Tickets':
+                dateFields.push('submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate');
+                arrayFields.push('projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds');
+                break;
+            case 'Projects':
+                dateFields.push('creationDate');
+                arrayFields.push('ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds', 'involvedPeople');
+                break;
+            case 'Dealerships':
+                dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
+                arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
+                break;
+            case 'Standalone Tasks':
+                dateFields.push('creationDate', 'dueDate');
+                arrayFields.push('linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds');
+                break;
+            case 'Features':
+                dateFields.push('launchDate');
+                arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'dealershipIds', 'linkedFeatureIds');
+                break;
+            case 'Meetings':
+                dateFields.push('meetingDate');
+                arrayFields.push('attendees', 'projectIds', 'ticketIds', 'linkedMeetingIds', 'taskIds', 'dealershipIds', 'featureIds');
+                break;
+        }
+    
+        const toUtcIsoString = (dateString?: string): string | undefined => {
+            if (!dateString || typeof dateString !== 'string') return undefined;
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return undefined;
+            // Treat date-only strings as UTC to avoid timezone shifts
+            if (!dateString.includes('T')) {
+                const tzOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() + tzOffset).toISOString();
+            }
+            return date.toISOString();
+        };
+    
+        dateFields.forEach(field => {
+            if (formattedRow[field]) {
+                formattedRow[field] = toUtcIsoString(formattedRow[field]);
+            }
+        });
+    
+        arrayFields.forEach(field => {
+            const value = formattedRow[field];
+            if (value && typeof value === 'string') {
+                try {
+                    // Try parsing as JSON first, be lenient with quotes
+                    const parsed = JSON.parse(value.replace(/'/g, '"'));
+                    if (Array.isArray(parsed)) {
+                        formattedRow[field] = parsed.map(String).filter(Boolean);
+                    } else {
+                         formattedRow[field] = value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                    }
+                } catch (e) {
+                    // If JSON parsing fails, treat as comma/semicolon-separated
+                    formattedRow[field] = value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                }
+            } else if (!Array.isArray(value)) {
+                formattedRow[field] = [];
+            }
+        });
+        
+        jsonFields.forEach(field => {
+            if (formattedRow[field] && typeof formattedRow[field] === 'string') {
+                try {
+                    formattedRow[field] = JSON.parse(formattedRow[field]);
+                } catch (e) {
+                    console.warn(`Could not parse JSON for field '${field}'`, { value: formattedRow[field] });
+                    formattedRow[field] = (field === 'tasks') ? [] : undefined;
+                }
+            }
+        });
+    
+        return formattedRow;
+    };
+
     const handleImport = (file: File, title: string, mode: 'append' | 'replace') => {
         if (!file) {
             showToast('No file selected.', 'error');
@@ -899,16 +985,8 @@ function App() {
                     const values = parseCsvLine(line);
                     const obj: { [key: string]: any } = {};
                     headers.forEach((header, index) => {
-                        let value: any = values[index];
-                        try {
-                           if (typeof value === 'string' && ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']')))) {
-                               obj[header] = JSON.parse(value);
-                           } else {
-                               obj[header] = value === '' || value === undefined ? undefined : value;
-                           }
-                        } catch (e) {
-                           obj[header] = value === '' || value === undefined ? undefined : value;
-                        }
+                        const value = values[index];
+                        obj[header] = value === '' || value === undefined ? undefined : value;
                     });
                     return obj;
                 }).filter(Boolean);
@@ -919,12 +997,15 @@ function App() {
 
                 data.forEach((row, index) => {
                     if (!row) return;
-                    const missingFields = requiredFields.filter(field => !row[field] || String(row[field]).trim() === '');
+                    
+                    const formattedRow = formatImportedRow(row, title);
+
+                    const missingFields = requiredFields.filter(field => !formattedRow[field] || String(formattedRow[field]).trim() === '');
                     if (missingFields.length > 0) {
-                        console.error(`Import Error in ${file.name} (Row ${index + 2}): Missing required fields - ${missingFields.join(', ')}`);
+                        console.error(`Import Error in ${file.name} (Row ${index + 2}): Missing required fields - ${missingFields.join(', ')}`, { row: formattedRow });
                         failedRowCount++;
                     } else {
-                        validData.push(row);
+                        validData.push(formattedRow);
                     }
                 });
 
@@ -939,7 +1020,7 @@ function App() {
                 if (mode === 'replace') {
                     setter(validData as any[]);
                 } else { // append
-                    const dataWithNewIds = validData.map(item => ({ ...item, id: crypto.randomUUID() }));
+                    const dataWithNewIds = validData.map(item => ({ ...item, id: item.id || crypto.randomUUID() }));
                     setter((currentData: any[]) => [...currentData, ...dataWithNewIds]);
                 }
 
