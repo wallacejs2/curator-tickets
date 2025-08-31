@@ -16,6 +16,7 @@ interface FormData {
   platform: Platform;
   title: string;
   pmrNumber: string;
+  pmrLink: string;
   fpTicketNumber: string;
   ticketThreadId: string;
   startDate: string;
@@ -48,6 +49,7 @@ const getInitialState = (): FormData => {
     platform: Platform.Curator,
     title: '',
     pmrNumber: '',
+    pmrLink: '',
     fpTicketNumber: '',
     ticketThreadId: '',
     startDate: '',
@@ -211,9 +213,14 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
           <input type="text" name="pmrNumber" value={formData.pmrNumber} onChange={handleChange} className={formElementClasses}/>
         </div>
         <div>
+          <label className={labelClasses}>PMR Link</label>
+          <input type="url" name="pmrLink" value={formData.pmrLink} onChange={handleChange} placeholder="https://..." className={formElementClasses}/>
+        </div>
+        <div>
           <label className={labelClasses}>FP Ticket Number</label>
           <input type="text" name="fpTicketNumber" value={formData.fpTicketNumber} onChange={handleChange} className={formElementClasses}/>
         </div>
+        <div />
         <div className="col-span-2">
           <label className={labelClasses}>Ticket Thread ID</label>
           <input type="text" name="ticketThreadId" value={formData.ticketThreadId} onChange={handleChange} className={formElementClasses}/>

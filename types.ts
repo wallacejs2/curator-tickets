@@ -73,6 +73,7 @@ interface BaseTicket {
   productArea: ProductArea;
   platform: Platform;
   pmrNumber?: string;
+  pmrLink?: string;
   fpTicketNumber?: string;
   ticketThreadId?: string;
   submissionDate: string;

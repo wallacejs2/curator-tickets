@@ -212,7 +212,16 @@ const TicketDetailView = ({
       <FormSection title="Tracking & Ownership">
         <DetailField label="Submitter" value={ticket.submitterName} />
         <DetailField label="Client" value={ticket.client} />
-        <DetailField label="PMR Number" value={ticket.pmrNumber} />
+        <DetailField label="PMR Number" value={
+            <>
+              {ticket.pmrNumber || 'N/A'}
+              {ticket.pmrLink && (
+                  <a href={ticket.pmrLink} target="_blank" rel="noopener noreferrer" className="ml-2 font-semibold text-blue-600 hover:underline">
+                      Visit PMR
+                  </a>
+              )}
+            </>
+        } />
         <DetailField label="FP Ticket Number" value={ticket.fpTicketNumber} />
         <div className="col-span-2"><DetailField label="Ticket Thread ID" value={ticket.ticketThreadId} /></div>
       </FormSection>
@@ -262,8 +271,19 @@ const TicketDetailView = ({
         <FormSection title="Tracking & Ownership">
             <div><label className={labelClasses}>Submitter</label><input type="text" name="submitterName" value={editableTicket.submitterName} onChange={handleFormChange} required className={formElementClasses}/></div>
             <div><label className={labelClasses}>Client</label><input type="text" name="client" value={editableTicket.client || ''} onChange={handleFormChange} className={formElementClasses}/></div>
-            <div><label className={labelClasses}>PMR Number</label><input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses}/></div>
-            <div><label className={labelClasses}>FP Ticket Number</label><input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses}/></div>
+            <div>
+                <label className={labelClasses}>PMR Number</label>
+                <input type="text" name="pmrNumber" value={editableTicket.pmrNumber || ''} onChange={handleFormChange} className={formElementClasses}/>
+            </div>
+            <div>
+                <label className={labelClasses}>PMR Link</label>
+                <input type="url" name="pmrLink" value={editableTicket.pmrLink || ''} onChange={handleFormChange} placeholder="https://..." className={formElementClasses}/>
+            </div>
+            <div>
+                <label className={labelClasses}>FP Ticket Number</label>
+                <input type="text" name="fpTicketNumber" value={editableTicket.fpTicketNumber || ''} onChange={handleFormChange} className={formElementClasses}/>
+            </div>
+            <div />
             <div className="col-span-2"><label className={labelClasses}>Ticket Thread ID</label><input type="text" name="ticketThreadId" value={editableTicket.ticketThreadId || ''} onChange={handleFormChange} className={formElementClasses}/></div>
         </FormSection>
 

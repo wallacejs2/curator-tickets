@@ -229,7 +229,22 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                 )}
                 
                  <div className="text-xs text-gray-500 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    {ticket.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span></span>}
+                    {ticket.pmrNumber && (
+                        <span>
+                            PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span>
+                            {ticket.pmrLink && (
+                                <a
+                                    href={ticket.pmrLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="ml-2 font-semibold text-blue-600 hover:underline"
+                                >
+                                    Visit PMR
+                                </a>
+                            )}
+                        </span>
+                    )}
                     {ticket.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{ticket.fpTicketNumber}</span></span>}
                     {ticket.ticketThreadId && <span>Thread: <span className="font-medium text-gray-700">{ticket.ticketThreadId}</span></span>}
                  </div>

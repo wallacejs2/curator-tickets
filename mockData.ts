@@ -1,3 +1,4 @@
+
 import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting } from './types.ts';
 
 export const initialTickets: Ticket[] = [
@@ -9,6 +10,7 @@ export const initialTickets: Ticket[] = [
     title: 'Login button unresponsive on Safari',
     client: 'ABC Motors',
     pmrNumber: 'PMR-12345',
+    pmrLink: 'https://example.com/pmr/12345',
     fpTicketNumber: 'FP-001',
     ticketThreadId: 'THREAD-ABC-123',
     submissionDate: new Date('2024-07-20T10:00:00Z').toISOString(),
