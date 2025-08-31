@@ -165,7 +165,7 @@ const TicketDetailView = ({
     setEditableTicket(prev => {
         const newState = { ...prev, [name]: value };
         if (name === 'type') {
-            newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P5;
+            newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P3;
         }
         return newState;
     });

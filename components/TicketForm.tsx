@@ -92,7 +92,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         const newState = { ...prev, [name]: value as any };
         if (name === 'type') {
           // Reset priority when type changes
-          newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P5;
+          newState.priority = value === TicketType.Issue ? Priority.P3 : Priority.P3;
         }
         return newState;
     });

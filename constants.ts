@@ -17,4 +17,4 @@ export const PLATFORM_OPTIONS = Object.values(Platform);
 export const DEALERSHIP_STATUS_OPTIONS = Object.values(DealershipStatus);
 
 export const ISSUE_PRIORITY_OPTIONS = [Priority.P1, Priority.P2, Priority.P3, Priority.P4];
-export const FEATURE_REQUEST_PRIORITY_OPTIONS = [Priority.P5, Priority.P8];
+export const FEATURE_REQUEST_PRIORITY_OPTIONS = [Priority.P1, Priority.P2, Priority.P3, Priority.P4];
