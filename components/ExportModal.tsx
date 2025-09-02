@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import Modal from './common/Modal.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
+import { MenuIcon } from './icons/MenuIcon.tsx';
+
 
 interface ExportModalProps {
   onClose: () => void;
@@ -49,6 +51,10 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
   const [selectedFields, setSelectedFields] = useState<Record<string, string[]>>({});
   const [format, setFormat] = useState<'xlsx' | 'csv'>('xlsx');
   const [enrichData, setEnrichData] = useState(true);
+
+  // Drag and drop state
+  const dragField = useRef<string | null>(null);
+  const dragOverField = useRef<string | null>(null);
 
   const allFieldsByTitle = useMemo(() => {
     const fieldsMap: Record<string, string[]> = {};
@@ -101,12 +107,36 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
     });
   };
 
-  const handleSelectAllFields = (title: string) => {
-    setSelectedFields(prev => ({ ...prev, [title]: allFieldsByTitle[title] || [] }));
+  const handleDragStart = (field: string) => {
+    dragField.current = field;
   };
 
-  const handleDeselectAllFields = (title: string) => {
-    setSelectedFields(prev => ({ ...prev, [title]: [] }));
+  const handleDragEnter = (field: string) => {
+    dragOverField.current = field;
+  };
+
+  const handleDrop = (title: string) => {
+    if (!dragField.current || !dragOverField.current || dragField.current === dragOverField.current) {
+        return;
+    }
+    const fields = selectedFields[title];
+    const dragFieldIndex = fields.indexOf(dragField.current);
+    const dragOverFieldIndex = fields.indexOf(dragOverField.current);
+    if (dragFieldIndex === -1 || dragOverFieldIndex === -1) return;
+
+    const newFields = [...fields];
+    const [removed] = newFields.splice(dragFieldIndex, 1);
+    newFields.splice(dragOverFieldIndex, 0, removed);
+
+    setSelectedFields(prev => ({
+        ...prev,
+        [title]: newFields,
+    }));
+  };
+
+  const handleDragEnd = () => {
+    dragField.current = null;
+    dragOverField.current = null;
   };
   
   const handleExport = () => {
@@ -197,11 +227,75 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
     
     onClose();
   };
+  
+    const renderFieldSelection = (source: { title: string; data: any[] }) => {
+        const title = source.title;
+        const allFields = allFieldsByTitle[title] || [];
+        const currentSelectedFields = selectedFields[title] || [];
+        const availableFields = allFields.filter(f => !currentSelectedFields.includes(f));
+
+        return (
+            <div className="mt-4 pt-4 border-t border-gray-200" id={`fields-${title.replace(/\s+/g, '-')}`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                    {/* Available Fields Column */}
+                    <div>
+                        <h5 className="text-xs font-semibold text-gray-600 mb-2">Available Columns ({availableFields.length})</h5>
+                        <div className="max-h-48 overflow-y-auto border border-gray-200 bg-white rounded-md p-2 space-y-1">
+                            {availableFields.length > 0 ? availableFields.map(field => (
+                                <div key={field} className="flex items-center justify-between p-1.5 rounded hover:bg-gray-100">
+                                    <span className="text-sm text-gray-700">{field}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleFieldToggle(title, field)}
+                                        className="text-blue-600 hover:text-blue-800 font-bold text-lg leading-none flex items-center justify-center w-5 h-5"
+                                        aria-label={`Add column ${field}`}
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            )) : <p className="text-center text-xs text-gray-500 p-2">All columns selected</p>}
+                        </div>
+                    </div>
+
+                    {/* Selected Fields Column */}
+                    <div>
+                        <h5 className="text-xs font-semibold text-gray-600 mb-2">Selected &amp; Ordered ({currentSelectedFields.length})</h5>
+                        <div className="max-h-48 overflow-y-auto border border-gray-200 bg-white rounded-md p-2 space-y-1" onDragEnd={handleDragEnd}>
+                            {currentSelectedFields.length > 0 ? currentSelectedFields.map(field => (
+                                <div
+                                    key={field}
+                                    draggable
+                                    onDragStart={() => handleDragStart(field)}
+                                    onDragEnter={() => handleDragEnter(field)}
+                                    onDrop={() => handleDrop(title)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    className="flex items-center justify-between p-1.5 rounded bg-gray-50 border border-gray-200 cursor-grab group"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <MenuIcon className="w-4 h-4 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
+                                        <span className="text-sm text-gray-800 font-medium">{field}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleFieldToggle(title, field)}
+                                        className="text-red-500 hover:text-red-700 font-bold text-lg leading-none flex items-center justify-center w-5 h-5"
+                                        aria-label={`Remove column ${field}`}
+                                    >
+                                        -
+                                    </button>
+                                </div>
+                            )) : <p className="text-center text-xs text-gray-500 p-2">Select columns from the left</p>}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <Modal title="Export Data" onClose={onClose}>
             <div className="space-y-6">
-                <p className="text-sm text-gray-600">Select the format, data types (sheets), and columns to include in your export.</p>
+                <p className="text-sm text-gray-600">Select the format, data types (sheets), and columns to include in your export. Drag and drop to reorder columns.</p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                      <div>
@@ -235,20 +329,10 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
                 <div>
                     <h4 className="font-semibold text-gray-800 mb-2 text-sm">Data Types to Export</h4>
                     {format === 'csv' && <p className="text-xs text-orange-600 mb-2 -mt-1">Only one data type can be exported as CSV at a time.</p>}
-                    <div className="flex gap-4 mb-3">
-                        <button onClick={() => {
-                            if (format === 'csv') return;
-                            const allSelected: Record<string, boolean> = {};
-                            dataSources.forEach(ds => allSelected[ds.title] = true);
-                            setSelectedSheets(allSelected);
-                        }} className="text-xs font-semibold text-blue-600 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline" disabled={format==='csv'}>Select All</button>
-                        <span className="text-gray-300">|</span>
-                        <button onClick={() => setSelectedSheets({})} className="text-xs font-semibold text-blue-600 hover:underline">Deselect All</button>
-                    </div>
-
+                   
                     <div className="space-y-3">
                         {dataSources.map(source => (
-                        <div key={source.title} className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <div key={source.title} className="p-3 border border-gray-200 rounded-lg bg-gray-50/70">
                             <label className="flex items-center space-x-3 cursor-pointer">
                             <input
                                 type="checkbox"
@@ -261,28 +345,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
                             <span className="font-semibold text-gray-800 text-sm">{source.title} ({source.data.length})</span>
                             </label>
                             
-                            {selectedSheets[source.title] && (
-                            <div className="mt-3 pl-8" id={`fields-${source.title.replace(/\s+/g, '-')}`}>
-                                <div className="flex gap-4 mb-2">
-                                    <button onClick={() => handleSelectAllFields(source.title)} className="text-xs font-semibold text-blue-600 hover:underline">Select All Fields</button>
-                                        <span className="text-gray-300">|</span>
-                                    <button onClick={() => handleDeselectAllFields(source.title)} className="text-xs font-semibold text-blue-600 hover:underline">Deselect All</button>
-                                </div>
-                                <div className="max-h-40 overflow-y-auto border border-gray-200 bg-white rounded-md p-3 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
-                                {(allFieldsByTitle[source.title] || []).map(field => (
-                                    <label key={field} className="flex items-center space-x-2 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={(selectedFields[source.title] || []).includes(field)}
-                                        onChange={() => handleFieldToggle(source.title, field)}
-                                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                    />
-                                    <span className="text-gray-700">{field}</span>
-                                    </label>
-                                ))}
-                                </div>
-                            </div>
-                            )}
+                            {selectedSheets[source.title] && renderFieldSelection(source)}
                         </div>
                         ))}
                     </div>
