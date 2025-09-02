@@ -120,7 +120,15 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="Account Name" value={dealership.name} />
                     <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
                     <DetailTag label="Status" value={dealership.status} />
+                </div>
+
+                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <DetailField label="Assigned Specialist" value={dealership.assignedSpecialist} />
+                    <DetailField label="Sales" value={dealership.sales} />
+                    <div />
+                    <DetailField label="Point of Contact Name" value={dealership.pocName} />
+                    <DetailField label="Point of Contact Email" value={dealership.pocEmail} />
+                    <DetailField label="Point of Contact Phone" value={dealership.pocPhone} />
                 </div>
 
                 <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">

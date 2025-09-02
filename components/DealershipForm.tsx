@@ -28,6 +28,10 @@ const initialFormData: Omit<Dealership, 'id'> = {
   buId: '',
   address: '',
   assignedSpecialist: '',
+  sales: '',
+  pocName: '',
+  pocEmail: '',
+  pocPhone: '',
 };
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols?: number }> = ({ title, children, gridCols = 2 }) => (
@@ -114,15 +118,34 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
           <label className={labelClasses}>Account Number (CIF)</label>
           <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} />
         </div>
-        <div>
+        <div className="col-span-2">
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
             {Object.values(DealershipStatus).map(status => <option key={status} value={status}>{status}</option>)}
           </select>
         </div>
+      </FormSection>
+
+      <FormSection title="Key Contacts">
         <div>
-          <label className={labelClasses}>Assigned Specialist</label>
-          <input type="text" name="assignedSpecialist" value={formData.assignedSpecialist || ''} onChange={handleChange} className={formElementClasses} />
+            <label className={labelClasses}>Assigned Specialist</label>
+            <input type="text" name="assignedSpecialist" value={formData.assignedSpecialist || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+            <label className={labelClasses}>Sales</label>
+            <input type="text" name="sales" value={formData.sales || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div className="col-span-2">
+            <label className={labelClasses}>Point of Contact Name</label>
+            <input type="text" name="pocName" value={formData.pocName || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+            <label className={labelClasses}>Point of Contact Email</label>
+            <input type="email" name="pocEmail" value={formData.pocEmail || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+            <label className={labelClasses}>Point of Contact Phone</label>
+            <input type="tel" name="pocPhone" value={formData.pocPhone || ''} onChange={handleChange} className={formElementClasses} />
         </div>
       </FormSection>
       

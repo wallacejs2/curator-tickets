@@ -239,6 +239,10 @@ export interface Dealership {
   buId?: string;
   address?: string;
   assignedSpecialist?: string;
+  sales?: string;
+  pocName?: string;
+  pocEmail?: string;
+  pocPhone?: string;
   // Linking fields
   ticketIds?: string[];
   projectIds?: string[];
