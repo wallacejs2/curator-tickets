@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import Modal from './common/Modal.tsx';
@@ -51,6 +52,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
   const [selectedFields, setSelectedFields] = useState<Record<string, string[]>>({});
   const [format, setFormat] = useState<'xlsx' | 'csv'>('xlsx');
   const [enrichData, setEnrichData] = useState(true);
+  const [activeDataType, setActiveDataType] = useState<string>(dataSources.length > 0 ? dataSources[0].title : '');
 
   // Drag and drop state
   const dragField = useRef<string | null>(null);
@@ -71,6 +73,18 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
         const key = ds.title.toLowerCase().replace(/s$/, '').replace('standalone task', 'task');
         maps[key] = new Map(ds.data.map(item => [item.id, item]));
     });
+    // Add nested tasks from projects to the task map
+    const projectsData = dataSources.find(ds => ds.title === 'Projects')?.data || [];
+    if (!maps['task']) {
+        maps['task'] = new Map();
+    }
+    projectsData.forEach(project => {
+        (project.tasks || []).forEach((task: any) => {
+            if (!maps['task'].has(task.id)) {
+                maps['task'].set(task.id, task);
+            }
+        });
+    });
     return maps;
   }, [dataSources]);
 
@@ -90,10 +104,17 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
 
 
   const handleSheetToggle = (title: string) => {
+    const isChecked = !selectedSheets[title];
     if (format === 'csv') {
-        setSelectedSheets({ [title]: !selectedSheets[title] });
+        setSelectedSheets({ [title]: isChecked });
+        if (isChecked) {
+            setActiveDataType(title);
+        }
     } else {
-        setSelectedSheets(prev => ({ ...prev, [title]: !prev[title] }));
+        setSelectedSheets(prev => ({ ...prev, [title]: isChecked }));
+        if (isChecked) {
+            setActiveDataType(title);
+        }
     }
   };
   
@@ -175,6 +196,10 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
                     const lookupMap = lookupMaps[entityType];
                     const ids = Array.isArray(value) ? value : (value ? [value] : []);
                     value = ids.map(id => lookupMap?.get(id) ? getItemName(lookupMap.get(id)) : id).join('; ');
+                } else if (enrichData && field === 'updates' && Array.isArray(value)) {
+                    value = value.map(update => 
+                        `${new Date(update.date).toISOString().split('T')[0]} by ${update.author}: ${update.comment.replace(/<br\s*\/?>/gi, '\n')}`
+                    ).join('\n\n');
                 } else if (isISODateString(value)) {
                     value = value.split('T')[0];
                 } else if (typeof value === 'object' && value !== null) {
@@ -228,64 +253,61 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
     onClose();
   };
   
-    const renderFieldSelection = (source: { title: string; data: any[] }) => {
-        const title = source.title;
+    const renderFieldSelection = (title: string) => {
         const allFields = allFieldsByTitle[title] || [];
         const currentSelectedFields = selectedFields[title] || [];
         const availableFields = allFields.filter(f => !currentSelectedFields.includes(f));
 
         return (
-            <div className="mt-4 pt-4 border-t border-gray-200" id={`fields-${title.replace(/\s+/g, '-')}`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                    {/* Available Fields Column */}
-                    <div>
-                        <h5 className="text-xs font-semibold text-gray-600 mb-2">Available Columns ({availableFields.length})</h5>
-                        <div className="max-h-48 overflow-y-auto border border-gray-200 bg-white rounded-md p-2 space-y-1">
-                            {availableFields.length > 0 ? availableFields.map(field => (
-                                <div key={field} className="flex items-center justify-between p-1.5 rounded hover:bg-gray-100">
-                                    <span className="text-sm text-gray-700">{field}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleFieldToggle(title, field)}
-                                        className="text-blue-600 hover:text-blue-800 font-bold text-lg leading-none flex items-center justify-center w-5 h-5"
-                                        aria-label={`Add column ${field}`}
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            )) : <p className="text-center text-xs text-gray-500 p-2">All columns selected</p>}
-                        </div>
-                    </div>
-
-                    {/* Selected Fields Column */}
-                    <div>
-                        <h5 className="text-xs font-semibold text-gray-600 mb-2">Selected &amp; Ordered ({currentSelectedFields.length})</h5>
-                        <div className="max-h-48 overflow-y-auto border border-gray-200 bg-white rounded-md p-2 space-y-1" onDragEnd={handleDragEnd}>
-                            {currentSelectedFields.length > 0 ? currentSelectedFields.map(field => (
-                                <div
-                                    key={field}
-                                    draggable
-                                    onDragStart={() => handleDragStart(field)}
-                                    onDragEnter={() => handleDragEnter(field)}
-                                    onDrop={() => handleDrop(title)}
-                                    onDragOver={(e) => e.preventDefault()}
-                                    className="flex items-center justify-between p-1.5 rounded bg-gray-50 border border-gray-200 cursor-grab group"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+                {/* Available Fields Column */}
+                <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Available Columns ({availableFields.length})</h5>
+                    <div className="h-[50vh] overflow-y-auto border border-gray-300 bg-white rounded-md p-2 space-y-1">
+                        {availableFields.length > 0 ? availableFields.map(field => (
+                            <div key={field} className="flex items-center justify-between p-1.5 rounded hover:bg-gray-100">
+                                <span className="text-sm text-gray-800">{field}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleFieldToggle(title, field)}
+                                    className="text-blue-600 hover:text-blue-800 font-bold text-lg leading-none flex items-center justify-center w-5 h-5"
+                                    aria-label={`Add column ${field}`}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <MenuIcon className="w-4 h-4 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
-                                        <span className="text-sm text-gray-800 font-medium">{field}</span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleFieldToggle(title, field)}
-                                        className="text-red-500 hover:text-red-700 font-bold text-lg leading-none flex items-center justify-center w-5 h-5"
-                                        aria-label={`Remove column ${field}`}
-                                    >
-                                        -
-                                    </button>
+                                    +
+                                </button>
+                            </div>
+                        )) : <p className="text-center text-sm text-gray-500 p-4">All columns selected</p>}
+                    </div>
+                </div>
+
+                {/* Selected Fields Column */}
+                <div>
+                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Selected &amp; Ordered ({currentSelectedFields.length})</h5>
+                    <div className="h-[50vh] overflow-y-auto border border-gray-300 bg-white rounded-md p-2 space-y-1" onDragEnd={handleDragEnd}>
+                        {currentSelectedFields.length > 0 ? currentSelectedFields.map(field => (
+                            <div
+                                key={field}
+                                draggable
+                                onDragStart={() => handleDragStart(field)}
+                                onDragEnter={() => handleDragEnter(field)}
+                                onDrop={() => handleDrop(title)}
+                                onDragOver={(e) => e.preventDefault()}
+                                className="flex items-center justify-between p-1.5 rounded bg-gray-50 border border-gray-200 cursor-grab group"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <MenuIcon className="w-4 h-4 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
+                                    <span className="text-sm text-gray-800 font-medium">{field}</span>
                                 </div>
-                            )) : <p className="text-center text-xs text-gray-500 p-2">Select columns from the left</p>}
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={() => handleFieldToggle(title, field)}
+                                    className="text-red-500 hover:text-red-700 font-bold text-lg leading-none flex items-center justify-center w-5 h-5"
+                                    aria-label={`Remove column ${field}`}
+                                >
+                                    -
+                                </button>
+                            </div>
+                        )) : <p className="text-center text-sm text-gray-500 p-4">Select columns from the left</p>}
                     </div>
                 </div>
             </div>
@@ -293,10 +315,8 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
     };
 
     return (
-        <Modal title="Export Data" onClose={onClose}>
+        <Modal title="Export Data" onClose={onClose} size="6xl">
             <div className="space-y-6">
-                <p className="text-sm text-gray-600">Select the format, data types (sheets), and columns to include in your export. Drag and drop to reorder columns.</p>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                      <div>
                         <h4 className="font-semibold text-gray-800 mb-2 text-sm">Export Format</h4>
@@ -325,31 +345,50 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
                         </div>
                     </div>
                 </div>
-
-                <div>
-                    <h4 className="font-semibold text-gray-800 mb-2 text-sm">Data Types to Export</h4>
-                    {format === 'csv' && <p className="text-xs text-orange-600 mb-2 -mt-1">Only one data type can be exported as CSV at a time.</p>}
-                   
-                    <div className="space-y-3">
-                        {dataSources.map(source => (
-                        <div key={source.title} className="p-3 border border-gray-200 rounded-lg bg-gray-50/70">
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={!!selectedSheets[source.title]}
-                                onChange={() => handleSheetToggle(source.title)}
-                                className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                aria-controls={`fields-${source.title.replace(/\s+/g, '-')}`}
-                                aria-expanded={!!selectedSheets[source.title]}
-                            />
-                            <span className="font-semibold text-gray-800 text-sm">{source.title} ({source.data.length})</span>
-                            </label>
-                            
-                            {selectedSheets[source.title] && renderFieldSelection(source)}
+                
+                <div className="flex gap-x-6 pt-4 border-t border-gray-200">
+                    <div className="w-1/4">
+                        <h4 className="font-semibold text-gray-800 mb-2 text-sm">Data Types to Export</h4>
+                        {format === 'csv' && <p className="text-xs text-orange-600 mb-2 -mt-1">Select one data type.</p>}
+                        <div className="space-y-2">
+                           {dataSources.map(source => (
+                            <div
+                                key={source.title}
+                                onClick={() => setActiveDataType(source.title)}
+                                className={`flex items-center gap-3 p-2.5 rounded-md cursor-pointer border transition-colors ${activeDataType === source.title ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-100 border-transparent'}`}
+                            >
+                                <input
+                                    type={format === 'csv' ? 'radio' : 'checkbox'}
+                                    name="sheet-selection"
+                                    id={`checkbox-${source.title.replace(/\s+/g, '-')}`}
+                                    checked={!!selectedSheets[source.title]}
+                                    onChange={() => handleSheetToggle(source.title)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-4 w-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+                                />
+                                <label htmlFor={`checkbox-${source.title.replace(/\s+/g, '-')}`} className="font-medium text-gray-800 text-sm cursor-pointer select-none">
+                                    {source.title} ({source.data.length})
+                                </label>
+                            </div>
+                           ))}
                         </div>
-                        ))}
+                    </div>
+                    <div className="w-3/4">
+                        {activeDataType && selectedSheets[activeDataType] ? (
+                            <>
+                                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                                    Configure Columns for <span className="text-blue-600">{activeDataType}</span>
+                                </h4>
+                                {renderFieldSelection(activeDataType)}
+                            </>
+                        ) : (
+                            <div className="h-full flex items-center justify-center bg-gray-50 rounded-md border-2 border-dashed">
+                                <p className="text-gray-500">Select and check a data type on the left to configure its columns.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
+
             </div>
              <div className="mt-8 flex justify-end items-center gap-3">
                  <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>

@@ -6,9 +6,23 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl';
 }
 
-const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
+const Modal: React.FC<ModalProps> = ({ title, onClose, children, size = '3xl' }) => {
+  const sizeClasses = {
+    'sm': 'max-w-sm',
+    'md': 'max-w-md',
+    'lg': 'max-w-lg',
+    'xl': 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl',
+    '6xl': 'max-w-6xl',
+    '7xl': 'max-w-7xl',
+  };
+
   return (
     <div 
       className="fixed inset-0 bg-black/30 z-50 flex justify-center items-start pt-16 sm:pt-24 px-4" 
@@ -17,7 +31,7 @@ const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl transform transition-all"
+        className={`bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-5 border-b border-gray-200">
@@ -30,7 +44,7 @@ const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
             <XIcon className="w-6 h-6" />
           </button>
         </div>
-        <div className="p-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 max-h-[80vh] overflow-y-auto">
           {children}
         </div>
       </div>
