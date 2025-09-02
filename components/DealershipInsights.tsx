@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 // Re-use the InsightCard component for a consistent look
@@ -13,10 +14,10 @@ const InsightCard: React.FC<{ label: string; value: string | number; description
 interface DealershipInsightsProps {
   totalDealerships: number;
   liveAccounts: number;
-  onboardingAccounts: number;
+  pendingAccounts: number;
 }
 
-const DealershipInsights: React.FC<DealershipInsightsProps> = ({ totalDealerships, liveAccounts, onboardingAccounts }) => {
+const DealershipInsights: React.FC<DealershipInsightsProps> = ({ totalDealerships, liveAccounts, pendingAccounts }) => {
   return (
     <div className="mb-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Dealership Insights</h2>
@@ -32,9 +33,9 @@ const DealershipInsights: React.FC<DealershipInsightsProps> = ({ totalDealership
           description="Currently active and live dealerships."
         />
         <InsightCard
-          label="Onboarding"
-          value={onboardingAccounts}
-          description="Accounts currently in the onboarding process."
+          label="Pending Statuses"
+          value={pendingAccounts}
+          description="Pending FOCUS, Pending DMT, & Pending Setup."
         />
       </div>
     </div>

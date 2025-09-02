@@ -213,10 +213,13 @@ export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features'
 
 // New types for Dealerships
 export enum DealershipStatus {
+  PendingFocus = 'Pending FOCUS',
+  PendingDmt = 'Pending DMT',
+  PendingSetup = 'Pending Setup',
   Onboarding = 'Onboarding',
   Live = 'Live',
+  Pilot = 'PILOT',
   Cancelled = 'Cancelled',
-  Pilot = 'Pilot',
 }
 
 export interface Dealership {

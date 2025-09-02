@@ -777,11 +777,14 @@ function App() {
         };
     }, [tickets]);
 
-    const dealershipInsights = useMemo(() => ({
-        totalDealerships: dealerships.length,
-        liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
-        onboardingAccounts: dealerships.filter(d => d.status === DealershipStatus.Onboarding).length,
-    }), [dealerships]);
+    const dealershipInsights = useMemo(() => {
+        const pendingStatuses = [DealershipStatus.PendingFocus, DealershipStatus.PendingDmt, DealershipStatus.PendingSetup];
+        return {
+            totalDealerships: dealerships.length,
+            liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
+            pendingAccounts: dealerships.filter(d => pendingStatuses.includes(d.status)).length,
+        }
+    }, [dealerships]);
 
     const projectInsights = useMemo(() => ({
         totalProjects: projects.length,

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -14,6 +15,9 @@ interface DealershipListProps {
 }
 
 const statusColors: Record<DealershipStatus, string> = {
+  [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
+  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
+  [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
   [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';
@@ -28,6 +29,9 @@ const tagColorStyles: Record<string, string> = {
   [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
   // DealershipStatus
+  [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
+  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
+  [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
   [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
