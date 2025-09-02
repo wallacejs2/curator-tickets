@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -64,7 +65,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
 
-    const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleDateString() : 'N/A';
+    const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A';
     
     // Linked items
     const linkedTickets = allTickets.filter(item => (dealership.ticketIds || []).includes(item.id));

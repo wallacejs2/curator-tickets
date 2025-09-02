@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 // FIX: Import missing constants
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
@@ -203,10 +204,10 @@ const TicketDetailView = ({
       </FormSection>
 
       <FormSection title="Dates" gridCols={3}>
-        <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString()} />
-        <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'} />
-        <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A'} />
-        {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : 'N/A'} />}
+        <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString(undefined, { timeZone: 'UTC' })} />
+        <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />
+        <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />
+        {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />}
       </FormSection>
       
       <FormSection title="Tracking & Ownership">
@@ -421,7 +422,7 @@ const TicketDetailView = ({
                             <p className="text-xs text-gray-500 font-medium">
                                 <span className="font-semibold text-gray-700">{update.author}</span>
                                 <span className="mx-1.5">•</span>
-                                <span>{new Date(update.date).toLocaleDateString()}</span>
+                                <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
                             </p>
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button

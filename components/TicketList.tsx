@@ -93,7 +93,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Most Recent Update</h4>
                 <p className="text-sm text-gray-800 mt-1 whitespace-pre-wrap">
                     {mostRecentUpdate
-                        ? `${new Date(mostRecentUpdate.date).toLocaleDateString()} - ${mostRecentUpdate.author}:\n${mostRecentUpdate.comment}`
+                        ? `${new Date(mostRecentUpdate.date).toLocaleDateString(undefined, { timeZone: 'UTC' })} - ${mostRecentUpdate.author}:\n${mostRecentUpdate.comment}`
                         : "No updates have been added yet."
                     }
                 </p>
@@ -211,7 +211,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                     <span>{ticket.submitterName}</span>
                   </div>
                   <div className="mt-1">
-                    <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A'}</span>
+                    <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'}</span>
                     <span className="mx-2 text-gray-300">•</span>
                     <span>{calculateDaysActive(ticket)}</span>
                   </div>

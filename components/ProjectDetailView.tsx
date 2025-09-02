@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
@@ -272,7 +273,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                 <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>{task.description}</p>
                                 <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                                     <span>To: <span className="font-medium">{task.assignedUser}</span></span>
-                                    {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
+                                    {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></span>}
                                     <span>Type: <span className="font-medium">{task.type}</span></span>
                                     <span>Priority: <span className="font-medium">{task.priority}</span></span>
                                     {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
@@ -363,7 +364,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                         <p className="text-xs text-gray-500 font-medium">
                                             <span className="font-semibold text-gray-700">{update.author}</span>
                                             <span className="mx-1.5">•</span>
-                                            <span>{new Date(update.date).toLocaleDateString()}</span>
+                                            <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
                                         </p>
                                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button

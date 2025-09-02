@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -36,7 +37,7 @@ const ExpandedDealershipContent: React.FC<{ dealership: Dealership }> = ({ deale
       <div className="px-5 py-4 bg-gray-50">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <DetailItem label="Order #" value={dealership.orderNumber} />
-              <DetailItem label="Go-Live" value={dealership.goLiveDate ? new Date(dealership.goLiveDate).toLocaleDateString() : 'TBD'} />
+              <DetailItem label="Go-Live" value={dealership.goLiveDate ? new Date(dealership.goLiveDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'TBD'} />
               <DetailItem label="Store/Branch" value={`${dealership.storeNumber || 'N/A'} / ${dealership.branchNumber || 'N/A'}`} />
               <DetailItem label="ERA ID" value={dealership.eraSystemId} />
               <DetailItem label="PPSysID" value={dealership.ppSysId} />

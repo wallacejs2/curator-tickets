@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Meeting, Project, Ticket, Task, Dealership, FeatureAnnouncement, Status, ProjectStatus, TaskStatus } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -175,7 +176,7 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
 
             <div className="space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <DetailField label="Meeting Date" value={new Date(meeting.meetingDate).toLocaleDateString()} />
+                    <DetailField label="Meeting Date" value={new Date(meeting.meetingDate).toLocaleDateString(undefined, { timeZone: 'UTC' })} />
                     <DetailField label="Attendees" value={meeting.attendees.join(', ')} />
                 </div>
 

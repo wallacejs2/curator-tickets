@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership, Status, ProjectStatus, TaskStatus } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -114,7 +115,7 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
                     <DetailField label="Platform" value={feature.platform} />
                     <DetailField label="Location" value={feature.location} />
                     <DetailField label="Version" value={feature.version} />
-                    <DetailField label="Launch Date" value={new Date(feature.launchDate).toLocaleDateString()} />
+                    <DetailField label="Launch Date" value={new Date(feature.launchDate).toLocaleDateString(undefined, { timeZone: 'UTC' })} />
                 </div>
                  <div className="border-t border-gray-200 pt-6">
                     <DetailField label="Description" value={feature.description} />
