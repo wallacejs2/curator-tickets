@@ -39,6 +39,7 @@ export const initialTickets: Ticket[] = [
         comment: 'Identified the issue is related to event propagation in WebKit. Working on a fix.'
       }
     ],
+    tasks: [],
     projectIds: [],
     meetingIds: [],
     taskIds: [],
@@ -75,6 +76,7 @@ export const initialTickets: Ticket[] = [
         comment: 'Feature request has been received and is under review for the next quarter planning.'
       }
     ],
+    tasks: [],
     linkedTicketIds: [],
     meetingIds: ['meet-1'],
     taskIds: [],
@@ -101,6 +103,7 @@ export const initialTickets: Ticket[] = [
     workaround: 'Perform a hard refresh (Ctrl+Shift+R) or clear the browser cache.',
     frequency: 'Always.',
     updates: [],
+    tasks: [],
     projectIds: [],
     linkedTicketIds: [],
     meetingIds: [],
@@ -134,6 +137,7 @@ export const initialTickets: Ticket[] = [
         { id: 'update-4-3', author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
     ],
     completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.',
+    tasks: [],
     projectIds: [],
     linkedTicketIds: [],
     meetingIds: [],
@@ -160,6 +164,7 @@ export const initialTickets: Ticket[] = [
     frequency: 'During peak hours.',
     linkedTicketIds: ['1'],
     updates: [],
+    tasks: [],
     projectIds: [],
     meetingIds: [],
     taskIds: [],

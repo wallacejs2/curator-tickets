@@ -81,15 +81,24 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     // Linked items
     const linkedTickets = allTickets.filter(item => (dealership.ticketIds || []).includes(item.id));
     const linkedProjects = allProjects.filter(item => (dealership.projectIds || []).includes(item.id));
-    const linkedTasks = allTasks.filter(item => (dealership.taskIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => (dealership.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (dealership.linkedDealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (dealership.featureIds || []).includes(item.id));
 
-    // Available items for linking (filter out completed items)
+    // Enhanced Task Linking Logic: Include tasks from linked tickets and projects
+    const directlyLinkedTaskIds = dealership.taskIds || [];
+    const taskIdsFromLinkedTickets = linkedTickets.flatMap(ticket => ticket.tasks?.map(task => task.id) || []);
+    const tasksFromLinkedProjects = allProjects
+        .filter(p => (dealership.projectIds || []).includes(p.id))
+        .flatMap(p => p.tasks?.map(t => t.id) || []);
+    
+    const allRelatedTaskIds = [...new Set([...directlyLinkedTaskIds, ...taskIdsFromLinkedTickets, ...tasksFromLinkedProjects])];
+    const linkedTasks = allTasks.filter(item => allRelatedTaskIds.includes(item.id));
+
+    // Available items for linking (filter out completed and already related items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(dealership.ticketIds || []).includes(item.id));
     const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(dealership.projectIds || []).includes(item.id));
-    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !(dealership.taskIds || []).includes(item.id));
+    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !allRelatedTaskIds.includes(item.id));
     const availableMeetings = allMeetings.filter(item => !(dealership.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => item.id !== dealership.id && !(dealership.linkedDealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => !(dealership.featureIds || []).includes(item.id));

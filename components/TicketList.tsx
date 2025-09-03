@@ -12,7 +12,6 @@ import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
 import { StarIcon } from './icons/StarIcon.tsx';
-import { ClockIcon } from './icons/ClockIcon.tsx';
 
 
 interface TicketTableProps {
@@ -21,7 +20,6 @@ interface TicketTableProps {
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
   projects: Project[];
   onToggleFavorite: (ticketId: string) => void;
-  mostRecentTicket: Ticket | null;
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -107,65 +105,9 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
     );
 }
 
-const MostRecentTicketCard: React.FC<{ ticket: Ticket; onRowClick: (ticket: Ticket) => void }> = ({ ticket, onRowClick }) => {
-    const { lastActivity, lastActivityDate } = useMemo(() => {
-      let lastUpdate = null;
-      if (ticket.updates && ticket.updates.length > 0) {
-          lastUpdate = [...ticket.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-      }
-      
-      const submissionDate = new Date(ticket.submissionDate);
-      const lastUpdateDateObj = lastUpdate ? new Date(lastUpdate.date) : null;
-  
-      if (lastUpdateDateObj && lastUpdateDateObj > submissionDate) {
-        return {
-          lastActivity: `Last update by ${lastUpdate!.author}`,
-          lastActivityDate: lastUpdateDateObj.toLocaleDateString(undefined, { timeZone: 'UTC' }),
-        };
-      }
-      
-      return {
-        lastActivity: `Created by ${ticket.submitterName}`,
-        lastActivityDate: submissionDate.toLocaleDateString(undefined, { timeZone: 'UTC' }),
-      };
-    }, [ticket]);
-  
-    return (
-      <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-              <ClockIcon className="w-5 h-5 text-gray-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Most Recently Active Ticket</h2>
-          </div>
-          <div onClick={() => onRowClick(ticket)} className="bg-blue-50 border border-blue-200 rounded-lg p-5 cursor-pointer hover:bg-blue-100 hover:border-blue-300 transition-all">
-              <div className="flex justify-between items-start gap-3">
-                  <h3 className="text-lg font-semibold text-gray-900">{ticket.title}</h3>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                      <Tag label={ticket.priority} />
-                      <Tag label={ticket.status} />
-                  </div>
-              </div>
-               <div className="mt-2 text-sm text-gray-500">
-                  {ticket.client && (
-                      <>
-                      <span className="font-medium text-gray-600">{ticket.client}</span>
-                      <span className="mx-2 text-gray-300">•</span>
-                      </>
-                  )}
-                  <span>Submitted by {ticket.submitterName}</span>
-              </div>
-  
-              <div className="mt-4 pt-4 border-t border-blue-100">
-                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Activity</h4>
-                   <p className="text-sm text-gray-800 mt-1">{lastActivity} on {lastActivityDate}</p>
-              </div>
-          </div>
-      </div>
-    );
-  };
-
 type TicketView = 'active' | 'completed' | 'favorites';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, mostRecentTicket }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -214,7 +156,6 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   
   return (
     <div>
-      {mostRecentTicket && <MostRecentTicketCard ticket={mostRecentTicket} onRowClick={onRowClick} />}
       <div className="mb-4 flex border-b border-gray-200">
         <button
           onClick={() => setTicketView('active')}
@@ -258,7 +199,27 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
         </div>
       ) : (
         <div className="space-y-4">
-          {ticketsToShow.map(ticket => (
+          {ticketsToShow.map(ticket => {
+            const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
+            let reasonText: string | undefined;
+            let reasonLabel: string | undefined;
+            let reasonContainerStyle: string | undefined;
+
+            if (ticket.status === Status.Completed) {
+                reasonText = ticket.completionNotes;
+                reasonLabel = "Completed";
+                reasonContainerStyle = "bg-green-50 border-green-200 text-green-800";
+            } else if (ticket.status === Status.OnHold) {
+                reasonText = ticket.onHoldReason;
+                reasonLabel = "On Hold";
+                reasonContainerStyle = "bg-[#ffcd85]/20 border-[#ffcd85] text-stone-800";
+            } else if (reviewStatuses.includes(ticket.status)) {
+                reasonText = ticket.onHoldReason;
+                reasonLabel = ticket.status;
+                reasonContainerStyle = "bg-[#fff494]/40 border-yellow-300 text-stone-800";
+            }
+
+            return (
             <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
               <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
                 <div className="flex justify-between items-start gap-3">
@@ -307,14 +268,9 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   </div>
                 </div>
 
-                {ticket.status === Status.OnHold && ticket.onHoldReason && (
-                  <div className="mt-3 p-2 bg-[#ffcd85]/20 border border-[#ffcd85] rounded-md text-sm text-stone-800 text-ellipsis overflow-hidden">
-                    <span className="font-semibold">On Hold:</span> {ticket.onHoldReason}
-                  </div>
-                )}
-                {ticket.status === Status.Completed && ticket.completionNotes && (
-                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-md text-sm text-green-800 text-ellipsis overflow-hidden">
-                    <span className="font-semibold">Completed:</span> {ticket.completionNotes}
+                {reasonText && reasonLabel && (
+                  <div className={`mt-3 p-2 rounded-md text-sm text-ellipsis overflow-hidden border ${reasonContainerStyle}`}>
+                      <span className="font-semibold">{reasonLabel}:</span> {reasonText}
                   </div>
                 )}
                 
@@ -384,7 +340,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   )}
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

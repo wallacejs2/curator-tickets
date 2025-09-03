@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { Project, Task, TaskPriority, TaskStatus, Ticket, Meeting, Dealership, FeatureAnnouncement } from '../types.ts';
+import { Project, Task, TaskPriority, TaskStatus } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
@@ -15,22 +15,19 @@ import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
+type EnrichedTask = Task & { 
+    projectName?: string; 
+    projectId: string | null; 
+    ticketId: string | null;
+    ticketTitle?: string;
+};
+
 interface TaskListProps {
   projects: Project[];
-  onUpdateProject: (project: Project) => void;
-  tasks: Task[];
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  allTasks: (Task & { projectName?: string; projectId: string | null; })[];
-
-  // Add all other entities for linking
-  allTickets: Ticket[];
-  allMeetings: Meeting[];
-  allDealerships: Dealership[];
-  allFeatures: FeatureAnnouncement[];
-
-  // Linking handlers
-  onLinkItem: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
-  onUnlinkItem: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+  onAddTask: (task: Task, parent: { type: 'project' | 'standalone', id?: string }) => void;
+  onDeleteTask: (taskId: string) => void;
+  onUpdateTaskStatus: (taskId: string, newStatus: TaskStatus) => void;
+  allTasks: EnrichedTask[];
   onSwitchView: (type: EntityType, id: string) => void;
 }
 
@@ -61,7 +58,7 @@ const statusColorStyles: Record<TaskStatus, string> = {
 };
 
 const TaskList: React.FC<TaskListProps> = ({ 
-    projects, onUpdateProject, tasks, setTasks, allTasks,
+    projects, onAddTask, onDeleteTask, onUpdateTaskStatus, allTasks,
     onSwitchView
 }) => {
   const [description, setDescription] = useState('');
@@ -114,22 +111,10 @@ const TaskList: React.FC<TaskListProps> = ({
       creationDate: new Date().toISOString(),
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00`).toISOString() : undefined,
       notifyOnCompletion: notify.trim() || undefined,
-      linkedTaskIds: [],
       projectIds: selectedProjectId ? [selectedProjectId] : [],
     };
     
-    if (selectedProjectId) {
-      const projectToUpdate = projects.find(p => p.id === selectedProjectId);
-      if (projectToUpdate) {
-          const updatedProject = {
-              ...projectToUpdate,
-              tasks: [...projectToUpdate.tasks, newTask]
-          };
-          onUpdateProject(updatedProject);
-      }
-    } else {
-      setTasks(prev => [...prev, newTask]);
-    }
+    onAddTask(newTask, { type: selectedProjectId ? 'project' : 'standalone', id: selectedProjectId || undefined });
     
     setDescription('');
     setAssignedTo('');
@@ -140,38 +125,9 @@ const TaskList: React.FC<TaskListProps> = ({
     setNotify('');
   };
   
-  const handleDeleteTask = (taskToDelete: Task & { projectId: string | null }) => {
-      if (!window.confirm("Are you sure you want to delete this task?")) return;
-      
-      if (taskToDelete.projectId) {
-          const project = projects.find(p => p.id === taskToDelete.projectId);
-          if (project) {
-              const updatedTasks = project.tasks.filter(t => t.id !== taskToDelete.id);
-              onUpdateProject({ ...project, tasks: updatedTasks });
-          }
-      } else {
-          setTasks(prev => prev.filter(t => t.id !== taskToDelete.id));
-      }
-  };
-  
-  const handleStatusChange = (taskToUpdate: Task & { projectId: string | null }) => {
-      if (taskToUpdate.projectId) {
-        const project = projects.find(p => p.id === taskToUpdate.projectId);
-        if (project) {
-          const updatedTasks = project.tasks.map(t =>
-            t.id === taskToUpdate.id
-                ? { ...t, status: t.status === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done }
-                : t
-          );
-          onUpdateProject({ ...project, tasks: updatedTasks });
-        }
-      } else {
-        setTasks(prevTasks => prevTasks.map(t => 
-            t.id === taskToUpdate.id 
-                ? { ...t, status: t.status === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done }
-                : t
-        ));
-      }
+  const handleStatusChange = (taskId: string, currentStatus: TaskStatus) => {
+      const newStatus = currentStatus === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done;
+      onUpdateTaskStatus(taskId, newStatus);
   };
   
   const inputClasses = "w-full p-2.5 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";
@@ -240,7 +196,7 @@ const TaskList: React.FC<TaskListProps> = ({
             <input
               type="checkbox"
               checked={task.status === TaskStatus.Done}
-              onChange={() => handleStatusChange(task)}
+              onChange={() => handleStatusChange(task.id, task.status)}
               className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0 mt-1"
               aria-label={`Mark task ${task.description} as complete`}
             />
@@ -255,7 +211,8 @@ const TaskList: React.FC<TaskListProps> = ({
               </div>
               <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                  {task.assignedUser && <span>Assigned to: <span className="font-medium">{task.assignedUser}</span></span>}
-                {task.projectName && <span>Project: <span className="font-medium">{task.projectName}</span></span>}
+                {task.projectName && task.projectName !== 'General' && <span>Project: <span className="font-medium">{task.projectName}</span></span>}
+                {task.ticketTitle && <span>Ticket: <span className="font-medium">{task.ticketTitle}</span></span>}
                 {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
                 {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
                 <span>Priority: <span className="font-medium">{task.priority}</span></span>
@@ -274,7 +231,7 @@ const TaskList: React.FC<TaskListProps> = ({
               <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
                 <PencilIcon className="w-4 h-4" />
               </button>
-              <button onClick={() => handleDeleteTask(task)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
+              <button onClick={() => onDeleteTask(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
                 <TrashIcon className="w-4 h-4" />
               </button>
             </div>

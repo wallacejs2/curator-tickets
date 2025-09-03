@@ -177,7 +177,7 @@ function App() {
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
-  const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string }) | null>(null);
+  const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string; ticketId: string | null; ticketTitle?: string; }) | null>(null);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -243,19 +243,32 @@ function App() {
 
   const allTasks = useMemo(() => {
     const projectTasks = projects.flatMap(p => 
-      (p.tasks || []).map(st => ({
-        ...st,
+      (p.tasks || []).map(task => ({
+        ...task,
         projectId: p.id,
-        projectName: p.name
+        projectName: p.name,
+        ticketId: null,
+        ticketTitle: null,
       }))
+    );
+     const ticketTasks = tickets.flatMap(t => 
+        (t.tasks || []).map(task => ({
+            ...task,
+            projectId: null,
+            projectName: null,
+            ticketId: t.id,
+            ticketTitle: t.title,
+        }))
     );
     const standaloneTasks = tasks.map(t => ({
         ...t,
         projectId: null,
-        projectName: 'General'
+        projectName: 'General',
+        ticketId: null,
+        ticketTitle: null,
     }));
-    return [...projectTasks, ...standaloneTasks];
-  }, [projects, tasks]);
+    return [...projectTasks, ...ticketTasks, ...standaloneTasks];
+  }, [projects, tickets, tasks]);
   
   const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
     const newTicket = {
@@ -263,6 +276,7 @@ function App() {
       id: crypto.randomUUID(),
       submissionDate: new Date().toISOString(),
       updates: [],
+      tasks: [],
     } as Ticket;
     
     setTickets(prev => [...prev, newTicket]);
@@ -290,6 +304,18 @@ function App() {
       };
       setProjects(prev => [...prev, newProject]);
       showToast('Project created successfully!', 'success');
+  };
+
+  const handleAddTask = (newTask: Task, parent: { type: 'project' | 'standalone', id?: string }) => {
+    if (parent.type === 'project' && parent.id) {
+        const project = projects.find(p => p.id === parent.id);
+        if (project) {
+            handleUpdateProject({ ...project, tasks: [...project.tasks, newTask]});
+        }
+    } else { // standalone
+        setTasks(prev => [...prev, newTask]);
+    }
+    showToast('Task added!', 'success');
   };
   
   const handleDealershipSubmit = (newDealershipData: Omit<Dealership, 'id'>) => {
@@ -369,11 +395,41 @@ function App() {
                 const updatedTasks = project.tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
                 handleUpdateProject({ ...project, tasks: updatedTasks });
             }
+        } else if (taskInAll.ticketId) {
+            const ticket = tickets.find(t => t.id === taskInAll.ticketId);
+            if(ticket) {
+                const updatedTasks = (ticket.tasks || []).map(t => t.id === updatedTask.id ? updatedTask : t);
+                handleUpdateTicket({ ...ticket, tasks: updatedTasks });
+            }
         } else {
             setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
         }
         setEditingTask(null);
         showToast('Task updated!', 'success');
+    };
+
+    const handleUpdateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
+        const taskInAll = allTasks.find(t => t.id === taskId);
+        if (!taskInAll) return;
+
+        const updatedTask = { ...taskInAll, status: newStatus };
+        
+        if (taskInAll.projectId) {
+            const project = projects.find(p => p.id === taskInAll.projectId);
+            if (project) {
+                const updatedTasks = project.tasks.map(t => t.id === taskId ? updatedTask : t);
+                handleUpdateProject({ ...project, tasks: updatedTasks });
+            }
+        } else if (taskInAll.ticketId) {
+            const ticket = tickets.find(t => t.id === taskInAll.ticketId);
+            if (ticket) {
+                const updatedTasks = (ticket.tasks || []).map(t => t.id === taskId ? updatedTask : t);
+                handleUpdateTicket({ ...ticket, tasks: updatedTasks });
+            }
+        } else {
+            setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+        }
+        showToast('Task status updated!', 'success');
     };
 
   const handleDeleteTicket = (ticketId: string) => {
@@ -435,6 +491,29 @@ function App() {
       setSelectedMeeting(null);
   };
   
+    const handleDeleteTask = (taskId: string) => {
+        if (!window.confirm("Are you sure you want to delete this task?")) return;
+        const taskInAll = allTasks.find(t => t.id === taskId);
+        if (!taskInAll) return;
+
+        if (taskInAll.projectId) {
+            const project = projects.find(p => p.id === taskInAll.projectId);
+            if (project) {
+                const updatedTasks = project.tasks.filter(t => t.id !== taskId);
+                handleUpdateProject({ ...project, tasks: updatedTasks });
+            }
+        } else if (taskInAll.ticketId) {
+            const ticket = tickets.find(t => t.id === taskInAll.ticketId);
+            if (ticket) {
+                const updatedTasks = (ticket.tasks || []).filter(t => t.id !== taskId);
+                handleUpdateTicket({ ...ticket, tasks: updatedTasks });
+            }
+        } else {
+            setTasks(prev => prev.filter(t => t.id !== taskId));
+        }
+        showToast('Task deleted!', 'success');
+    };
+
   const handleAddUpdate = (id: string, comment: string, author: string, date: string) => {
     const newUpdate: Update = { id: crypto.randomUUID(), author, date: new Date(`${date}T00:00:00`).toISOString(), comment };
     
@@ -505,14 +584,6 @@ function App() {
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
     }
     showToast('Update deleted!', 'success');
-  };
-  
-  const handleUpdateCompletionNotes = (ticketId: string, notes: string) => {
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, completionNotes: notes } : t));
-      if (selectedTicket?.id === ticketId) {
-          setSelectedTicket(prev => prev ? { ...prev, completionNotes: notes } : null);
-      }
-      showToast('Completion notes updated!', 'success');
   };
   
   const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
@@ -670,6 +741,12 @@ function App() {
                     ? { ...p, tasks: p.tasks.map(t => t.id === id ? updateFn(t) : t) }
                     : p
                 ));
+            } else if (task?.ticketId) {
+                 setTickets(prev => prev.map(t => 
+                    t.id === task.ticketId 
+                    ? { ...t, tasks: (t.tasks || []).map(subTask => subTask.id === id ? updateFn(subTask) : subTask) }
+                    : t
+                ));
             } else {
                 setTasks(prev => prev.map(t => t.id === id ? updateFn(t) : t));
             }
@@ -736,6 +813,15 @@ function App() {
     };
 
     const filteredTickets = useMemo(() => {
+        const getLastActivityDate = (ticket: Ticket): number => {
+            const submissionTimestamp = new Date(ticket.submissionDate).getTime();
+            if (!ticket.updates || ticket.updates.length === 0) {
+                return submissionTimestamp;
+            }
+            const updateTimestamps = ticket.updates.map(u => new Date(u.date).getTime());
+            return Math.max(submissionTimestamp, ...updateTimestamps);
+        };
+        
         return tickets.filter(ticket => {
         const searchLower = ticketFilters.searchTerm.toLowerCase();
         return (
@@ -749,7 +835,7 @@ function App() {
             (ticketFilters.type === 'all' || ticket.type === ticketFilters.type) &&
             (ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea)
         );
-        }).sort((a, b) => new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime());
+        }).sort((a, b) => getLastActivityDate(b) - getLastActivityDate(a));
     }, [tickets, ticketFilters]);
 
     const filteredProjects = useMemo(() => {
@@ -807,28 +893,6 @@ function App() {
         completedLast30Days: completedLast30Days.length,
         avgCompletionDays,
         };
-    }, [tickets]);
-
-    const mostRecentTicket = useMemo(() => {
-        if (!tickets || tickets.length === 0) {
-          return null;
-        }
-    
-        return tickets.reduce((latest, current) => {
-          let latestActivityDate = new Date(latest.submissionDate).getTime();
-          if (latest.updates && latest.updates.length > 0) {
-            const lastUpdateDate = Math.max(...latest.updates.map(u => new Date(u.date).getTime()));
-            latestActivityDate = Math.max(latestActivityDate, lastUpdateDate);
-          }
-    
-          let currentActivityDate = new Date(current.submissionDate).getTime();
-          if (current.updates && current.updates.length > 0) {
-            const lastUpdateDate = Math.max(...current.updates.map(u => new Date(u.date).getTime()));
-            currentActivityDate = Math.max(currentActivityDate, lastUpdateDate);
-          }
-    
-          return currentActivityDate > latestActivityDate ? current : latest;
-        });
     }, [tickets]);
 
     const dealershipInsights = useMemo(() => {
@@ -1244,7 +1308,6 @@ function App() {
                 onStatusChange={handleStatusChange}
                 projects={projects}
                 onToggleFavorite={handleToggleFavoriteTicket}
-                mostRecentTicket={mostRecentTicket}
               />
             </>
           )}
@@ -1263,7 +1326,14 @@ function App() {
           {currentView === 'tasks' && (
             <>
               <TaskInsights {...taskInsights} />
-              <TaskList projects={projects} onUpdateProject={handleUpdateProject} tasks={tasks} setTasks={setTasks} allTasks={allTasks} allTickets={tickets} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLinkItem={handleLinkItem} onUnlinkItem={handleUnlinkItem} onSwitchView={handleSwitchToDetailView} />
+              <TaskList 
+                projects={projects} 
+                onAddTask={handleAddTask}
+                onDeleteTask={handleDeleteTask}
+                onUpdateTaskStatus={handleUpdateTaskStatus}
+                allTasks={allTasks} 
+                onSwitchView={handleSwitchToDetailView} 
+              />
             </>
           )}
           {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature}/>}
@@ -1341,7 +1411,6 @@ function App() {
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
             onExport={() => handleExportTicket(selectedTicket)}
             onEmail={() => handleEmailTicket(selectedTicket)}
-            onUpdateCompletionNotes={(notes) => handleUpdateCompletionNotes(selectedTicket.id, notes)}
             onDelete={handleDeleteTicket}
             allTickets={tickets}
             allProjects={projects}

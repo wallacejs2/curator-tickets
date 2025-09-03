@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
@@ -158,6 +159,17 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
     </>
   );
 
+  const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
+  const statusesWithReason = [Status.OnHold, Status.Completed, ...reviewStatuses];
+  const currentStatusHasReason = statusesWithReason.includes(formData.status);
+  const reasonField = formData.status === Status.Completed ? 'completionNotes' : 'onHoldReason';
+  const reasonValue = formData.status === Status.Completed ? formData.completionNotes : formData.onHoldReason;
+
+  const getReasonLabel = (status: Status) => {
+      if (status === Status.Completed) return 'Reason for Completion';
+      return `Reason for ${status}`;
+  };
+
   return (
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-2 gap-x-8 mb-6">
@@ -244,10 +256,10 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
         </div>
-        {formData.status === Status.OnHold && (
+        {currentStatusHasReason && (
           <div className="col-span-2">
-            <label htmlFor="onHoldReason" className={labelClasses}>Reason for On Hold Status</label>
-            <textarea id="onHoldReason" name="onHoldReason" value={formData.onHoldReason} onChange={handleChange} rows={2} required className={formElementClasses} placeholder="Explain why this ticket is on hold..."/>
+            <label htmlFor="reason" className={labelClasses}>{getReasonLabel(formData.status)}</label>
+            <textarea id="reason" name={reasonField} value={reasonValue || ''} onChange={handleChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${formData.status}...`}/>
           </div>
         )}
       </FormSection>
@@ -267,23 +279,6 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         {formData.type === TicketType.Issue ? issueFields : featureRequestFields}
       </FormSection>
       
-      {formData.status === Status.Completed && (
-        <FormSection title="Completion Summary" gridCols={1}>
-            <div className="col-span-1">
-                <label htmlFor="completionNotes" className={labelClasses}>Explanation of Changes/Updates</label>
-                <textarea 
-                    id="completionNotes"
-                    name="completionNotes" 
-                    value={formData.completionNotes} 
-                    onChange={handleChange} 
-                    rows={4} 
-                    placeholder="Summarize the resolution, what was changed, or any final notes." 
-                    className={formElementClasses}
-                />
-            </div>
-        </FormSection>
-      )}
-
       <div className="mt-8 flex justify-end">
         <button type="submit" className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
           Create Ticket

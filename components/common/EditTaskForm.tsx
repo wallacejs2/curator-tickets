@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
@@ -7,10 +8,8 @@ import { DownloadIcon } from '../icons/DownloadIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
-// FIX: Correct the type for the `allTasks` prop to include `projectId`.
-// This fixes a type mismatch with the data passed from `TaskList.tsx`.
 interface EditTaskFormProps {
-  task: Task & { projectId: string | null };
+  task: Task & { projectId: string | null; ticketId: string | null; };
   onSave: (task: Task) => void;
   onClose: () => void;
   onExport: () => void;
