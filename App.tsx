@@ -446,6 +446,10 @@ function App() {
         setSelectedProject(updatedProject);
         // FIX: The variable 't' was used here instead of 'p', causing an error.
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
+    } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
+        const updatedDealership = { ...selectedDealership, updates: [...(selectedDealership.updates || []), newUpdate] };
+        setSelectedDealership(updatedDealership);
+        setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
     }
     showToast('Update added!', 'success');
   };
@@ -465,6 +469,13 @@ function App() {
         };
         setSelectedProject(updatedProject);
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
+    } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
+        const updatedDealership = { 
+            ...selectedDealership, 
+            updates: (selectedDealership.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        setSelectedDealership(updatedDealership);
+        setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
     }
     showToast('Update modified!', 'success');
   };
@@ -484,6 +495,13 @@ function App() {
         };
         setSelectedProject(updatedProject);
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
+    } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
+        const updatedDealership = { 
+            ...selectedDealership, 
+            updates: (selectedDealership.updates || []).filter(u => u.id !== updateId)
+        };
+        setSelectedDealership(updatedDealership);
+        setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
     }
     showToast('Update deleted!', 'success');
   };
@@ -780,7 +798,7 @@ function App() {
     const dealershipInsights = useMemo(() => {
         const pendingStatuses = [DealershipStatus.PendingFocus, DealershipStatus.PendingDmt, DealershipStatus.PendingSetup];
         return {
-            totalDealerships: dealerships.length,
+            totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled).length,
             liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
             pendingAccounts: dealerships.filter(d => pendingStatuses.includes(d.status)).length,
         }
@@ -1315,7 +1333,18 @@ function App() {
             onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView} />}
-        {selectedDealership && <DealershipDetailView dealership={selectedDealership} onUpdate={handleUpdateDealership} onDelete={handleDeleteDealership} onExport={() => handleExportDealership(selectedDealership)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedDealership && <DealershipDetailView 
+            dealership={selectedDealership} 
+            onUpdate={handleUpdateDealership} 
+            onDelete={handleDeleteDealership} 
+            onExport={() => handleExportDealership(selectedDealership)} 
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
+            allTickets={tickets} allProjects={projects} allTasks={allTasks} 
+            allMeetings={meetings} allDealerships={dealerships} allFeatures={features} 
+            onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
         {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} onExport={() => handleExportMeeting(selectedMeeting)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
         {selectedFeature && <FeatureDetailView feature={selectedFeature} onUpdate={handleUpdateFeature} onDelete={handleDeleteFeature} onExport={() => handleExportFeature(selectedFeature)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
       </SideView>

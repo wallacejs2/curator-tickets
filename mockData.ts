@@ -294,6 +294,20 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Mike Miller',
     pocEmail: 'mike.miller@prestigemotors.com',
     pocPhone: '555-123-4567',
+    updates: [
+      {
+        id: 'update-deal-1-1',
+        author: 'John Smith',
+        date: new Date('2024-02-15T10:00:00Z').toISOString(),
+        comment: 'Initial setup call completed. Client is excited to get started.'
+      },
+      {
+        id: 'update-deal-1-2',
+        author: 'Mike Miller (Client)',
+        date: new Date('2024-03-01T14:30:00Z').toISOString(),
+        comment: 'Training for sales team went well. A few questions about the reporting dashboard.'
+      }
+    ],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -318,6 +332,7 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Anna Williams',
     pocEmail: 'anna.w@citycars.com',
     pocPhone: '555-987-6543',
+    updates: [],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -341,6 +356,7 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Rachael',
     pocEmail: 'rachael@tyrellcorp.com',
     pocPhone: '555-555-5555',
+    updates: [],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -363,6 +379,7 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Ben Grimm',
     pocEmail: 'b.grimm@ff.com',
     pocPhone: '555-444-4444',
+    updates: [],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -380,6 +397,7 @@ export const initialDealerships: Dealership[] = [
     enterprise: 'Urban Motors Inc.',
     address: '2 Tech Way, Anytown, USA 12345',
     assignedSpecialist: 'Jane Doe',
+    updates: [],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -397,6 +415,7 @@ export const initialDealerships: Dealership[] = [
     enterprise: 'Value Vehicles',
     address: '3 Integration Blvd, Thriftyville, TX 75001',
     assignedSpecialist: 'Peter Jones',
+    updates: [],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -414,6 +433,7 @@ export const initialDealerships: Dealership[] = [
     enterprise: 'NextGen Auto',
     address: '4 Config Ct, Tech City, USA 54321',
     assignedSpecialist: 'Susan Storm',
+    updates: [],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],

@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 // Re-use the InsightCard component for a consistent look
@@ -23,9 +24,9 @@ const DealershipInsights: React.FC<DealershipInsightsProps> = ({ totalDealership
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Dealership Insights</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <InsightCard
-          label="Total Accounts"
+          label="Total Active Accounts"
           value={totalDealerships}
-          description="All dealership accounts being tracked."
+          description="All dealership accounts excluding 'Cancelled'."
         />
         <InsightCard
           label="Live Accounts"

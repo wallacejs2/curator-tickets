@@ -1,6 +1,6 @@
 
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
@@ -96,22 +96,66 @@ const DealershipCard: React.FC<{ dealership: Dealership; onClick: () => void; }>
   );
 };
 
+type DealershipView = 'active' | 'cancelled';
 
 const DealershipList: React.FC<DealershipListProps> = ({ dealerships, onDealershipClick }) => {
-  if (dealerships.length === 0) {
-    return (
-      <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800">No Dealerships Found</h3>
-        <p className="text-gray-500 mt-2">Try adjusting your filters or click the 'New Account' button to add a new dealership.</p>
-      </div>
+  const [dealershipView, setDealershipView] = useState<DealershipView>('active');
+
+  const { activeDealerships, cancelledDealerships } = useMemo(() => {
+    return dealerships.reduce<{ activeDealerships: Dealership[]; cancelledDealerships: Dealership[] }>(
+      (acc, dealership) => {
+        if (dealership.status === DealershipStatus.Cancelled) {
+          acc.cancelledDealerships.push(dealership);
+        } else {
+          acc.activeDealerships.push(dealership);
+        }
+        return acc;
+      },
+      { activeDealerships: [], cancelledDealerships: [] }
     );
-  }
+  }, [dealerships]);
+
+  const dealershipsToShow = dealershipView === 'active' ? activeDealerships : cancelledDealerships;
 
   return (
-    <div className="space-y-4">
-      {dealerships.map(dealership => (
-        <DealershipCard key={dealership.id} dealership={dealership} onClick={() => onDealershipClick(dealership)} />
-      ))}
+    <div>
+      <div className="mb-4 flex border-b border-gray-200">
+        <button
+          onClick={() => setDealershipView('active')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            dealershipView === 'active'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={dealershipView === 'active'}
+        >
+          Active ({activeDealerships.length})
+        </button>
+        <button
+          onClick={() => setDealershipView('cancelled')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            dealershipView === 'cancelled'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={dealershipView === 'cancelled'}
+        >
+          Cancelled ({cancelledDealerships.length})
+        </button>
+      </div>
+      
+      {dealershipsToShow.length === 0 ? (
+        <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800">No {dealershipView} accounts found</h3>
+          <p className="text-gray-500 mt-2">Try adjusting your filters or creating a new account.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {dealershipsToShow.map(dealership => (
+            <DealershipCard key={dealership.id} dealership={dealership} onClick={() => onDealershipClick(dealership)} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

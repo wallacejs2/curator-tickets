@@ -243,6 +243,7 @@ export interface Dealership {
   pocName?: string;
   pocEmail?: string;
   pocPhone?: string;
+  updates?: Update[];
   // Linking fields
   ticketIds?: string[];
   projectIds?: string[];
