@@ -88,6 +88,7 @@ interface BaseTicket {
   updates?: Update[];
   completionNotes?: string;
   onHoldReason?: string;
+  isFavorite?: boolean;
   
   // Linking fields
   projectIds?: string[];

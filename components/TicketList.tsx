@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo } from 'react';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
@@ -10,6 +11,8 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { TicketIcon } from './icons/TicketIcon.tsx';
+import { StarIcon } from './icons/StarIcon.tsx';
+import { ClockIcon } from './icons/ClockIcon.tsx';
 
 
 interface TicketTableProps {
@@ -17,6 +20,8 @@ interface TicketTableProps {
   onRowClick: (ticket: Ticket) => void;
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
   projects: Project[];
+  onToggleFavorite: (ticketId: string) => void;
+  mostRecentTicket: Ticket | null;
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -102,27 +107,87 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
     );
 }
 
-type TicketView = 'active' | 'completed';
+const MostRecentTicketCard: React.FC<{ ticket: Ticket; onRowClick: (ticket: Ticket) => void }> = ({ ticket, onRowClick }) => {
+    const { lastActivity, lastActivityDate } = useMemo(() => {
+      let lastUpdate = null;
+      if (ticket.updates && ticket.updates.length > 0) {
+          lastUpdate = [...ticket.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+      }
+      
+      const submissionDate = new Date(ticket.submissionDate);
+      const lastUpdateDateObj = lastUpdate ? new Date(lastUpdate.date) : null;
+  
+      if (lastUpdateDateObj && lastUpdateDateObj > submissionDate) {
+        return {
+          lastActivity: `Last update by ${lastUpdate!.author}`,
+          lastActivityDate: lastUpdateDateObj.toLocaleDateString(undefined, { timeZone: 'UTC' }),
+        };
+      }
+      
+      return {
+        lastActivity: `Created by ${ticket.submitterName}`,
+        lastActivityDate: submissionDate.toLocaleDateString(undefined, { timeZone: 'UTC' }),
+      };
+    }, [ticket]);
+  
+    return (
+      <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+              <ClockIcon className="w-5 h-5 text-gray-600" />
+              <h2 className="text-lg font-semibold text-gray-800">Most Recently Active Ticket</h2>
+          </div>
+          <div onClick={() => onRowClick(ticket)} className="bg-blue-50 border border-blue-200 rounded-lg p-5 cursor-pointer hover:bg-blue-100 hover:border-blue-300 transition-all">
+              <div className="flex justify-between items-start gap-3">
+                  <h3 className="text-lg font-semibold text-gray-900">{ticket.title}</h3>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                      <Tag label={ticket.priority} />
+                      <Tag label={ticket.status} />
+                  </div>
+              </div>
+               <div className="mt-2 text-sm text-gray-500">
+                  {ticket.client && (
+                      <>
+                      <span className="font-medium text-gray-600">{ticket.client}</span>
+                      <span className="mx-2 text-gray-300">•</span>
+                      </>
+                  )}
+                  <span>Submitted by {ticket.submitterName}</span>
+              </div>
+  
+              <div className="mt-4 pt-4 border-t border-blue-100">
+                   <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Activity</h4>
+                   <p className="text-sm text-gray-800 mt-1">{lastActivity} on {lastActivityDate}</p>
+              </div>
+          </div>
+      </div>
+    );
+  };
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects }) => {
+type TicketView = 'active' | 'completed' | 'favorites';
+
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, mostRecentTicket }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
-  const { activeTickets, completedTickets } = useMemo(() => {
-    return tickets.reduce<{ activeTickets: Ticket[]; completedTickets: Ticket[] }>(
-      (acc, ticket) => {
-        if (ticket.status === Status.Completed) {
-          acc.completedTickets.push(ticket);
-        } else {
-          acc.activeTickets.push(ticket);
+  const { activeTickets, completedTickets, favoriteTickets } = useMemo(() => {
+    const active: Ticket[] = [];
+    const completed: Ticket[] = [];
+    const favorites: Ticket[] = [];
+
+    for (const ticket of tickets) {
+        if (ticket.isFavorite) {
+            favorites.push(ticket);
         }
-        return acc;
-      },
-      { activeTickets: [], completedTickets: [] }
-    );
+        if (ticket.status === Status.Completed) {
+            completed.push(ticket);
+        } else {
+            active.push(ticket);
+        }
+    }
+    return { activeTickets: active, completedTickets: completed, favoriteTickets: favorites };
   }, [tickets]);
 
-  const ticketsToShow = ticketView === 'active' ? activeTickets : completedTickets;
+  const ticketsToShow = ticketView === 'active' ? activeTickets : ticketView === 'completed' ? completedTickets : favoriteTickets;
 
 
   const calculateDaysActive = (ticket: Ticket): string => {
@@ -149,6 +214,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   
   return (
     <div>
+      {mostRecentTicket && <MostRecentTicketCard ticket={mostRecentTicket} onRowClick={onRowClick} />}
       <div className="mb-4 flex border-b border-gray-200">
         <button
           onClick={() => setTicketView('active')}
@@ -172,6 +238,17 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
         >
           Completed ({completedTickets.length})
         </button>
+        <button
+          onClick={() => setTicketView('favorites')}
+          className={`px-4 py-2 text-sm font-medium transition-colors ${
+            ticketView === 'favorites'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          aria-pressed={ticketView === 'favorites'}
+        >
+          Favorites ({favoriteTickets.length})
+        </button>
       </div>
 
       {ticketsToShow.length === 0 ? (
@@ -188,7 +265,20 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{ticket.title}</h3>
                   </div>
-                  <Tag label={ticket.priority} />
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(ticket.id);
+                        }}
+                        className="p-1 text-gray-400 hover:text-yellow-500 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-yellow-500"
+                        aria-label={ticket.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                        title={ticket.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                        <StarIcon filled={!!ticket.isFavorite} className={`w-5 h-5 ${ticket.isFavorite ? 'text-yellow-500' : ''}`} />
+                    </button>
+                    <Tag label={ticket.priority} />
+                  </div>
                 </div>
 
                 <div className="mt-2 flex items-center gap-3 flex-wrap">

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -531,6 +532,19 @@ function App() {
           return t;
       }));
   };
+
+    const handleToggleFavoriteTicket = (ticketId: string) => {
+        const ticket = tickets.find(t => t.id === ticketId);
+        setTickets(prev => prev.map(t =>
+            t.id === ticketId ? { ...t, isFavorite: !t.isFavorite } : t
+        ));
+        if (ticket) {
+            showToast(
+                !ticket.isFavorite ? 'Ticket added to favorites!' : 'Ticket removed from favorites.',
+                'success'
+            );
+        }
+    };
     
     const createTxtFileDownloader = (content: string, filename: string) => {
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -793,6 +807,28 @@ function App() {
         completedLast30Days: completedLast30Days.length,
         avgCompletionDays,
         };
+    }, [tickets]);
+
+    const mostRecentTicket = useMemo(() => {
+        if (!tickets || tickets.length === 0) {
+          return null;
+        }
+    
+        return tickets.reduce((latest, current) => {
+          let latestActivityDate = new Date(latest.submissionDate).getTime();
+          if (latest.updates && latest.updates.length > 0) {
+            const lastUpdateDate = Math.max(...latest.updates.map(u => new Date(u.date).getTime()));
+            latestActivityDate = Math.max(latestActivityDate, lastUpdateDate);
+          }
+    
+          let currentActivityDate = new Date(current.submissionDate).getTime();
+          if (current.updates && current.updates.length > 0) {
+            const lastUpdateDate = Math.max(...current.updates.map(u => new Date(u.date).getTime()));
+            currentActivityDate = Math.max(currentActivityDate, lastUpdateDate);
+          }
+    
+          return currentActivityDate > latestActivityDate ? current : latest;
+        });
     }, [tickets]);
 
     const dealershipInsights = useMemo(() => {
@@ -1207,6 +1243,8 @@ function App() {
                 onRowClick={setSelectedTicket} 
                 onStatusChange={handleStatusChange}
                 projects={projects}
+                onToggleFavorite={handleToggleFavoriteTicket}
+                mostRecentTicket={mostRecentTicket}
               />
             </>
           )}
