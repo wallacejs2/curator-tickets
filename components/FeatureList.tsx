@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform, FeatureAnnouncementFilterState } from '../types.ts';
 import { PLATFORM_OPTIONS } from '../constants.ts';
-import { TicketIcon } from './icons/TicketIcon.tsx';
-import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { SearchIcon } from './icons/SearchIcon.tsx';
+import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 
 interface FeatureListProps {
   features: FeatureAnnouncement[];
@@ -42,8 +43,8 @@ const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onClick: () => void 
                 ))}
             </div>
              <div className="flex items-center gap-3 text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
-                 {(feature.ticketIds?.length || 0) > 0 && <span title={`${feature.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><TicketIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.ticketIds?.length}</span></span>}
-                 {(feature.projectIds?.length || 0) > 0 && <span title={`${feature.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><ClipboardListIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.projectIds?.length}</span></span>}
+                 {(feature.ticketIds?.length || 0) > 0 && <span title={`${feature.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><ReceiptLongIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.ticketIds?.length}</span></span>}
+                 {(feature.projectIds?.length || 0) > 0 && <span title={`${feature.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><WorkspaceIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.projectIds?.length}</span></span>}
                  {(feature.linkedFeatureIds?.length || 0) > 0 && <span title={`${feature.linkedFeatureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.linkedFeatureIds?.length}</span></span>}
              </div>
         </div>

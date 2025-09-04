@@ -1,17 +1,15 @@
 
-
-
 import React, { useState, useMemo } from 'react';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
-import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
-import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
-import { TicketIcon } from './icons/TicketIcon.tsx';
 import { StarIcon } from './icons/StarIcon.tsx';
+import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
+import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 
 
 interface TicketTableProps {
@@ -167,7 +165,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
 
     const endDate = new Date();
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const diffDays = Math.floor(diffTime / (1000 * 3600 * 24)) + 1;
     
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
   };
@@ -284,11 +282,11 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                     </div>
 
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
-                        {(ticket.linkedTicketIds?.length || 0) > 0 && <span title={`${ticket.linkedTicketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.linkedTicketIds?.length}</span></span>}
-                        {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
+                        {(ticket.linkedTicketIds?.length || 0) > 0 && <span title={`${ticket.linkedTicketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.linkedTicketIds?.length}</span></span>}
+                        {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
                         {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
                         {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
-                        {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
+                        {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
                         {(ticket.featureIds?.length || 0) > 0 && <span title={`${ticket.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.featureIds?.length}</span></span>}
                     </div>
                     

@@ -5,12 +5,12 @@ import { Project, Task, TaskPriority, TaskStatus } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
-import { TicketIcon } from './icons/TicketIcon.tsx';
-import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
-import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
+import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
+import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -217,10 +217,10 @@ const TaskList: React.FC<TaskListProps> = ({
               </div>
                <div className="mt-2 flex items-center gap-3 flex-wrap">
                     {(task.linkedTaskIds?.length || 0) > 0 && <span title={`${task.linkedTaskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.linkedTaskIds?.length}</span></span>}
-                    {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
-                    {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
+                    {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
+                    {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
                     {(task.meetingIds?.length || 0) > 0 && <span title={`${task.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.meetingIds?.length}</span></span>}
-                    {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
+                    {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
                     {(task.featureIds?.length || 0) > 0 && <span title={`${task.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.featureIds?.length}</span></span>}
                 </div>
             </div>

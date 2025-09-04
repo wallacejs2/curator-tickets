@@ -13,7 +13,7 @@ const getInitialState = (): Omit<ContactGroup, 'id' | 'contactIds'> => ({
 });
 
 const ContactGroupForm: React.FC<ContactGroupFormProps> = ({ onSave, onClose, groupToEdit }) => {
-  const [formData, setFormData] = useState(getInitialState());
+  const [formData, setFormData] = useState<Omit<ContactGroup, 'id' | 'contactIds'> | ContactGroup>(getInitialState());
   const isEditing = !!groupToEdit;
 
   useEffect(() => {
@@ -31,11 +31,10 @@ const ContactGroupForm: React.FC<ContactGroupFormProps> = ({ onSave, onClose, gr
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isEditing) {
-      onSave(formData as ContactGroup);
-    } else {
-      onSave({ ...formData, id: crypto.randomUUID(), contactIds: [] });
-    }
+    // The formData state correctly holds either a ContactGroup (when editing)
+    // or an Omit<ContactGroup, 'id' | 'contactIds'> (when creating).
+    // The onSave handler in App.tsx is designed to handle both cases based on the presence of an 'id' property.
+    onSave(formData);
   };
 
   const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";

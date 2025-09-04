@@ -3,17 +3,17 @@
 import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
-import { TicketIcon } from './icons/TicketIcon.tsx';
-import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
-import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
+import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
+import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 
 interface DealershipListProps {
   dealerships: Dealership[];
@@ -111,9 +111,9 @@ const DealershipCard: React.FC<{
                 <p>Specialist: <span className="font-medium text-gray-800">{dealership.assignedSpecialist || 'N/A'}</span></p>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">
-                {(dealership.linkedDealershipIds?.length || 0) > 0 && <span title={`${dealership.linkedDealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.linkedDealershipIds?.length}</span></span>}
-                {(dealership.ticketIds?.length || 0) > 0 && <span title={`${dealership.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.ticketIds?.length}</span></span>}
-                {(dealership.projectIds?.length || 0) > 0 && <span title={`${dealership.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.projectIds?.length}</span></span>}
+                {(dealership.linkedDealershipIds?.length || 0) > 0 && <span title={`${dealership.linkedDealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.linkedDealershipIds?.length}</span></span>}
+                {(dealership.ticketIds?.length || 0) > 0 && <span title={`${dealership.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.ticketIds?.length}</span></span>}
+                {(dealership.projectIds?.length || 0) > 0 && <span title={`${dealership.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.projectIds?.length}</span></span>}
             </div>
           </div>
 
