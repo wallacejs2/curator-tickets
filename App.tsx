@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -11,7 +11,7 @@ import PerformanceInsights from './components/PerformanceInsights.tsx';
 import { DownloadIcon } from './components/icons/DownloadIcon.tsx';
 import { PlusIcon } from './components/icons/PlusIcon.tsx';
 import { MenuIcon } from './components/icons/MenuIcon.tsx';
-import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from './constants.ts';
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, PLATFORM_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from './constants.ts';
 import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
@@ -150,7 +150,7 @@ const ImportSection: React.FC<{
                 />
                 <select value={mode} onChange={e => setMode(e.target.value as 'append' | 'replace')} className="bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 h-full">
                     <option value="append">Append</option>
-                    <option value="replace">Replace</option>
+                    <option value="replace">Update &amp; Replace</option>
                 </select>
                 <button onClick={handleImportClick} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm h-full flex items-center justify-center gap-2">
                    <UploadIcon className="w-4 h-4" />
@@ -163,6 +163,41 @@ const ImportSection: React.FC<{
 
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+
+const normalizeEnumValue = <T extends string>(value: any, validEnumValues: readonly T[]): T | undefined => {
+    if (typeof value !== 'string' || !value) return undefined;
+    const normalizedValue = value.toLowerCase().replace(/[\s_-]/g, '');
+    for (const enumValue of validEnumValues) {
+        const normalizedEnumValue = String(enumValue).toLowerCase().replace(/[\s_-]/g, '');
+        if (normalizedValue === normalizedEnumValue) {
+            return enumValue;
+        }
+    }
+    // Special case for priorities like P1, p2, etc.
+    if (validEnumValues.some(v => v.startsWith('P'))) {
+        const priorityMatch = value.match(/^[pP]?(\d+)$/);
+        if (priorityMatch) {
+            const target = `P${priorityMatch[1]}` as T;
+            if (validEnumValues.includes(target)) {
+                return target;
+            }
+        }
+    }
+    return undefined;
+};
+
+const normalizeBooleanValue = (value: any): boolean | undefined => {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === 'boolean') return value;
+    const lowerValue = String(value).toLowerCase().trim();
+    if (['true', '1', 'yes', 'y'].includes(lowerValue)) {
+        return true;
+    }
+    if (['false', '0', 'no', 'n', ''].includes(lowerValue)) {
+        return false;
+    }
+    return undefined;
+};
 
 function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
@@ -922,7 +957,7 @@ function App() {
     const getTemplateHeaders = (title: string): string[] => {
       switch (title) {
           case 'Tickets':
-              return ['id', 'title', 'type', 'productArea', 'platform', 'pmrNumber', 'pmrLink', 'fpTicketNumber', 'ticketThreadId', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate', 'status', 'priority', 'submitterName', 'client', 'location', 'updates', 'completionNotes', 'onHoldReason', 'projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds', 'problem', 'duplicationSteps', 'workaround', 'frequency', 'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits'];
+              return ['id', 'title', 'type', 'productArea', 'platform', 'pmrNumber', 'pmrLink', 'fpTicketNumber', 'ticketThreadId', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate', 'status', 'priority', 'submitterName', 'client', 'location', 'updates', 'completionNotes', 'onHoldReason', 'isFavorite', 'projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds', 'problem', 'duplicationSteps', 'workaround', 'frequency', 'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits'];
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
@@ -958,82 +993,114 @@ function App() {
     const formatImportedRow = (row: any, entityType: string): any => {
         const formattedRow = { ...row };
     
+        const toUtcIsoString = (dateString?: string): string | undefined => {
+            if (!dateString || typeof dateString !== 'string') return undefined;
+    
+            // Try parsing common formats before falling back to new Date()
+            // Format 1: YYYY-MM-DD (robust) - also catches ISO strings
+            const isoMatch = dateString.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (isoMatch) {
+                const d = new Date(Date.UTC(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3])));
+                if (!isNaN(d.getTime())) return d.toISOString();
+            }
+    
+            // Format 2: MM/DD/YYYY (common US)
+            const usMatch = dateString.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (usMatch) {
+                const year = parseInt(usMatch[3]);
+                const fullYear = year < 100 ? 2000 + year : year;
+                const d = new Date(Date.UTC(fullYear, parseInt(usMatch[1]) - 1, parseInt(usMatch[2])));
+                if (!isNaN(d.getTime())) return d.toISOString();
+            }
+    
+            // Fallback to native parser
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return undefined;
+    
+            // Handle timezone offset for date-only strings parsed natively
+            if (!dateString.includes('T') && !dateString.toLowerCase().includes('z')) {
+                const tzOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() + tzOffset).toISOString();
+            }
+            return date.toISOString();
+        };
+
+        const enumFields: Record<string, any[]> = {};
         const dateFields: string[] = [];
         const arrayFields: string[] = [];
         const jsonFields: string[] = ['updates', 'tasks'];
+        const booleanFields: string[] = ['isFavorite'];
     
         switch (entityType) {
             case 'Tickets':
                 dateFields.push('submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate');
                 arrayFields.push('projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds');
+                enumFields['type'] = TICKET_TYPE_OPTIONS;
+                enumFields['status'] = STATUS_OPTIONS;
+                enumFields['priority'] = PRIORITY_OPTIONS;
+                enumFields['productArea'] = PRODUCT_AREA_OPTIONS;
+                enumFields['platform'] = PLATFORM_OPTIONS;
                 break;
             case 'Projects':
                 dateFields.push('creationDate');
                 arrayFields.push('ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds', 'involvedPeople');
+                enumFields['status'] = Object.values(ProjectStatus);
                 break;
             case 'Dealerships':
                 dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
                 arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
+                enumFields['status'] = DEALERSHIP_STATUS_OPTIONS;
                 break;
             case 'Standalone Tasks':
                 dateFields.push('creationDate', 'dueDate');
                 arrayFields.push('linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds');
+                enumFields['status'] = Object.values(TaskStatus);
+                enumFields['priority'] = Object.values(TaskPriority);
                 break;
             case 'Features':
                 dateFields.push('launchDate');
                 arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'dealershipIds', 'linkedFeatureIds');
+                enumFields['status'] = Object.values(FeatureStatus);
+                enumFields['platform'] = PLATFORM_OPTIONS;
                 break;
             case 'Meetings':
                 dateFields.push('meetingDate');
                 arrayFields.push('attendees', 'projectIds', 'ticketIds', 'linkedMeetingIds', 'taskIds', 'dealershipIds', 'featureIds');
                 break;
         }
-    
-        const toUtcIsoString = (dateString?: string): string | undefined => {
-            if (!dateString || typeof dateString !== 'string') return undefined;
-            const date = new Date(dateString);
-            if (isNaN(date.getTime())) return undefined;
-            // Treat date-only strings as UTC to avoid timezone shifts
-            if (!dateString.includes('T')) {
-                const tzOffset = date.getTimezoneOffset() * 60000;
-                return new Date(date.getTime() + tzOffset).toISOString();
-            }
-            return date.toISOString();
-        };
-    
-        dateFields.forEach(field => {
-            if (formattedRow[field]) {
-                formattedRow[field] = toUtcIsoString(formattedRow[field]);
-            }
-        });
-    
-        arrayFields.forEach(field => {
-            const value = formattedRow[field];
-            if (value && typeof value === 'string') {
-                try {
-                    // Try parsing as JSON first, be lenient with quotes
-                    const parsed = JSON.parse(value.replace(/'/g, '"'));
-                    if (Array.isArray(parsed)) {
-                        formattedRow[field] = parsed.map(String).filter(Boolean);
-                    } else {
-                         formattedRow[field] = value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+
+        // Apply formatting
+        Object.keys(formattedRow).forEach(key => {
+            const value = formattedRow[key];
+            if (value === undefined || value === null) return;
+            
+            if (enumFields[key]) {
+                const normalized = normalizeEnumValue(value, enumFields[key]);
+                if (normalized) formattedRow[key] = normalized;
+            } else if (booleanFields.includes(key)) {
+                const normalized = normalizeBooleanValue(value);
+                if (normalized !== undefined) formattedRow[key] = normalized;
+            } else if (dateFields.includes(key)) {
+                formattedRow[key] = toUtcIsoString(value);
+            } else if (arrayFields.includes(key)) {
+                if (typeof value === 'string') {
+                    try {
+                        const parsed = JSON.parse(value.replace(/'/g, '"'));
+                        formattedRow[key] = Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                    } catch (e) {
+                        formattedRow[key] = value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
                     }
-                } catch (e) {
-                    // If JSON parsing fails, treat as comma/semicolon-separated
-                    formattedRow[field] = value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                } else if (!Array.isArray(value)) {
+                    formattedRow[key] = [];
                 }
-            } else if (!Array.isArray(value)) {
-                formattedRow[field] = [];
-            }
-        });
-        
-        jsonFields.forEach(field => {
-            if (formattedRow[field] && typeof formattedRow[field] === 'string') {
-                try {
-                    formattedRow[field] = JSON.parse(formattedRow[field]);
-                } catch (e) {
-                    console.warn(`Could not parse JSON for field '${field}'`, { value: formattedRow[field] });
-                    formattedRow[field] = (field === 'tasks') ? [] : undefined;
+            } else if (jsonFields.includes(key)) {
+                if (typeof value === 'string') {
+                    try {
+                        formattedRow[key] = JSON.parse(value);
+                    } catch (e) {
+                        console.warn(`Could not parse JSON for field '${key}'`, { value });
+                        formattedRow[key] = (key === 'tasks') ? [] : undefined;
+                    }
                 }
             }
         });
@@ -1129,36 +1196,72 @@ function App() {
                         validData.push(formattedRow);
                     }
                 });
-
-                const successfulRowCount = validData.length;
+                
                 const setter = settersMap[title];
-
                 if (!setter) {
                     showToast(`Could not import data for "${title}".`, 'error');
                     return;
                 }
 
-                if (mode === 'replace') {
-                    setter(validData as any[]);
-                } else { // append
-                    const dataWithNewIds = validData.map(item => ({ ...item, id: item.id || crypto.randomUUID() }));
-                    setter((currentData: any[]) => [...currentData, ...dataWithNewIds]);
+                let addedCount = 0;
+                let updatedCount = 0;
+                let skippedCount = 0;
+
+                if (mode === 'replace') { // Upsert logic: Update existing, add new
+                    setter((currentData: any[]) => {
+                        const dataMap = new Map(currentData.map(item => [item.id, item]));
+                        validData.forEach(item => {
+                            const id = item.id;
+                            if (id && dataMap.has(id)) {
+                                const existingItem = dataMap.get(id);
+                                dataMap.set(id, { ...existingItem, ...item });
+                                updatedCount++;
+                            } else {
+                                const newId = id || crypto.randomUUID();
+                                dataMap.set(newId, { ...item, id: newId });
+                                addedCount++;
+                            }
+                        });
+                        return Array.from(dataMap.values());
+                    });
+                } else { // Append logic: Add new, skip existing
+                    setter((currentData: any[]) => {
+                        const existingIds = new Set(currentData.map(item => item.id));
+                        const newData: any[] = [];
+                        validData.forEach(item => {
+                            const id = item.id;
+                            if (id && existingIds.has(id)) {
+                                skippedCount++;
+                            } else {
+                                const newId = id || crypto.randomUUID();
+                                newData.push({ ...item, id: newId });
+                                addedCount++;
+                            }
+                        });
+                        return [...currentData, ...newData];
+                    });
                 }
 
                 let toastMessage = `Import from ${file.name} complete. `;
                 let toastType: 'success' | 'error' = 'success';
                 
-                if (successfulRowCount > 0) {
-                    toastMessage += `${successfulRowCount} row(s) imported. `;
-                }
+                if (addedCount > 0) toastMessage += `${addedCount} row(s) added. `;
+                if (updatedCount > 0) toastMessage += `${updatedCount} row(s) updated. `;
+                if (skippedCount > 0) toastMessage += `${skippedCount} row(s) skipped (ID already exists). `;
+
                 if (failedRowCount > 0) {
-                    toastMessage += `${failedRowCount} row(s) failed. Check console for details.`;
-                    if (successfulRowCount === 0) toastType = 'error';
+                    toastMessage += `${failedRowCount} row(s) failed. Check console.`;
+                    if (addedCount === 0 && updatedCount === 0) toastType = 'error';
+                }
+
+                if (addedCount === 0 && updatedCount === 0 && skippedCount === 0 && failedRowCount === 0) {
+                    toastMessage = `No data was imported from ${file.name}. The file might be empty or all rows failed validation.`;
+                    toastType = 'error';
                 }
                 
                 showToast(toastMessage.trim(), toastType);
                 
-                if (successfulRowCount > 0 && failedRowCount === 0) {
+                if (addedCount > 0 || updatedCount > 0) {
                     setIsImportModalOpen(false);
                 }
 
@@ -1381,8 +1484,8 @@ function App() {
                   <div>
                     <p className="text-sm text-gray-700">Import data from CSV files. Please ensure the CSV format matches the export format for best results.</p>
                     <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm">
-                        <p><strong>Append:</strong> Adds new records. New IDs will be generated, which may break relationships (e.g., ticket-to-project links).</p>
-                        <p className="mt-1"><strong>Replace:</strong> Deletes all current data and replaces it with the file's content.</p>
+                        <p><strong>Append:</strong> Adds new records only. Records from the file with an ID that already exists in the system will be skipped.</p>
+                        <p className="mt-1"><strong>Update &amp; Replace:</strong> Updates records with a matching ID. If no matching ID is found, a new record is added. This does not delete data.</p>
                     </div>
                   </div>
 

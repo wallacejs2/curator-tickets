@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';
@@ -41,6 +42,7 @@ const tagColorStyles: Record<string, string> = {
   [FeatureStatus.Upcoming]: 'bg-blue-200 text-blue-800',
 };
 
+// A more detailed interface for items that can be linked
 interface LinkableItem {
   id: string;
   name?: string;
@@ -52,6 +54,14 @@ interface LinkableItem {
   pmrNumber?: string;
   fpTicketNumber?: string;
   client?: string;
+  submitterName?: string;
+  submissionDate?: string;
+  // Task specific
+  assignedUser?: string;
+  projectName?: string;
+  ticketTitle?: string;
+  creationDate?: string;
+  dueDate?: string;
   // Dealership specific
   accountNumber?: string;
 }
@@ -84,10 +94,24 @@ const LinkingModal = <T extends LinkableItem>({
     }
   }, [isOpen]);
 
+  const sortedItems = useMemo(() => {
+    return [...availableItems].sort((a, b) => {
+        const dateA = a.submissionDate || a.creationDate;
+        const dateB = b.submissionDate || b.creationDate;
+
+        if (dateA && dateB) {
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+        }
+        if (dateA) return -1; // a is more recent, put it first
+        if (dateB) return 1; // b is more recent, put it first
+        return 0; // no dates, keep original order
+    });
+  }, [availableItems]);
+
   const filteredItems = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
-    if (!searchLower) return availableItems;
-    return availableItems.filter(item => {
+    if (!searchLower) return sortedItems;
+    return sortedItems.filter(item => {
       return (
         getItemName(item).toLowerCase().includes(searchLower) ||
         (item.pmrNumber && item.pmrNumber.toLowerCase().includes(searchLower)) ||
@@ -96,7 +120,7 @@ const LinkingModal = <T extends LinkableItem>({
         (item.accountNumber && item.accountNumber.toLowerCase().includes(searchLower))
       );
     });
-  }, [availableItems, searchTerm]);
+  }, [sortedItems, searchTerm]);
 
   const handleToggleId = (id: string) => {
     setSelectedIds(prev =>
@@ -141,9 +165,33 @@ const LinkingModal = <T extends LinkableItem>({
                 />
                 <div className="flex-grow">
                   <p className="font-medium text-gray-800 text-sm">{getItemName(item)}</p>
-                  <div className="text-xs text-gray-500 flex items-center gap-2 mt-1 flex-wrap">
-                    {item.status && <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[item.status] || 'bg-gray-200 text-gray-800'}`}>{item.status}</span>}
-                    {item.priority && <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[item.priority]}`}>{item.priority}</span>}
+
+                  {/* More details section */}
+                  <div className="text-xs text-gray-500 mt-1.5 space-y-1">
+                      {/* Ticket Details */}
+                      {item.client && <div>Client: <span className="font-medium text-gray-700">{item.client}</span></div>}
+                      {item.submitterName && <div>Submitter: <span className="font-medium text-gray-700">{item.submitterName}</span></div>}
+                      {(item.pmrNumber || item.fpTicketNumber) && (
+                      <div className="flex flex-wrap items-center gap-x-2">
+                          {item.pmrNumber && <span>PMR: <span className="font-medium text-gray-700">{item.pmrNumber}</span></span>}
+                          {item.pmrNumber && item.fpTicketNumber && <span className="text-gray-300">•</span>}
+                          {item.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{item.fpTicketNumber}</span></span>}
+                      </div>
+                      )}
+
+                      {/* Task Details */}
+                      {item.assignedUser && <div>Assigned: <span className="font-medium text-gray-700">{item.assignedUser}</span></div>}
+                      {((item.projectName && item.projectName !== 'General') || item.ticketTitle) && (
+                      <div>
+                          Parent: <span className="font-medium text-gray-700">{(item.projectName && item.projectName !== 'General') ? item.projectName : item.ticketTitle}</span>
+                      </div>
+                      )}
+                      {item.dueDate && <div>Due: <span className="font-medium text-gray-700">{new Date(item.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></div>}
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {item.status && <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[item.status] || 'bg-gray-200 text-gray-800'}`}>{item.status}</span>}
+                      {item.priority && <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[item.priority]}`}>{item.priority}</span>}
                   </div>
                 </div>
               </label>

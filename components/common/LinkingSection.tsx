@@ -6,6 +6,31 @@ import { LinkIcon } from '../icons/LinkIcon.tsx';
 // A helper to get the display name from an item which could have 'name' or 'title'
 const getItemName = (item: any): string => item.name || item.title || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
+const tagColorStyles: Record<string, string> = {
+    // Status
+    [Status.NotStarted]: 'bg-gray-300 text-gray-800',
+    [Status.InProgress]: 'bg-blue-300 text-blue-900',
+    [Status.OnHold]: 'bg-[#ffcd85] text-stone-800',
+    [Status.InReview]: 'bg-[#fff494] text-stone-800',
+    [Status.DevReview]: 'bg-[#fff494] text-stone-800',
+    [Status.PmdReview]: 'bg-[#fff494] text-stone-800',
+    [Status.Testing]: 'bg-orange-300 text-orange-900',
+    [Status.Completed]: 'bg-[#44C064] text-white',
+    // TaskStatus
+    [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
+    [TaskStatus.Done]: 'bg-green-200 text-green-800',
+    // DealershipStatus
+    [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
+    [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
+    [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
+    [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
+    [DealershipStatus.Live]: 'bg-green-200 text-green-800',
+    [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
+    [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
+    // FeatureStatus
+    [FeatureStatus.Launched]: 'bg-green-200 text-green-800',
+    [FeatureStatus.Upcoming]: 'bg-blue-200 text-blue-800',
+  };
 
 // Using a generic type T that must have an id and either a name or title
 interface LinkableItem {
@@ -96,9 +121,9 @@ const LinkingSection = <T extends LinkableItem>({
                     >
                         {getItemName(linked)}
                     </button>
-                    {isCompleted && (
-                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-200 text-green-800">
-                            Completed
+                    {linked.status && (
+                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[linked.status] || 'bg-gray-200 text-gray-800'}`}>
+                            {linked.status}
                         </span>
                     )}
                 </div>
