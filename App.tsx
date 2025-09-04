@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -15,7 +15,7 @@ import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
@@ -46,6 +46,11 @@ import { ClipboardListIcon } from './components/icons/ClipboardListIcon.tsx';
 import { DocumentTextIcon } from './components/icons/DocumentTextIcon.tsx';
 import { BuildingStorefrontIcon } from './components/icons/BuildingStorefrontIcon.tsx';
 import { SparklesIcon } from './components/icons/SparklesIcon.tsx';
+import { UsersIcon } from './components/icons/UsersIcon.tsx';
+import ContactsView from './components/ContactsView.tsx';
+import ContactForm from './components/ContactForm.tsx';
+import ContactGroupForm from './components/ContactGroupForm.tsx';
+import DealershipGroupForm from './components/DealershipGroupForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -214,6 +219,9 @@ function App() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', initialTasks);
   const [features, setFeatures] = useLocalStorage<FeatureAnnouncement[]>('features', initialFeatures);
   const [meetings, setMeetings] = useLocalStorage<Meeting[]>('meetings', initialMeetings);
+  const [contacts, setContacts] = useLocalStorage<Contact[]>('contacts', initialContacts);
+  const [contactGroups, setContactGroups] = useLocalStorage<ContactGroup[]>('contactGroups', initialContactGroups);
+  const [dealershipGroups, setDealershipGroups] = useLocalStorage<DealershipGroup[]>('dealershipGroups', initialDealershipGroups);
   const [savedTicketViews, setSavedTicketViews] = useLocalStorage<SavedTicketView[]>('savedTicketViews', []);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -223,6 +231,15 @@ function App() {
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
   const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string; ticketId: string | null; ticketTitle?: string; }) | null>(null);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
+  
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingGroup, setEditingGroup] = useState<ContactGroup | null>(null);
+  const [isContactFormOpen, setIsContactFormOpen] = useState(false);
+  const [isGroupFormOpen, setIsGroupFormOpen] = useState(false);
+
+  const [isDealershipGroupFormOpen, setIsDealershipGroupFormOpen] = useState(false);
+  const [editingDealershipGroup, setEditingDealershipGroup] = useState<DealershipGroup | null>(null);
+
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCreateChoiceModalOpen, setIsCreateChoiceModalOpen] = useState(false);
@@ -377,15 +394,6 @@ function App() {
     showToast('Task added!', 'success');
   };
   
-  const handleDealershipSubmit = (newDealershipData: Omit<Dealership, 'id'>) => {
-    const newDealership: Dealership = {
-      id: crypto.randomUUID(),
-      ...newDealershipData,
-    };
-    setDealerships(prev => [...prev, newDealership]);
-    showToast('Dealership account created successfully!', 'success');
-  };
-  
   const handleFeatureSubmit = (newFeatureData: Omit<FeatureAnnouncement, 'id'>) => {
       const newFeature: FeatureAnnouncement = {
           id: crypto.randomUUID(),
@@ -404,6 +412,216 @@ function App() {
       showToast('Meeting note saved!', 'success');
   };
 
+  const handleSaveContact = (contactData: Omit<Contact, 'id'> | Contact) => {
+    let updatedContact: Contact;
+    const oldContact = 'id' in contactData ? contacts.find(c => c.id === contactData.id) : undefined;
+
+    if ('id' in contactData) {
+        updatedContact = contactData;
+        setContacts(prev => prev.map(c => c.id === contactData.id ? contactData : c));
+        showToast('Contact updated!', 'success');
+    } else {
+        updatedContact = { ...contactData, id: crypto.randomUUID() };
+        setContacts(prev => [...prev, updatedContact]);
+        showToast('Contact created!', 'success');
+    }
+
+    const oldGroupIds = new Set(oldContact?.groupIds || []);
+    const newGroupIds = new Set(updatedContact.groupIds || []);
+
+    setContactGroups(prevGroups => 
+        prevGroups.map(group => {
+            const contactShouldBeInGroup = newGroupIds.has(group.id);
+            const contactWasInGroup = oldGroupIds.has(group.id);
+
+            if (contactShouldBeInGroup && !contactWasInGroup) {
+                return { ...group, contactIds: [...group.contactIds, updatedContact.id] };
+            }
+            if (!contactShouldBeInGroup && contactWasInGroup) {
+                return { ...group, contactIds: group.contactIds.filter(id => id !== updatedContact.id) };
+            }
+            return group;
+        })
+    );
+    
+    setIsContactFormOpen(false);
+    setEditingContact(null);
+  };
+
+  const handleDeleteContact = (contactId: string) => {
+    if (window.confirm('Are you sure you want to delete this contact?')) {
+        setContacts(prev => prev.filter(c => c.id !== contactId));
+        setContactGroups(prev => prev.map(g => ({
+            ...g,
+            contactIds: g.contactIds.filter(id => id !== contactId)
+        })));
+        showToast('Contact deleted!', 'success');
+    }
+  };
+  
+  const handleSaveGroup = (groupData: Omit<ContactGroup, 'id' | 'contactIds'> | ContactGroup) => {
+      if ('id' in groupData) {
+          setContactGroups(prev => prev.map(g => g.id === groupData.id ? groupData : g));
+          showToast('Group updated!', 'success');
+      } else {
+          const newGroup = { ...groupData, id: crypto.randomUUID(), contactIds: [] };
+          setContactGroups(prev => [...prev, newGroup]);
+          showToast('Group created!', 'success');
+      }
+      setIsGroupFormOpen(false);
+      setEditingGroup(null);
+  };
+
+  const handleDeleteGroup = (groupId: string) => {
+    if (window.confirm('Are you sure you want to delete this group? Contacts will not be deleted.')) {
+        setContacts(prev => prev.map(c => ({
+            ...c,
+            groupIds: (c.groupIds || []).filter(id => id !== groupId)
+        })));
+        setContactGroups(prev => prev.filter(g => g.id !== groupId));
+        showToast('Group deleted!', 'success');
+    }
+  };
+
+  const handleUpdateContactGroup = (updatedGroup: ContactGroup) => {
+    const oldGroup = contactGroups.find(g => g.id === updatedGroup.id);
+    if (!oldGroup) return;
+
+    const oldContactIds = new Set(oldGroup.contactIds);
+    const newContactIds = new Set(updatedGroup.contactIds);
+
+    setContacts(prevContacts => {
+        return prevContacts.map(contact => {
+            const wasMember = oldContactIds.has(contact.id);
+            const isMember = newContactIds.has(contact.id);
+            const groupIds = new Set(contact.groupIds || []);
+
+            if (isMember && !wasMember) {
+                groupIds.add(updatedGroup.id);
+            } else if (!isMember && wasMember) {
+                groupIds.delete(updatedGroup.id);
+            } else {
+                return contact;
+            }
+            return { ...contact, groupIds: Array.from(groupIds) };
+        });
+    });
+
+    setContactGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
+    showToast('Group members updated!', 'success');
+  };
+
+  // FIX: New robust save handler for dealerships to ensure bidirectional linking.
+  const handleSaveDealership = (dealershipData: Omit<Dealership, 'id'> | Dealership) => {
+    let updatedDealership: Dealership;
+    const oldDealership = 'id' in dealershipData ? dealerships.find(d => d.id === dealershipData.id) : undefined;
+
+    if ('id' in dealershipData) {
+        updatedDealership = dealershipData;
+        setDealerships(prev => prev.map(d => d.id === dealershipData.id ? dealershipData : d));
+        showToast('Dealership updated!', 'success');
+    } else {
+        updatedDealership = { ...dealershipData, id: crypto.randomUUID() };
+        setDealerships(prev => [...prev, updatedDealership]);
+        showToast('Dealership created!', 'success');
+    }
+
+    const oldGroupIds = new Set(oldDealership?.groupIds || []);
+    const newGroupIds = new Set(updatedDealership.groupIds || []);
+
+    setDealershipGroups(prevGroups => 
+        prevGroups.map(group => {
+            const dealershipShouldBeInGroup = newGroupIds.has(group.id);
+            const dealershipWasInGroup = oldGroupIds.has(group.id);
+
+            if (dealershipShouldBeInGroup && !dealershipWasInGroup) {
+                return { ...group, dealershipIds: [...group.dealershipIds, updatedDealership.id] };
+            }
+            if (!dealershipShouldBeInGroup && dealershipWasInGroup) {
+                return { ...group, dealershipIds: group.dealershipIds.filter(id => id !== updatedDealership.id) };
+            }
+            return group;
+        })
+    );
+    
+    if (selectedDealership?.id === updatedDealership.id) {
+        setSelectedDealership(updatedDealership);
+    }
+  };
+
+  const handleDealershipSubmit = (newDealershipData: Omit<Dealership, 'id'>) => {
+    handleSaveDealership(newDealershipData);
+  };
+  
+  const handleUpdateDealership = (updatedDealership: Dealership) => {
+    handleSaveDealership(updatedDealership);
+  };
+  
+  const handleDeleteDealership = (dealershipId: string) => {
+    if (window.confirm('Are you sure you want to delete this dealership account?')) {
+      setDealerships(prev => prev.filter(d => d.id !== dealershipId));
+      // FIX: Ensure the deleted dealership is removed from its groups.
+      setDealershipGroups(prev => prev.map(g => ({
+          ...g,
+          dealershipIds: g.dealershipIds.filter(id => id !== dealershipId)
+      })));
+      showToast('Dealership account deleted successfully!', 'success');
+      setSelectedDealership(null);
+    }
+  };
+  
+  const handleSaveDealershipGroup = (groupData: Omit<DealershipGroup, 'id' | 'dealershipIds'> | DealershipGroup) => {
+      if ('id' in groupData) {
+          setDealershipGroups(prev => prev.map(g => g.id === groupData.id ? groupData : g));
+          showToast('Group updated!', 'success');
+      } else {
+          const newGroup = { ...groupData, id: crypto.randomUUID(), dealershipIds: [] };
+          setDealershipGroups(prev => [...prev, newGroup]);
+          showToast('Group created!', 'success');
+      }
+      setIsDealershipGroupFormOpen(false);
+      setEditingDealershipGroup(null);
+  };
+
+  const handleDeleteDealershipGroup = (groupId: string) => {
+    if (window.confirm('Are you sure you want to delete this group? Dealerships will not be deleted.')) {
+        setDealerships(prev => prev.map(d => ({
+            ...d,
+            groupIds: (d.groupIds || []).filter(id => id !== groupId)
+        })));
+        setDealershipGroups(prev => prev.filter(g => g.id !== groupId));
+        showToast('Group deleted!', 'success');
+    }
+  };
+
+  const handleUpdateDealershipGroup = (updatedGroup: DealershipGroup) => {
+    const oldGroup = dealershipGroups.find(g => g.id === updatedGroup.id);
+    if (!oldGroup) return;
+
+    const oldDealershipIds = new Set(oldGroup.dealershipIds);
+    const newDealershipIds = new Set(updatedGroup.dealershipIds);
+
+    setDealerships(prevDealerships => {
+        return prevDealerships.map(dealership => {
+            const wasMember = oldDealershipIds.has(dealership.id);
+            const isMember = newDealershipIds.has(dealership.id);
+            const groupIds = new Set(dealership.groupIds || []);
+
+            if (isMember && !wasMember) {
+                groupIds.add(updatedGroup.id);
+            } else if (!isMember && wasMember) {
+                groupIds.delete(updatedGroup.id);
+            } else {
+                return dealership;
+            }
+            return { ...dealership, groupIds: Array.from(groupIds) };
+        });
+    });
+
+    setDealershipGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
+    showToast('Group members updated!', 'success');
+  };
+
   const handleUpdateTicket = (updatedTicket: Ticket) => {
     setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
     showToast('Ticket updated successfully!', 'success');
@@ -418,14 +636,6 @@ function App() {
     if (selectedProject?.id === updatedProject.id) {
       setSelectedProject(updatedProject);
     }
-  };
-  
-  const handleUpdateDealership = (updatedDealership: Dealership) => {
-      setDealerships(prev => prev.map(d => d.id === updatedDealership.id ? updatedDealership : d));
-      showToast('Dealership account updated successfully!', 'success');
-      if (selectedDealership?.id === updatedDealership.id) {
-          setSelectedDealership(updatedDealership);
-      }
   };
   
   const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
@@ -525,12 +735,6 @@ function App() {
       setSelectedProject(null);
   };
   
-  const handleDeleteDealership = (dealershipId: string) => {
-      setDealerships(prev => prev.filter(d => d.id !== dealershipId));
-      showToast('Dealership account deleted successfully!', 'success');
-      setSelectedDealership(null);
-  };
-  
   const handleDeleteFeature = (featureId: string) => {
     if (window.confirm('Are you sure you want to delete this feature announcement?')) {
         setFeatures(prev => prev.filter(f => f.id !== featureId));
@@ -568,7 +772,7 @@ function App() {
                 handleUpdateTicket({ ...ticket, tasks: updatedTasks });
             }
         } else {
-            setTasks(prev => prev.filter(t => t.id !== taskId));
+            setTasks(prev => prev.filter(t => t.id === taskId));
         }
         showToast('Task deleted!', 'success');
     };
@@ -1570,6 +1774,7 @@ function App() {
             case 'dealerships': return 'Create New Account';
             case 'features': return 'Add Feature Announcement';
             case 'meetings': return 'Add New Meeting Note';
+            case 'contacts': return 'Create New Contact';
             default: return 'Create New Item';
         }
     }
@@ -1578,9 +1783,10 @@ function App() {
         switch (currentView) {
             case 'tickets': return <TicketForm onSubmit={data => { handleTicketSubmit(data); setIsFormOpen(false); }} projects={projects} />;
             case 'projects': return <ProjectForm onSubmit={data => { handleProjectSubmit(data); setIsFormOpen(false); }} />;
-            case 'dealerships': return <DealershipForm onSubmit={data => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)}/>;
+            case 'dealerships': return <DealershipForm onSubmit={data => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={handleUpdateDealership} onClose={() => setIsFormOpen(false)} allGroups={dealershipGroups}/>;
             case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
             case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
+            case 'contacts': return <ContactForm onSave={handleSaveContact} onClose={() => setIsContactFormOpen(false)} contactToEdit={null} allGroups={contactGroups} />;
             default: return null;
         }
     }
@@ -1588,16 +1794,35 @@ function App() {
     const handleCreateChoice = (view: View) => {
         setIsCreateChoiceModalOpen(false);
         setCurrentView(view);
-        // A small delay ensures the view changes before the form opens, which can be smoother.
-        setTimeout(() => setIsFormOpen(true), 50);
+        setTimeout(() => {
+            if (view === 'contacts') {
+                setEditingContact(null);
+                setIsContactFormOpen(true);
+            } else {
+                setIsFormOpen(true);
+            }
+        }, 50);
     };
 
     const handleHeaderNewClick = () => {
         if (currentView === 'dashboard') {
             setIsCreateChoiceModalOpen(true);
+        } else if (currentView === 'contacts') {
+            setEditingContact(null);
+            setIsContactFormOpen(true);
         } else {
             setIsFormOpen(true);
         }
+    };
+
+    const handleNewDealershipGroupClick = () => {
+        setEditingDealershipGroup(null);
+        setIsDealershipGroupFormOpen(true);
+    };
+    
+    const handleEditDealershipGroupClick = (group: DealershipGroup) => {
+        setEditingDealershipGroup(group);
+        setIsDealershipGroupFormOpen(true);
     };
 
     const getNewButtonText = () => {
@@ -1607,6 +1832,7 @@ function App() {
             case 'dealerships': return 'New Account';
             case 'features': return 'New Feature';
             case 'meetings': return 'New Note';
+            case 'contacts': return 'New Contact';
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
             default: return 'New Item';
@@ -1844,7 +2070,16 @@ function App() {
           {currentView === 'dealerships' && (
               <>
                 <DealershipInsights {...dealershipInsights} />
-                <DealershipList dealerships={filteredDealerships} onDealershipClick={setSelectedDealership} />
+                <DealershipList 
+                  dealerships={filteredDealerships} 
+                  onDealershipClick={setSelectedDealership} 
+                  dealershipGroups={dealershipGroups}
+                  onUpdateGroup={handleUpdateDealershipGroup}
+                  onDeleteGroup={handleDeleteDealershipGroup}
+                  showToast={showToast}
+                  onNewGroupClick={handleNewDealershipGroupClick}
+                  onEditGroupClick={handleEditDealershipGroupClick}
+                />
               </>
           )}
           {currentView === 'tasks' && (
@@ -1862,10 +2097,31 @@ function App() {
           )}
           {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature} filters={featureFilters} setFilters={setFeatureFilters} allCategories={[...new Set(features.flatMap(f => f.categories || []))]}/>}
           {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
+          {currentView === 'contacts' && (
+            <ContactsView 
+                contacts={contacts}
+                contactGroups={contactGroups}
+                onUpdateContact={(c) => setContacts(prev => prev.map(p => p.id === c.id ? c : p))}
+                onDeleteContact={handleDeleteContact}
+                onUpdateGroup={handleUpdateContactGroup}
+                onDeleteGroup={handleDeleteGroup}
+                showToast={showToast}
+                isContactFormOpen={isContactFormOpen}
+                setIsContactFormOpen={setIsContactFormOpen}
+                editingContact={editingContact}
+                setEditingContact={setEditingContact}
+                onSaveContact={handleSaveContact}
+                isGroupFormOpen={isGroupFormOpen}
+                setIsGroupFormOpen={setIsGroupFormOpen}
+                editingGroup={editingGroup}
+                setEditingGroup={setEditingGroup}
+                onSaveGroup={handleSaveGroup}
+            />
+          )}
         </div>
       </main>
       
-      {isFormOpen && (
+      {isFormOpen && currentView !== 'contacts' && (
           <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
               {renderForm()}
           </Modal>
@@ -1889,6 +2145,10 @@ function App() {
                   <button onClick={() => handleCreateChoice('dealerships')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <BuildingStorefrontIcon className="w-8 h-8 text-blue-600 mb-2" />
                       <span className="font-semibold text-gray-800">Dealership</span>
+                  </button>
+                   <button onClick={() => handleCreateChoice('contacts')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <UsersIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Contact</span>
                   </button>
                   <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <SparklesIcon className="w-8 h-8 text-blue-600 mb-2" />
@@ -1947,6 +2207,12 @@ function App() {
           </Modal>
       )}
 
+      {isDealershipGroupFormOpen && (
+        <Modal title={editingDealershipGroup ? 'Edit Dealership Group' : 'Create New Group'} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}>
+            <DealershipGroupForm onSave={handleSaveDealershipGroup} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }} groupToEdit={editingDealershipGroup} />
+        </Modal>
+      )}
+
 
       <SideView 
         title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || ''}
@@ -1990,6 +2256,7 @@ function App() {
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
             {...allDataForLinking}
+            allGroups={dealershipGroups}
             onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
         {selectedMeeting && <MeetingDetailView 

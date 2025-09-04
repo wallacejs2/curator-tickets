@@ -148,6 +148,11 @@ export interface FeatureAnnouncementFilterState {
   category: string;
 }
 
+export interface ContactFilterState {
+  searchTerm: string;
+  type: string; // 'all' or a ContactType enum value
+}
+
 
 // New types for Projects
 export enum ProjectStatus {
@@ -224,7 +229,7 @@ export interface Meeting {
 }
 
 // Type for main application view
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts';
 
 // New types for Dealerships
 export enum DealershipStatus {
@@ -259,6 +264,7 @@ export interface Dealership {
   pocEmail?: string;
   pocPhone?: string;
   updates?: Update[];
+  groupIds?: string[];
   // Linking fields
   ticketIds?: string[];
   projectIds?: string[];
@@ -268,8 +274,39 @@ export interface Dealership {
   featureIds?: string[];
 }
 
+export interface DealershipGroup {
+  id: string;
+  name: string;
+  description?: string;
+  dealershipIds: string[];
+}
+
 export interface SavedTicketView {
   id: string;
   name: string;
   filters: FilterState;
+}
+
+// New types for Contacts
+export enum ContactType {
+  Internal = 'Internal',
+  External = 'External',
+}
+
+export interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  type: ContactType;
+  isFavorite?: boolean;
+  groupIds?: string[];
+}
+
+export interface ContactGroup {
+  id: string;
+  name: string;
+  description?: string;
+  contactIds: string[];
 }

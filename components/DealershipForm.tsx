@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { Dealership, DealershipStatus } from '../types.ts';
+import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 
 type FormSubmitCallback = (dealership: Omit<Dealership, 'id'>) => void;
 type FormUpdateCallback = (dealership: Dealership) => void;
@@ -10,6 +11,7 @@ interface DealershipFormProps {
   onUpdate: FormUpdateCallback;
   dealershipToEdit?: Dealership | null;
   onClose: () => void;
+  allGroups: DealershipGroup[];
 }
 
 const initialFormData: Omit<Dealership, 'id'> = {
@@ -32,6 +34,7 @@ const initialFormData: Omit<Dealership, 'id'> = {
   pocName: '',
   pocEmail: '',
   pocPhone: '',
+  groupIds: [],
 };
 
 const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols?: number }> = ({ title, children, gridCols = 2 }) => (
@@ -45,7 +48,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
   </fieldset>
 );
 
-const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dealershipToEdit, onClose }) => {
+const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dealershipToEdit, onClose, allGroups }) => {
   const [formData, setFormData] = useState(initialFormData);
   const isEditing = !!dealershipToEdit;
 
@@ -77,6 +80,16 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleGroupToggle = (groupId: string) => {
+    setFormData(prev => {
+      const currentGroupIds = prev.groupIds || [];
+      const newGroupIds = currentGroupIds.includes(groupId)
+        ? currentGroupIds.filter(id => id !== groupId)
+        : [...currentGroupIds, groupId];
+      return { ...prev, groupIds: newGroupIds };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -118,11 +131,35 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
           <label className={labelClasses}>Account Number (CIF)</label>
           <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} />
         </div>
-        <div className="col-span-2">
+        <div>
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
             {Object.values(DealershipStatus).map(status => <option key={status} value={status}>{status}</option>)}
           </select>
+        </div>
+         <div>
+          <label className={labelClasses}>Enterprise (Group Name)</label>
+          <input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+      </FormSection>
+
+      <FormSection title="Groups" gridCols={1}>
+        <div className="col-span-1">
+            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border p-3 rounded-md bg-gray-50">
+              {allGroups.length > 0 ? allGroups.map(group => (
+                <label key={group.id} className="flex items-center text-sm cursor-pointer">
+                  <input 
+                    type="checkbox"
+                    checked={(formData.groupIds || []).includes(group.id)}
+                    onChange={() => handleGroupToggle(group.id)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-gray-800">{group.name}</span>
+                </label>
+              )) : (
+                <p className="text-gray-500 italic text-sm">No groups created yet.</p>
+              )}
+            </div>
         </div>
       </FormSection>
 
@@ -168,11 +205,7 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
         </div>
       </FormSection>
 
-      <FormSection title="Group & Identifiers" gridCols={3}>
-        <div>
-          <label className={labelClasses}>Enterprise (Group Name)</label>
-          <input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} />
-        </div>
+      <FormSection title="Identifiers" gridCols={3}>
         <div>
           <label className={labelClasses}>Store Number</label>
           <input type="text" name="storeNumber" value={formData.storeNumber || ''} onChange={handleChange} className={formElementClasses} />

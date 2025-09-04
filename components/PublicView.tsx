@@ -4,7 +4,7 @@ import ProjectDetailView from './ProjectDetailView.tsx';
 import DealershipDetailView from './DealershipDetailView.tsx';
 import MeetingDetailView from './MeetingDetailView.tsx';
 import FeatureDetailView from './FeatureDetailView.tsx';
-import { Ticket, Project, Dealership, Meeting, FeatureAnnouncement, Task } from '../types.ts';
+import { Ticket, Project, Dealership, Meeting, FeatureAnnouncement, Task, DealershipGroup } from '../types.ts';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
@@ -18,6 +18,7 @@ interface PublicViewProps {
     allMeetings: Meeting[];
     allDealerships: Dealership[];
     allFeatures: FeatureAnnouncement[];
+    allGroups: DealershipGroup[];
   };
 }
 
@@ -30,7 +31,6 @@ const PublicView: React.FC<PublicViewProps> = ({ item, type, allData }) => {
       onUpdate: doNothing,
       onDelete: doNothing,
       onExport: doNothing,
-      onShare: doNothing,
       onEmail: doNothing,
       onAddUpdate: doNothing,
       onEditUpdate: doNothing,

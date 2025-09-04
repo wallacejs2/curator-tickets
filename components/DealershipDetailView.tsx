@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update } from '../types.ts';
+import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -17,6 +17,7 @@ interface DealershipDetailViewProps {
   onAddUpdate: (dealershipId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
+  isReadOnly?: boolean;
   
   // All entities for linking
   allTickets: Ticket[];
@@ -25,6 +26,7 @@ interface DealershipDetailViewProps {
   allMeetings: Meeting[];
   allDealerships: Dealership[];
   allFeatures: FeatureAnnouncement[];
+  allGroups: DealershipGroup[];
 
   // Linking handlers
   onLink: (toType: EntityType, toId: string) => void;
@@ -59,9 +61,9 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 );
 
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
-    dealership, onUpdate, onDelete, onExport,
+    dealership, onUpdate, onDelete, onExport, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate,
-    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
+    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups,
     onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -130,18 +132,21 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                         onUpdate={onUpdate}
                         dealershipToEdit={dealership}
                         onClose={() => setIsEditingModalOpen(false)}
+                        allGroups={allGroups}
                     />
                 </Modal>
             )}
 
-            <div className="flex justify-end items-center gap-3 mb-6">
-                <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                    <DownloadIcon className="w-4 h-4"/>
-                    <span>Export</span>
-                </button>
-                <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-                <button onClick={() => setIsEditingModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
-            </div>
+            {!isReadOnly && (
+              <div className="flex justify-end items-center gap-3 mb-6">
+                  <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
+                      <DownloadIcon className="w-4 h-4"/>
+                      <span>Export</span>
+                  </button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
+                  <button onClick={() => setIsEditingModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+              </div>
+            )}
 
             <div className="space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -179,42 +184,48 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="Address" value={dealership.address} />
                 </div>
 
-                <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
-                <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
-                <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
-                <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
-                <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
-                <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
+                {!isReadOnly && (
+                  <>
+                    <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
+                    <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
+                    <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
+                    <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
+                    <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
+                    <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
+                  </>
+                )}
                 
                 <div className="pt-6 mt-6 border-t border-gray-200">
                     <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({dealership.updates?.length || 0})</h3>
-                    <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
-                        <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-                        <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
-                        <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
-                        <textarea 
-                          value={newUpdate} 
-                          onChange={e => setNewUpdate(e.target.value)}
-                          placeholder="Type your comment here..."
-                          required
-                          rows={4}
-                          className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          maxLength={MAX_COMMENT_LENGTH}
-                        />
-                        <div className="flex justify-between items-center">
-                            <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
-                            <button 
-                              type="submit" 
-                              disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
-                              className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
-                                Add Update
-                            </button>
-                        </div>
-                    </form>
+                    {!isReadOnly && (
+                      <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
+                          <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
+                          <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
+                          <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
+                          <textarea 
+                            value={newUpdate} 
+                            onChange={e => setNewUpdate(e.target.value)}
+                            placeholder="Type your comment here..."
+                            required
+                            rows={4}
+                            className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            maxLength={MAX_COMMENT_LENGTH}
+                          />
+                          <div className="flex justify-between items-center">
+                              <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
+                              <button 
+                                type="submit" 
+                                disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
+                                className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
+                                  Add Update
+                              </button>
+                          </div>
+                      </form>
+                    )}
                     <div className="space-y-4">
                         {[...(dealership.updates || [])].reverse().map((update) => (
                             <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                                {editingUpdateId === update.id ? (
+                                {editingUpdateId === update.id && !isReadOnly ? (
                                     <div>
                                         <textarea
                                         value={editedComment}
@@ -244,30 +255,32 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                                                 <span className="mx-1.5">•</span>
                                                 <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
                                             </p>
-                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingUpdateId(update.id);
-                                                        const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
-                                                        setEditedComment(commentForEditing);
-                                                    }}
-                                                    className="p-1 text-gray-400 hover:text-blue-600"
-                                                    aria-label="Edit update"
-                                                >
-                                                    <PencilIcon className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if (window.confirm('Are you sure you want to delete this update?')) {
-                                                        onDeleteUpdate(update.id);
-                                                        }
-                                                    }}
-                                                    className="p-1 text-gray-400 hover:text-red-600"
-                                                    aria-label="Delete update"
-                                                >
-                                                    <TrashIcon className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            {!isReadOnly && (
+                                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  <button
+                                                      onClick={() => {
+                                                          setEditingUpdateId(update.id);
+                                                          const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
+                                                          setEditedComment(commentForEditing);
+                                                      }}
+                                                      className="p-1 text-gray-400 hover:text-blue-600"
+                                                      aria-label="Edit update"
+                                                  >
+                                                      <PencilIcon className="w-4 h-4" />
+                                                  </button>
+                                                  <button
+                                                      onClick={() => {
+                                                          if (window.confirm('Are you sure you want to delete this update?')) {
+                                                          onDeleteUpdate(update.id);
+                                                          }
+                                                      }}
+                                                      className="p-1 text-gray-400 hover:text-red-600"
+                                                      aria-label="Delete update"
+                                                  >
+                                                      <TrashIcon className="w-4 h-4" />
+                                                  </button>
+                                              </div>
+                                            )}
                                         </div>
                                         <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
                                     </div>

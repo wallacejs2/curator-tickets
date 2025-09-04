@@ -3,9 +3,6 @@ import { FilterState, View, DealershipFilterState } from '../types.ts';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 import { SearchIcon } from './icons/SearchIcon.tsx';
 import { XIcon } from './icons/XIcon.tsx';
-import { TicketIcon } from './icons/TicketIcon.tsx';
-import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
-import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { ArrowPathIcon } from './icons/ArrowPathIcon.tsx';
@@ -14,6 +11,10 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { UploadIcon } from './icons/UploadIcon.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { DashboardIcon } from './icons/DashboardIcon.tsx';
+import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
+import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
+import { AccountCircleIcon } from './icons/AccountCircleIcon.tsx';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
@@ -84,13 +85,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   };
 
   const handleResetData = () => {
-    window.localStorage.removeItem('tickets');
-    window.localStorage.removeItem('projects');
-    window.localStorage.removeItem('dealerships');
-    window.localStorage.removeItem('tasks');
-    window.localStorage.removeItem('features');
-    window.localStorage.removeItem('meetings');
-    window.localStorage.removeItem('savedTicketViews');
+    window.localStorage.clear();
     window.location.reload();
   };
   
@@ -102,7 +97,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     <>
       {isResetModalOpen && (
         <Modal title="Confirm Data Reset" onClose={() => setIsResetModalOpen(false)}>
-            <p className="text-gray-700">Are you sure you want to reset all data? This will clear all your tickets, projects, tasks, and dealerships and restore the initial demo data. This action cannot be undone.</p>
+            <p className="text-gray-700">Are you sure you want to reset all data? This will clear all your tickets, projects, tasks, dealerships, and other data, restoring the initial demo set. This action cannot be undone.</p>
             <div className="flex justify-end gap-3 mt-6">
                 <button onClick={() => setIsResetModalOpen(false)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
                 <button onClick={handleResetData} className="bg-red-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-red-700">Reset Data</button>
@@ -130,11 +125,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Navigation</h2>
             <div className="space-y-1">
               <NavItem icon={<DashboardIcon className="w-5 h-5" />} label="Dashboard" isActive={currentView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
-              <NavItem icon={<TicketIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
-              <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
+              <NavItem icon={<ReceiptLongIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
+              <NavItem icon={<WorkspaceIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
               <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />
               <NavItem icon={<DocumentTextIcon className="w-6 h-6"/>} label="Meeting Notes" isActive={currentView === 'meetings'} onClick={() => onViewChange('meetings')} />
-              <NavItem icon={<BuildingStorefrontIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
+              <NavItem icon={<AccountBalanceIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
+              <NavItem icon={<AccountCircleIcon className="w-6 h-6"/>} label="Contacts" isActive={currentView === 'contacts'} onClick={() => onViewChange('contacts')} />
               <NavItem icon={<SparklesIcon className="w-6 h-6"/>} label="New Features" isActive={currentView === 'features'} onClick={() => onViewChange('features')} />
             </div>
           </nav>

@@ -125,11 +125,6 @@ const TaskList: React.FC<TaskListProps> = ({
     setNotify('');
   };
   
-  const handleStatusChange = (taskId: string, currentStatus: TaskStatus) => {
-      const newStatus = currentStatus === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done;
-      onUpdateTaskStatus(taskId, newStatus);
-  };
-  
   const inputClasses = "w-full p-2.5 bg-white text-gray-900 border border-gray-300 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";
   const selectClasses = `${inputClasses}`;
 
@@ -193,21 +188,23 @@ const TaskList: React.FC<TaskListProps> = ({
       <div className="space-y-2">
         {tasksToShow.length > 0 ? tasksToShow.map(task => (
           <div key={task.id} className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-colors ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
-            <input
-              type="checkbox"
-              checked={task.status === TaskStatus.Done}
-              onChange={() => handleStatusChange(task.id, task.status)}
-              className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0 mt-1"
-              aria-label={`Mark task ${task.description} as complete`}
-            />
             <div className="flex-grow">
               <div className="flex justify-between items-start gap-2">
-                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900' : 'text-gray-800'}`}>
+                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>
                     {task.description}
                 </p>
-                <span className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ${statusColorStyles[task.status]}`}>
-                    {task.status}
-                </span>
+                <select
+                    value={task.status}
+                    onChange={(e) => {
+                        e.stopPropagation();
+                        onUpdateTaskStatus(task.id, e.target.value as TaskStatus);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap border-transparent focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 focus:outline-none appearance-none ${statusColorStyles[task.status]}`}
+                    aria-label={`Change status for ${task.description}`}
+                >
+                    {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
               </div>
               <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                  {task.assignedUser && <span>Assigned to: <span className="font-medium">{task.assignedUser}</span></span>}

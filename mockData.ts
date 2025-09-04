@@ -1,5 +1,5 @@
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -313,6 +313,7 @@ export const initialDealerships: Dealership[] = [
         comment: 'Training for sales team went well. A few questions about the reporting dashboard.'
       }
     ],
+    groupIds: ['d-group-1'],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -338,6 +339,7 @@ export const initialDealerships: Dealership[] = [
     pocEmail: 'anna.w@citycars.com',
     pocPhone: '555-987-6543',
     updates: [],
+    groupIds: ['d-group-2'],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -403,6 +405,7 @@ export const initialDealerships: Dealership[] = [
     address: '2 Tech Way, Anytown, USA 12345',
     assignedSpecialist: 'Jane Doe',
     updates: [],
+    groupIds: ['d-group-2'],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],
@@ -606,4 +609,22 @@ export const initialMeetings: Meeting[] = [
     dealershipIds: [],
     featureIds: [],
   }
+];
+
+export const initialContacts: Contact[] = [
+  { id: 'contact-1', name: 'John Doe', email: 'john.doe@internal.com', role: 'Lead Developer', type: ContactType.Internal, isFavorite: true, groupIds: ['group-1'] },
+  { id: 'contact-2', name: 'Alice Johnson', email: 'alice.j@internal.com', role: 'Frontend Developer', type: ContactType.Internal, groupIds: ['group-1'] },
+  { id: 'contact-3', name: 'Bob Williams', email: 'bob.w@internal.com', role: 'Project Manager', type: ContactType.Internal },
+  { id: 'contact-4', name: 'Mike Miller', email: 'mike.miller@prestigemotors.com', role: 'Client POC', type: ContactType.External, phone: '555-123-4567', groupIds: ['group-2'] },
+  { id: 'contact-5', name: 'Anna Williams', email: 'anna.w@citycars.com', role: 'General Manager', type: ContactType.External, phone: '555-987-6543', groupIds: ['group-2'] },
+];
+
+export const initialContactGroups: ContactGroup[] = [
+  { id: 'group-1', name: 'Development Team', description: 'Core engineers for the Curator project.', contactIds: ['contact-1', 'contact-2'] },
+  { id: 'group-2', name: 'Key Client Contacts', description: 'Main points of contact for our top clients.', contactIds: ['contact-4', 'contact-5'] },
+];
+
+export const initialDealershipGroups: DealershipGroup[] = [
+  { id: 'd-group-1', name: 'Luxury Auto Group', description: 'High-end dealerships.', dealershipIds: ['dealership-1'] },
+  { id: 'd-group-2', name: 'Urban Motors Inc.', description: 'Dealerships located in metropolitan areas.', dealershipIds: ['dealership-2', 'dealership-5'] },
 ];

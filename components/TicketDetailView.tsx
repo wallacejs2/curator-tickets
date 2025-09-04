@@ -80,6 +80,7 @@ interface TicketDetailViewProps {
     onExport: () => void, 
     onEmail: () => void, 
     onDelete: (ticketId: string) => void, 
+    isReadOnly?: boolean;
     
     // All entities for linking
     allTickets: Ticket[];
@@ -96,7 +97,7 @@ interface TicketDetailViewProps {
 }
 
 const TicketDetailView = ({ 
-    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete,
+    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete, isReadOnly = false,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
  }: TicketDetailViewProps) => {
@@ -451,7 +452,7 @@ const TicketDetailView = ({
         </Modal>
       )}
 
-      {!isEditing && (
+      {!isEditing && !isReadOnly && (
         <div className="flex justify-end items-center gap-3 mb-6">
             <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><span>Email</span></button>
             <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
@@ -467,158 +468,162 @@ const TicketDetailView = ({
         {isEditing ? renderEditMode() : renderViewMode()}
       </div>
       
-      <div className="pt-6 mt-6 border-t border-gray-200">
-        <h3 className="text-md font-semibold text-gray-800 mb-4">Ticket Tasks ({ticketTasks.length})</h3>
-        
-        <div className="space-y-2">
-            {ticketTasks.length > 0 ? ticketTasks.map(task => (
-                <div
-                    key={task.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    onDragEnter={() => handleDragEnter(task.id)}
-                    onDragEnd={handleDragEnd}
-                    onDrop={handleDrop}
-                    onDragOver={(e) => e.preventDefault()}
-                    className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-all duration-300 cursor-grab ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} ${dragging && dragItem.current === task.id ? 'opacity-50 scale-105' : ''} ${dragging && dragOverItem.current === task.id ? 'bg-blue-100' : ''}`}
-                >
-                    <input type="checkbox" checked={task.status === TaskStatus.Done} onChange={() => handleTaskToggleStatus(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer"/>
-                    <div className="flex-grow">
-                        <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>{task.description}</p>
-                        <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            {task.assignedUser && <span>To: <span className="font-medium">{task.assignedUser}</span></span>}
-                            {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></span>}
-                            {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
-                            <span>Priority: <span className="font-medium">{task.priority}</span></span>
-                            {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
-                        <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
-                    </div>
-                </div>
-            )) : (
-                <p className="text-sm text-gray-500 italic">No tasks have been added to this ticket yet.</p>
-            )}
-        </div>
-
-        <form onSubmit={handleNewTaskSubmit} className="space-y-3 mt-4 p-3 bg-gray-50 rounded-md border">
-            <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-                <input type="text" value={newNotify} onChange={e => setNewNotify(e.target.value)} placeholder="Notify on completion..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto,auto] gap-3 items-center">
-                <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" className="text-sm p-2 border border-gray-300 rounded-md"/>
-                <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white h-full">
-                    {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
-                <button type="submit" aria-label="Add Task" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
-                    <PlusIcon className="w-5 h-5" />
-                </button>
-            </div>
-        </form>
-    </div>
-
-      <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
-      <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
-      <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
-      <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
-      <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
-      <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
-
-      <div className="pt-6 mt-6 border-t border-gray-200">
-          <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
-            <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-              <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-              <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-              <textarea 
-                value={newUpdate} 
-                onChange={e => setNewUpdate(e.target.value)}
-                placeholder="Type your comment here..."
-                required
-                rows={4}
-                className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                maxLength={MAX_COMMENT_LENGTH}
-              />
-              <div className="flex justify-between items-center">
-                  <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
-                  <button 
-                    type="submit" 
-                    disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
-                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
-                      Add Update
-                  </button>
-              </div>
-            </form>
-          <div className="space-y-4">
-          {[...(ticket.updates || [])].reverse().map((update) => (
-              <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                {editingUpdateId === update.id ? (
-                    <div>
-                        <textarea
-                        value={editedComment}
-                        onChange={(e) => setEditedComment(e.target.value)}
-                        rows={4}
-                        className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
-                        />
-                        <div className="flex justify-end gap-2 mt-2">
-                            <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
-                            <button
-                                onClick={() => {
-                                const commentAsHtml = editedComment.replace(/\n/g, '<br />');
-                                onEditUpdate({ ...update, comment: commentAsHtml });
-                                setEditingUpdateId(null);
-                                }}
-                                className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
-                            >
-                                Save
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="group">
-                        <div className="flex justify-between items-start">
-                            <p className="text-xs text-gray-500 font-medium">
-                                <span className="font-semibold text-gray-700">{update.author}</span>
-                                <span className="mx-1.5">•</span>
-                                <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
-                            </p>
-                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                onClick={() => {
-                                    setEditingUpdateId(update.id);
-                                    const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
-                                    setEditedComment(commentForEditing);
-                                }}
-                                className="p-1 text-gray-400 hover:text-blue-600"
-                                aria-label="Edit update"
-                                >
-                                    <PencilIcon className="w-4 h-4" />
-                                </button>
-                                <button
-                                onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this update?')) {
-                                    onDeleteUpdate(update.id);
-                                    }
-                                }}
-                                className="p-1 text-gray-400 hover:text-red-600"
-                                aria-label="Delete update"
-                                >
-                                    <TrashIcon className="w-4 h-4" />
-                                </button>
+      {!isReadOnly && (
+        <>
+            <div className="pt-6 mt-6 border-t border-gray-200">
+                <h3 className="text-md font-semibold text-gray-800 mb-4">Ticket Tasks ({ticketTasks.length})</h3>
+                
+                <div className="space-y-2">
+                    {ticketTasks.length > 0 ? ticketTasks.map(task => (
+                        <div
+                            key={task.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onDragEnter={() => handleDragEnter(task.id)}
+                            onDragEnd={handleDragEnd}
+                            onDrop={handleDrop}
+                            onDragOver={(e) => e.preventDefault()}
+                            className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-all duration-300 cursor-grab ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} ${dragging && dragItem.current === task.id ? 'opacity-50 scale-105' : ''} ${dragging && dragOverItem.current === task.id ? 'bg-blue-100' : ''}`}
+                        >
+                            <input type="checkbox" checked={task.status === TaskStatus.Done} onChange={() => handleTaskToggleStatus(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer"/>
+                            <div className="flex-grow">
+                                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>{task.description}</p>
+                                <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                    {task.assignedUser && <span>To: <span className="font-medium">{task.assignedUser}</span></span>}
+                                    {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></span>}
+                                    {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
+                                    <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                                    {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                                <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
+                                <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
                             </div>
                         </div>
-                        <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
+                    )) : (
+                        <p className="text-sm text-gray-500 italic">No tasks have been added to this ticket yet.</p>
+                    )}
+                </div>
+
+                <form onSubmit={handleNewTaskSubmit} className="space-y-3 mt-4 p-3 bg-gray-50 rounded-md border">
+                    <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                        <input type="text" value={newNotify} onChange={e => setNewNotify(e.target.value)} placeholder="Notify on completion..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
                     </div>
-                )}
-              </div>
-          ))}
-          </div>
-      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto,auto] gap-3 items-center">
+                        <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" className="text-sm p-2 border border-gray-300 rounded-md"/>
+                        <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white h-full">
+                            {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                        <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
+                        <button type="submit" aria-label="Add Task" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
+                            <PlusIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
+            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
+            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
+            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
+            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
+            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
+
+            <div className="pt-6 mt-6 border-t border-gray-200">
+                <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({ticket.updates?.length || 0})</h3>
+                    <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
+                    <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+                    <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+                    <textarea 
+                        value={newUpdate} 
+                        onChange={e => setNewUpdate(e.target.value)}
+                        placeholder="Type your comment here..."
+                        required
+                        rows={4}
+                        className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        maxLength={MAX_COMMENT_LENGTH}
+                    />
+                    <div className="flex justify-between items-center">
+                        <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
+                        <button 
+                            type="submit" 
+                            disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
+                            className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
+                            Add Update
+                        </button>
+                    </div>
+                    </form>
+                <div className="space-y-4">
+                {[...(ticket.updates || [])].reverse().map((update) => (
+                    <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                        {editingUpdateId === update.id ? (
+                            <div>
+                                <textarea
+                                value={editedComment}
+                                onChange={(e) => setEditedComment(e.target.value)}
+                                rows={4}
+                                className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
+                                />
+                                <div className="flex justify-end gap-2 mt-2">
+                                    <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
+                                    <button
+                                        onClick={() => {
+                                        const commentAsHtml = editedComment.replace(/\n/g, '<br />');
+                                        onEditUpdate({ ...update, comment: commentAsHtml });
+                                        setEditingUpdateId(null);
+                                        }}
+                                        className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="group">
+                                <div className="flex justify-between items-start">
+                                    <p className="text-xs text-gray-500 font-medium">
+                                        <span className="font-semibold text-gray-700">{update.author}</span>
+                                        <span className="mx-1.5">•</span>
+                                        <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
+                                    </p>
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                        onClick={() => {
+                                            setEditingUpdateId(update.id);
+                                            const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
+                                            setEditedComment(commentForEditing);
+                                        }}
+                                        className="p-1 text-gray-400 hover:text-blue-600"
+                                        aria-label="Edit update"
+                                        >
+                                            <PencilIcon className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                        onClick={() => {
+                                            if (window.confirm('Are you sure you want to delete this update?')) {
+                                            onDeleteUpdate(update.id);
+                                            }
+                                        }}
+                                        className="p-1 text-gray-400 hover:text-red-600"
+                                        aria-label="Delete update"
+                                        >
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+                </div>
+            </div>
+        </>
+      )}
     </div>
   );
 };

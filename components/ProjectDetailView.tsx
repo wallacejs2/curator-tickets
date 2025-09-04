@@ -19,6 +19,7 @@ interface ProjectDetailViewProps {
   onAddUpdate: (projectId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
+  isReadOnly?: boolean;
   
   // All entities for linking
   allTickets: Ticket[];
@@ -35,7 +36,7 @@ interface ProjectDetailViewProps {
 }
 
 const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ 
-    project, onUpdate, onDelete, onExport, onAddUpdate, onEditUpdate, onDeleteUpdate,
+    project, onUpdate, onDelete, onExport, onAddUpdate, onEditUpdate, onDeleteUpdate, isReadOnly = false,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
 }) => {
@@ -229,18 +230,20 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </Modal>
             )}
 
-            <div className="flex justify-end items-center gap-3 mb-6">
-                <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                    <DownloadIcon className="w-4 h-4"/>
-                    <span>Export</span>
-                </button>
-                <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-                <button onClick={() => { 
-                    setEditableProject(project); 
-                    setInvolvedPeopleString((project.involvedPeople || []).join(', '));
-                    setIsEditing(true); 
-                }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
-            </div>
+            {!isReadOnly && (
+              <div className="flex justify-end items-center gap-3 mb-6">
+                  <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
+                      <DownloadIcon className="w-4 h-4"/>
+                      <span>Export</span>
+                  </button>
+                  <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
+                  <button onClick={() => { 
+                      setEditableProject(project); 
+                      setInvolvedPeopleString((project.involvedPeople || []).join(', '));
+                      setIsEditing(true); 
+                  }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+              </div>
+            )}
             
             <div className="mb-6 pb-6 border-b border-gray-200">
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{project.description}</p>
@@ -254,23 +257,21 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </div>
             </div>
 
-            {/* Sub-Tasks Section */}
             <div className="mb-6">
                 <h3 className="text-md font-semibold text-gray-800 mb-4">Project Tasks ({projectTasks.length})</h3>
-                
                 <div className="space-y-2">
                     {projectTasks.length > 0 ? projectTasks.map(task => (
                         <div
                             key={task.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, task.id)}
-                            onDragEnter={() => handleDragEnter(task.id)}
-                            onDragEnd={handleDragEnd}
-                            onDrop={handleDrop}
+                            draggable={!isReadOnly}
+                            onDragStart={(e) => !isReadOnly && handleDragStart(e, task.id)}
+                            onDragEnter={() => !isReadOnly && handleDragEnter(task.id)}
+                            onDragEnd={!isReadOnly ? handleDragEnd : undefined}
+                            onDrop={!isReadOnly ? handleDrop : undefined}
                             onDragOver={(e) => e.preventDefault()}
-                            className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-all duration-300 cursor-grab ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} ${dragging && dragItem.current === task.id ? 'opacity-50 scale-105' : ''} ${dragging && dragOverItem.current === task.id ? 'bg-blue-100' : ''}`}
+                            className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-all duration-300 ${!isReadOnly && 'cursor-grab'} ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} ${dragging && dragItem.current === task.id ? 'opacity-50 scale-105' : ''} ${dragging && dragOverItem.current === task.id ? 'bg-blue-100' : ''}`}
                         >
-                            <input type="checkbox" checked={task.status === TaskStatus.Done} onChange={() => handleTaskToggleStatus(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer"/>
+                            <input type="checkbox" checked={task.status === TaskStatus.Done} onChange={() => handleTaskToggleStatus(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer" disabled={isReadOnly}/>
                             <div className="flex-grow">
                                 <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>{task.description}</p>
                                 <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -287,117 +288,124 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                     )}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                                <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
-                                <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
-                            </div>
+                            {!isReadOnly && (
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                  <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
+                                  <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
+                              </div>
+                            )}
                         </div>
                     )) : (
                         <p className="text-sm text-gray-500 italic">No tasks have been added to this project yet.</p>
                     )}
                 </div>
 
-                <form onSubmit={handleNewTaskSubmit} className="space-y-3 mt-4 p-3 bg-gray-50 rounded-md border">
-                    <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-                        <input type="text" value={newNotify} onChange={e => setNewNotify(e.target.value)} placeholder="Notify on completion..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto,auto] gap-3 items-center">
-                        <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" required className="text-sm p-2 border border-gray-300 rounded-md"/>
-                        <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white h-full">
-                            {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-                        <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
-                        <button type="submit" aria-label="Add Task" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
-                            <PlusIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                </form>
+                {!isReadOnly && (
+                  <form onSubmit={handleNewTaskSubmit} className="space-y-3 mt-4 p-3 bg-gray-50 rounded-md border">
+                      <input type="text" value={newDescription} onChange={e => setNewDescription(e.target.value)} placeholder="New task description..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input type="text" value={newAssignedUser} onChange={e => setNewAssignedUser(e.target.value)} placeholder="Assignee..." required className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                          <input type="text" value={newNotify} onChange={e => setNewNotify(e.target.value)} placeholder="Notify on completion..." className="w-full text-sm p-2 border border-gray-300 rounded-md"/>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto,auto,auto] gap-3 items-center">
+                          <input type="text" value={newType} onChange={e => setNewType(e.target.value)} placeholder="Type (e.g., Dev)" required className="text-sm p-2 border border-gray-300 rounded-md"/>
+                          <select value={newPriority} onChange={e => setNewPriority(e.target.value as TaskPriority)} className="text-sm p-2 border border-gray-300 rounded-md bg-white h-full">
+                              {Object.values(TaskPriority).map(p => <option key={p} value={p}>{p}</option>)}
+                          </select>
+                          <input type="date" value={newDueDate} onChange={e => setNewDueDate(e.target.value)} className="text-sm p-2 border border-gray-300 rounded-md"/>
+                          <button type="submit" aria-label="Add Task" className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-full">
+                              <PlusIcon className="w-5 h-5" />
+                          </button>
+                      </div>
+                  </form>
+                )}
             </div>
 
-            <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
-            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
-            <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
-            <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
-            <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
-            <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
+            {!isReadOnly && (
+              <>
+                <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
+                <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
+                <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
+                <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
+                <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
+                <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
 
-            {/* Updates Section */}
-            <div className="pt-6 mt-6 border-t border-gray-200">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
-                <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4 space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-                    <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Add a new update..." required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50" rows={3}/>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                        <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-                        <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
-                    </div>
-                    <button type="submit" disabled={!newUpdate.trim() || !authorName.trim()} className="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 text-sm">Add Update</button>
-                </form>
-                <div className="space-y-4">
-                    {[...(project.updates || [])].reverse().map((update) => (
-                        <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
-                            {editingUpdateId === update.id ? (
-                                <div>
-                                    <textarea
-                                    value={editedComment}
-                                    onChange={(e) => setEditedComment(e.target.value)}
-                                    rows={4}
-                                    className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
-                                    />
-                                    <div className="flex justify-end gap-2 mt-2">
-                                        <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
-                                        <button
-                                            onClick={() => {
-                                            onEditUpdate({ ...update, comment: editedComment.trim() });
-                                            setEditingUpdateId(null);
-                                            }}
-                                            className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
-                                        >
-                                            Save
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="group">
-                                    <div className="flex justify-between items-start">
-                                        <p className="text-xs text-gray-500 font-medium">
-                                            <span className="font-semibold text-gray-700">{update.author}</span>
-                                            <span className="mx-1.5">•</span>
-                                            <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
-                                        </p>
-                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="pt-6 mt-6 border-t border-gray-200">
+                    <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
+                    <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4 space-y-3">
+                        <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
+                        <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Add a new update..." required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50" rows={3}/>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                            <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+                            <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
+                        </div>
+                        <button type="submit" disabled={!newUpdate.trim() || !authorName.trim()} className="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 text-sm">Add Update</button>
+                    </form>
+                    <div className="space-y-4">
+                        {[...(project.updates || [])].reverse().map((update) => (
+                            <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                                {editingUpdateId === update.id ? (
+                                    <div>
+                                        <textarea
+                                        value={editedComment}
+                                        onChange={(e) => setEditedComment(e.target.value)}
+                                        rows={4}
+                                        className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
+                                        />
+                                        <div className="flex justify-end gap-2 mt-2">
+                                            <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
                                             <button
                                                 onClick={() => {
-                                                    setEditingUpdateId(update.id);
-                                                    setEditedComment(update.comment);
+                                                onEditUpdate({ ...update, comment: editedComment.trim() });
+                                                setEditingUpdateId(null);
                                                 }}
-                                                className="p-1 text-gray-400 hover:text-blue-600"
-                                                aria-label="Edit update"
+                                                className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
                                             >
-                                                <PencilIcon className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    if (window.confirm('Are you sure you want to delete this update?')) {
-                                                    onDeleteUpdate(update.id);
-                                                    }
-                                                }}
-                                                className="p-1 text-gray-400 hover:text-red-600"
-                                                aria-label="Delete update"
-                                            >
-                                                <TrashIcon className="w-4 h-4" />
+                                                Save
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">{update.comment}</div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                                ) : (
+                                    <div className="group">
+                                        <div className="flex justify-between items-start">
+                                            <p className="text-xs text-gray-500 font-medium">
+                                                <span className="font-semibold text-gray-700">{update.author}</span>
+                                                <span className="mx-1.5">•</span>
+                                                <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
+                                            </p>
+                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingUpdateId(update.id);
+                                                        setEditedComment(update.comment);
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-blue-600"
+                                                    aria-label="Edit update"
+                                                >
+                                                    <PencilIcon className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm('Are you sure you want to delete this update?')) {
+                                                        onDeleteUpdate(update.id);
+                                                        }
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-red-600"
+                                                    aria-label="Delete update"
+                                                >
+                                                    <TrashIcon className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">{update.comment}</div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
+              </>
+            )}
         </div>
     );
 };
