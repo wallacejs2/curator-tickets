@@ -31,11 +31,7 @@ const DealershipGroupForm: React.FC<DealershipGroupFormProps> = ({ onSave, onClo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isEditing) {
-      onSave(formData as DealershipGroup);
-    } else {
-      onSave({ ...formData, id: crypto.randomUUID(), dealershipIds: [] });
-    }
+    onSave(formData);
   };
 
   const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";
