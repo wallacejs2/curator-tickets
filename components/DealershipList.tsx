@@ -48,10 +48,11 @@ const DealershipCard: React.FC<{
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
+        const groupNames = dealershipMemberOfGroups.map(g => g.name).join(', ');
         const infoString = [
             `Account Name: ${dealership.name}`,
             `Account Number: ${dealership.accountNumber}`,
-            dealership.enterprise ? `Enterprise (Group): ${dealership.enterprise}` : null,
+            groupNames ? `Groups: ${groupNames}` : null,
             dealership.storeNumber ? `Store Number: ${dealership.storeNumber}` : null,
             dealership.branchNumber ? `Branch Number: ${dealership.branchNumber}` : null,
             dealership.eraSystemId ? `ERA System ID: ${dealership.eraSystemId}` : null,
@@ -89,7 +90,7 @@ const DealershipCard: React.FC<{
               <div className="flex-1 cursor-pointer">
                 <h3 className="text-xl font-semibold text-gray-900">{dealership.name}</h3>
                 <p className="text-md text-gray-500 mt-1">
-                  {dealership.enterprise || 'No group assigned'}
+                  CIF: {dealership.accountNumber}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -107,7 +108,6 @@ const DealershipCard: React.FC<{
                 </div>
             )}
             <div className="mt-4 text-sm text-gray-600 space-y-1">
-                <p>CIF: <span className="font-medium text-gray-800">{dealership.accountNumber}</span></p>
                 <p>Specialist: <span className="font-medium text-gray-800">{dealership.assignedSpecialist || 'N/A'}</span></p>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">

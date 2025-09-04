@@ -22,7 +22,6 @@ const initialFormData: Omit<Dealership, 'id'> = {
   orderReceivedDate: '',
   goLiveDate: '',
   termDate: '',
-  enterprise: '',
   storeNumber: '',
   branchNumber: '',
   eraSystemId: '',
@@ -131,15 +130,11 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
           <label className={labelClasses}>Account Number (CIF)</label>
           <input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} />
         </div>
-        <div>
+        <div className="col-span-2">
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
             {Object.values(DealershipStatus).map(status => <option key={status} value={status}>{status}</option>)}
           </select>
-        </div>
-         <div>
-          <label className={labelClasses}>Enterprise (Group Name)</label>
-          <input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} />
         </div>
       </FormSection>
 
