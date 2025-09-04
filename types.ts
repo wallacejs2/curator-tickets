@@ -251,6 +251,7 @@ export interface Dealership {
   orderReceivedDate?: string; // Ship Date
   goLiveDate?: string;
   termDate?: string;
+  enterprise?: string; // Group Name
   storeNumber?: string;
   branchNumber?: string;
   eraSystemId?: string;

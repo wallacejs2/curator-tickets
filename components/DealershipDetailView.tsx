@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -85,7 +84,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const linkedMeetings = allMeetings.filter(item => (dealership.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (dealership.linkedDealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (dealership.featureIds || []).includes(item.id));
-    const memberOfGroups = allGroups.filter(g => (dealership.groupIds || []).includes(g.id));
 
     // Enhanced Task Linking Logic: Include tasks from linked tickets and projects
     const directlyLinkedTaskIds = dealership.taskIds || [];
@@ -156,15 +154,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
                     <DetailTag label="Status" value={dealership.status} />
                 </div>
-                
-                 <div className="border-t border-gray-200 pt-6">
-                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Groups</h4>
-                    <div className="flex flex-wrap gap-2">
-                        {memberOfGroups.length > 0 ? memberOfGroups.map(group => (
-                            <span key={group.id} className="px-2.5 py-1 text-sm font-medium bg-gray-200 text-gray-800 rounded-full">{group.name}</span>
-                        )) : <p className="text-sm text-gray-500 italic">Not a member of any groups.</p>}
-                    </div>
-                </div>
 
                 <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <DetailField label="Assigned Specialist" value={dealership.assignedSpecialist} />
@@ -183,6 +172,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 </div>
                 
                 <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <DetailField label="Enterprise (Group)" value={dealership.enterprise} />
                     <DetailField label="Store Number" value={dealership.storeNumber} />
                     <DetailField label="Branch Number" value={dealership.branchNumber} />
                     <DetailField label="ERA System ID" value={dealership.eraSystemId} />

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -1046,7 +1044,7 @@ function App() {
     const handleExportTask = (task: Task) => {
         let content = `TASK DETAILS: ${task.description.substring(0, 50)}...\n`;
         content += `==================================================\n\n`;
-        
+
         const appendField = (label: string, value: any) => {
             if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
                 content += `${label}: ${value}\n`;
@@ -1057,28 +1055,31 @@ function App() {
                 content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
             }
         };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
 
         appendField('ID', task.id);
         appendField('Description', task.description);
-        appendField('Assigned To', task.assignedUser);
         appendField('Status', task.status);
         appendField('Priority', task.priority);
+        appendField('Assigned to', task.assignedUser);
         appendField('Type', task.type);
         appendDateField('Creation Date', task.creationDate);
         appendDateField('Due Date', task.dueDate);
         appendField('Notify on Completion', task.notifyOnCompletion);
 
-        content += `\n--- LINKED ITEM IDS ---\n`;
-        appendField('Project IDs', (task.projectIds || []).join(', '));
-        appendField('Ticket IDs', (task.ticketIds || []).join(', '));
+        appendSection('Linked Item IDs');
         appendField('Linked Task IDs', (task.linkedTaskIds || []).join(', '));
+        appendField('Ticket IDs', (task.ticketIds || []).join(', '));
+        appendField('Project IDs', (task.projectIds || []).join(', '));
         appendField('Meeting IDs', (task.meetingIds || []).join(', '));
         appendField('Dealership IDs', (task.dealershipIds || []).join(', '));
         appendField('Feature IDs', (task.featureIds || []).join(', '));
-
-        createTxtFileDownloader(content, `Task_${task.id}`);
+        
+        createTxtFileDownloader(content, `Task_${task.id}_${task.description.substring(0, 30)}`);
     };
-    
+
     const handleExportMeeting = (meeting: Meeting) => {
         let content = `MEETING DETAILS: ${meeting.name}\n`;
         content += `==================================================\n\n`;
@@ -1093,16 +1094,21 @@ function App() {
                 content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
             }
         };
-
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        
         appendField('ID', meeting.id);
-        appendDateField('Meeting Date', meeting.meetingDate);
-        appendField('Attendees', (meeting.attendees || []).join(', '));
+        appendDateField('Date', meeting.meetingDate);
+        appendField('Attendees', meeting.attendees.join(', '));
 
-        content += '\n--- NOTES ---\n';
-        const notesText = (meeting.notes || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
-        content += `${notesText}\n\n`;
-
-        content += `\n--- LINKED ITEM IDS ---\n`;
+        appendSection('Notes');
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = meeting.notes;
+        const notesText = tempDiv.textContent || tempDiv.innerText || "";
+        content += `${notesText}\n`;
+        
+        appendSection('Linked Item IDs');
         appendField('Project IDs', (meeting.projectIds || []).join(', '));
         appendField('Ticket IDs', (meeting.ticketIds || []).join(', '));
         appendField('Linked Meeting IDs', (meeting.linkedMeetingIds || []).join(', '));
@@ -1118,7 +1124,7 @@ function App() {
         content += `==================================================\n\n`;
         
         const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '') {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
                 content += `${label}: ${value}\n`;
             }
         };
@@ -1127,41 +1133,60 @@ function App() {
                 content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
             }
         };
-        
-        appendField('Name', dealership.name);
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+
+        appendSection('Account Information');
+        appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
-        appendField('Order Number', dealership.orderNumber);
-        appendDateField('Order Received Date', dealership.orderReceivedDate);
-        appendDateField('Go-Live Date', dealership.goLiveDate);
-        appendDateField('Term Date', dealership.termDate);
-        appendField('Store Number', dealership.storeNumber);
-        appendField('Branch Number', dealership.branchNumber);
-        appendField('ERA System ID', dealership.eraSystemId);
-        appendField('PPSysID', dealership.ppSysId);
-        appendField('BU-ID', dealership.buId);
+        appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
+
+        appendSection('Key Contacts');
         appendField('Assigned Specialist', dealership.assignedSpecialist);
         appendField('Sales', dealership.sales);
         appendField('POC Name', dealership.pocName);
         appendField('POC Email', dealership.pocEmail);
         appendField('POC Phone', dealership.pocPhone);
 
+        appendSection('Order & Dates');
+        appendField('Order Number', dealership.orderNumber);
+        appendDateField('Order Received Date', dealership.orderReceivedDate);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        appendDateField('Term Date', dealership.termDate);
+        
+        appendSection('Identifiers');
+        appendField('Store Number', dealership.storeNumber);
+        appendField('Branch Number', dealership.branchNumber);
+        appendField('ERA System ID', dealership.eraSystemId);
+        appendField('PPSysID', dealership.ppSysId);
+        appendField('BU-ID', dealership.buId);
+
         if (dealership.updates && dealership.updates.length > 0) {
-            content += `\n--- UPDATES ---\n`;
+            appendSection(`Updates (${dealership.updates.length})`);
             [...dealership.updates].reverse().forEach(update => {
                 const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
                 content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
             });
         }
+        
+        appendSection('Linked Item IDs');
+        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
+        appendField('Project IDs', (dealership.projectIds || []).join(', '));
+        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
+        appendField('Task IDs', (dealership.taskIds || []).join(', '));
+        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
+        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
 
-        createTxtFileDownloader(content, `Dealership_${dealership.accountNumber}_${dealership.name}`);
+        createTxtFileDownloader(content, `Dealership_${dealership.id}_${dealership.name}`);
     };
-    
+
     const handleExportFeature = (feature: FeatureAnnouncement) => {
         let content = `FEATURE DETAILS: ${feature.title}\n`;
         content += `==================================================\n\n`;
-
+        
         const appendField = (label: string, value: any) => {
             if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
                 content += `${label}: ${value}\n`;
@@ -1172,489 +1197,771 @@ function App() {
                 content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
             }
         };
-        
-        appendField('Title', feature.title);
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        const appendTextArea = (label: string, value: any) => {
+             if (value) {
+                content += `${label}:\n${value}\n\n`;
+            }
+        };
+
+        appendField('ID', feature.id);
         appendField('Status', feature.status);
         appendField('Platform', feature.platform);
+        appendField('Location', feature.location);
         appendDateField('Launch Date', feature.launchDate);
         appendField('Version', feature.version);
-        appendField('Location', feature.location);
-        appendField('Description', feature.description);
         appendField('Categories', (feature.categories || []).join(', '));
-        appendField('Target Audience', feature.targetAudience);
-        appendField('Success Metrics', feature.successMetrics);
-        
+
+        appendSection('Details');
+        appendTextArea('Description', feature.description);
+        appendTextArea('Target Audience', feature.targetAudience);
+        appendTextArea('Success Metrics', feature.successMetrics);
+
+        appendSection('Linked Item IDs');
+        appendField('Ticket IDs', (feature.ticketIds || []).join(', '));
+        appendField('Project IDs', (feature.projectIds || []).join(', '));
+        appendField('Meeting IDs', (feature.meetingIds || []).join(', '));
+        appendField('Task IDs', (feature.taskIds || []).join(', '));
+        appendField('Dealership IDs', (feature.dealershipIds || []).join(', '));
+        appendField('Linked Feature IDs', (feature.linkedFeatureIds || []).join(', '));
+
         createTxtFileDownloader(content, `Feature_${feature.id}_${feature.title}`);
     };
 
-    const [allLinkableItems, setAllLinkableItems] = useState({});
-
-    const handleLinkItem = (selfType: EntityType, selfId: string, toType: EntityType, toId: string) => {
-        // FIX: The type `keyof (Ticket | ...)` creates an intersection of keys, which is too restrictive.
-        // Changed to `any` to resolve type errors for this unused constant.
-        const linkFieldMap: Record<EntityType, any> = {
-            'ticket': 'linkedTicketIds',
-            'project': 'linkedProjectIds',
-            'task': 'taskIds',
-            'meeting': 'meetingIds',
-            'dealership': 'dealershipIds',
-            'feature': 'featureIds',
-        };
-        // FIX: The type `keyof (Ticket | ...)` creates an intersection of keys, which is too restrictive.
-        // Changed to `any` to resolve type errors for this unused constant.
-        const reverseLinkFieldMap: Record<EntityType, any> = {
-            'ticket': 'ticketIds',
-            'project': 'projectIds',
-            'task': 'taskIds',
-            'meeting': 'meetingIds',
-            'dealership': 'dealershipIds',
-            'feature': 'featureIds',
-        };
-
-        const updateEntity = (entities: any[], id: string, field: keyof any, value: string) => {
-            return entities.map(e => e.id === id ? { ...e, [field]: [...(e[field] || []), value] } : e);
-        };
-
-        const selfLinkField = selfType === toType ? `linked${toType.charAt(0).toUpperCase() + toType.slice(1)}Ids` as any : `${toType}Ids` as any;
-        const toLinkField = selfType === toType ? `linked${selfType.charAt(0).toUpperCase() + selfType.slice(1)}Ids` as any : `${selfType}Ids` as any;
-        
-        const dataSetters: Record<EntityType, React.Dispatch<React.SetStateAction<any[]>>> = {
-            'ticket': setTickets, 'project': setProjects, 'task': setTasks, 'meeting': setMeetings, 'dealership': setDealerships, 'feature': setFeatures,
-        };
-        const dataStores: Record<EntityType, any[]> = {
-            'ticket': tickets, 'project': projects, 'task': allTasks, 'meeting': meetings, 'dealership': dealerships, 'feature': features,
-        };
-
-        // Update self
-        const selfStore = dataStores[selfType];
-        const updatedSelfStore = selfStore.map(item => {
-            if (item.id === selfId) {
-                return { ...item, [selfLinkField]: [...(item[selfLinkField] || []), toId] };
-            }
-            return item;
-        });
-        
-        // Update other entity
-        const toStore = dataStores[toType];
-        const updatedToStore = toStore.map(item => {
-            if (item.id === toId) {
-                return { ...item, [toLinkField]: [...(item[toLinkField] || []), selfId] };
-            }
-            return item;
-        });
-
-        // Now, we must separate updates based on where the items are stored (top-level vs nested in projects)
-        const updateTopLevelState = (entityType: EntityType, updatedStore: any[]) => {
-            if (entityType === 'task') {
-                const standalone = updatedStore.filter(t => !t.projectId && !t.ticketId);
-                setTasks(standalone);
-
-                const projectTasksMap = new Map<string, Task[]>();
-                updatedStore.filter(t => t.projectId).forEach(t => {
-                    if (!projectTasksMap.has(t.projectId)) projectTasksMap.set(t.projectId, []);
-                    projectTasksMap.get(t.projectId)!.push(t);
-                });
-
-                const ticketTasksMap = new Map<string, Task[]>();
-                updatedStore.filter(t => t.ticketId).forEach(t => {
-                    if (!ticketTasksMap.has(t.ticketId)) ticketTasksMap.set(t.ticketId, []);
-                    ticketTasksMap.get(t.ticketId)!.push(t);
-                });
-
-                setProjects(prev => prev.map(p => ({ ...p, tasks: projectTasksMap.get(p.id) || p.tasks })));
-                setTickets(prev => prev.map(t => ({ ...t, tasks: ticketTasksMap.get(t.id) || t.tasks })));
-
-            } else {
-                dataSetters[entityType](updatedStore);
-            }
-        }
-        
-        updateTopLevelState(selfType, updatedSelfStore);
-        updateTopLevelState(toType, updatedToStore);
-
-        showToast(`${toType.charAt(0).toUpperCase() + toType.slice(1)} linked successfully!`, 'success');
-    };
-
-    const handleUnlinkItem = (selfType: EntityType, selfId: string, toType: EntityType, toId: string) => {
-        const selfLinkField = selfType === toType ? `linked${toType.charAt(0).toUpperCase() + toType.slice(1)}Ids` as any : `${toType}Ids` as any;
-        const toLinkField = selfType === toType ? `linked${selfType.charAt(0).toUpperCase() + selfType.slice(1)}Ids` as any : `${selfType}Ids` as any;
-        
-        const dataSetters: Record<EntityType, React.Dispatch<React.SetStateAction<any[]>>> = {
-            'ticket': setTickets, 'project': setProjects, 'task': setTasks, 'meeting': setMeetings, 'dealership': setDealerships, 'feature': setFeatures,
-        };
-        const dataStores: Record<EntityType, any[]> = {
-            'ticket': tickets, 'project': projects, 'task': allTasks, 'meeting': meetings, 'dealership': dealerships, 'feature': features,
-        };
-
-        // Update self
-        const selfStore = dataStores[selfType];
-        const updatedSelfStore = selfStore.map(item => {
-            if (item.id === selfId) {
-                return { ...item, [selfLinkField]: (item[selfLinkField] || []).filter((id: string) => id !== toId) };
-            }
-            return item;
-        });
-
-        // Update other entity
-        const toStore = dataStores[toType];
-        const updatedToStore = toStore.map(item => {
-            if (item.id === toId) {
-                return { ...item, [toLinkField]: (item[toLinkField] || []).filter((id: string) => id !== selfId) };
-            }
-            return item;
-        });
-
-        const updateTopLevelState = (entityType: EntityType, updatedStore: any[]) => {
-            if (entityType === 'task') {
-                const standalone = updatedStore.filter(t => !t.projectId && !t.ticketId);
-                setTasks(standalone);
-
-                const projectTasksMap = new Map<string, Task[]>();
-                updatedStore.filter(t => t.projectId).forEach(t => {
-                    if (!projectTasksMap.has(t.projectId)) projectTasksMap.set(t.projectId, []);
-                    projectTasksMap.get(t.projectId)!.push(t);
-                });
-                
-                const ticketTasksMap = new Map<string, Task[]>();
-                updatedStore.filter(t => t.ticketId).forEach(t => {
-                    if (!ticketTasksMap.has(t.ticketId)) ticketTasksMap.set(t.ticketId, []);
-                    ticketTasksMap.get(t.ticketId)!.push(t);
-                });
-
-                setProjects(prev => prev.map(p => ({ ...p, tasks: projectTasksMap.get(p.id) || p.tasks })));
-                setTickets(prev => prev.map(t => ({...t, tasks: ticketTasksMap.get(t.id) || t.tasks })));
-            } else {
-                dataSetters[entityType](updatedStore);
-            }
-        }
-        
-        updateTopLevelState(selfType, updatedSelfStore);
-        updateTopLevelState(toType, updatedToStore);
-
-        showToast(`${toType.charAt(0).toUpperCase() + toType.slice(1)} unlinked successfully!`, 'success');
+    const handleEmailTicket = (ticket: Ticket) => {
+        const subject = encodeURIComponent(`Ticket Details: ${ticket.title}`);
+        let body = `Ticket: ${ticket.title}\n`;
+        body += `Status: ${ticket.status}\n`;
+        body += `Link: ${window.location.href}\n\n`; // A simple link back, though it won't select the ticket
+        body = encodeURIComponent(body);
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
     };
     
-    const handleSwitchToItem = (type: EntityType, id: string) => {
-        const findAndSet = (items: any[], setter: React.Dispatch<React.SetStateAction<any | null>>) => {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                // Close current side view before switching
-                setSelectedTicket(null);
-                setSelectedProject(null);
-                setSelectedDealership(null);
-                setSelectedMeeting(null);
-                setSelectedFeature(null);
-                setEditingTask(null);
-
-                // Need a slight delay to allow the current modal to close
-                setTimeout(() => {
-                    setCurrentView(type === 'feature' ? 'features' : (type + 's') as View);
-                    setter(item);
-                }, 50);
+    // Linking logic
+    const getSetterForType = (type: EntityType) => {
+      switch (type) {
+          case 'ticket': return setTickets;
+          case 'project': return setProjects;
+          case 'task': return setTasks;
+          case 'meeting': return setMeetings;
+          case 'dealership': return setDealerships;
+          case 'feature': return setFeatures;
+      }
+    };
+    
+    const updateEntity = (type: EntityType, id: string, updateFn: (entity: any) => any) => {
+        if (type === 'task') {
+            const task = allTasks.find(t => t.id === id);
+            if (task?.projectId) {
+                setProjects(prev => prev.map(p => 
+                    p.id === task.projectId 
+                    ? { ...p, tasks: p.tasks.map(t => t.id === id ? updateFn(t) : t) }
+                    : p
+                ));
+            } else if (task?.ticketId) {
+                 setTickets(prev => prev.map(t => 
+                    t.id === task.ticketId 
+                    ? { ...t, tasks: (t.tasks || []).map(subTask => subTask.id === id ? updateFn(subTask) : subTask) }
+                    : t
+                ));
             } else {
-                 showToast('Item not found.', 'error');
+                setTasks(prev => prev.map(t => t.id === id ? updateFn(t) : t));
             }
+        } else {
+            const setter = getSetterForType(type);
+            setter((prev: any[]) => prev.map(e => e.id === id ? updateFn(e) : e));
+        }
+    };
+    
+    const getLinkKeys = (fromType: EntityType, toType: EntityType): { forwardKey: string, reverseKey: string } => {
+        const getSelfLinkKey = (type: EntityType) => {
+            switch (type) {
+                case 'ticket': return 'linkedTicketIds';
+                case 'project': return 'linkedProjectIds';
+                case 'task': return 'linkedTaskIds';
+                case 'meeting': return 'linkedMeetingIds';
+                case 'dealership': return 'linkedDealershipIds';
+                case 'feature': return 'linkedFeatureIds';
+                default: return `${type}Ids`;
+            }
+        }
+
+        const forwardKey = fromType === toType ? getSelfLinkKey(fromType) : `${toType}Ids`;
+        const reverseKey = fromType === toType ? getSelfLinkKey(toType) : `${fromType}Ids`;
+        
+        return { forwardKey, reverseKey };
+    }
+    
+    const handleLinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
+        const { forwardKey, reverseKey } = getLinkKeys(fromType, toType);
+
+        updateEntity(fromType, fromId, (entity) => ({
+            ...entity,
+            [forwardKey]: [...new Set([...(entity[forwardKey] || []), toId])]
+        }));
+        
+        updateEntity(toType, toId, (entity) => ({
+            ...entity,
+            [reverseKey]: [...new Set([...(entity[reverseKey] || []), fromId])]
+        }));
+
+        showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} linked successfully!`, 'success');
+    };
+    
+    const handleUnlinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
+        const { forwardKey, reverseKey } = getLinkKeys(fromType, toType);
+        
+        updateEntity(fromType, fromId, (entity) => ({
+            ...entity,
+            [forwardKey]: (entity[forwardKey] || []).filter((id: string) => id !== toId)
+        }));
+        
+        updateEntity(toType, toId, (entity) => ({
+            ...entity,
+            [reverseKey]: (entity[reverseKey] || []).filter((id: string) => id !== fromId)
+        }));
+        
+        showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} unlinked successfully!`, 'success');
+    };
+
+    const filteredTickets = useMemo(() => {
+        const getLastActivityDate = (ticket: Ticket): number => {
+            const submissionTimestamp = new Date(ticket.submissionDate).getTime();
+            if (!ticket.updates || ticket.updates.length === 0) {
+                return submissionTimestamp;
+            }
+            const updateTimestamps = ticket.updates.map(u => new Date(u.date).getTime());
+            return Math.max(submissionTimestamp, ...updateTimestamps);
+        };
+        
+        return tickets.filter(ticket => {
+        const searchLower = ticketFilters.searchTerm.toLowerCase();
+        return (
+            (ticket.title.toLowerCase().includes(searchLower) ||
+            ticket.submitterName.toLowerCase().includes(searchLower) ||
+            (ticket.client || '').toLowerCase().includes(searchLower) ||
+            (ticket.pmrNumber || '').toLowerCase().includes(searchLower) ||
+            (ticket.fpTicketNumber || '').toLowerCase().includes(searchLower)) &&
+            (ticketFilters.status === 'all' || ticket.status === ticketFilters.status) &&
+            (ticketFilters.priority === 'all' || ticket.priority === ticketFilters.priority) &&
+            (ticketFilters.type === 'all' || ticket.type === ticketFilters.type) &&
+            (ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea)
+        );
+        }).sort((a, b) => getLastActivityDate(b) - getLastActivityDate(a));
+    }, [tickets, ticketFilters]);
+
+    const filteredProjects = useMemo(() => {
+        return [...projects].sort((a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime());
+    }, [projects]);
+    
+    const filteredDealerships = useMemo(() => {
+        return dealerships.filter(d => {
+            const searchLower = dealershipFilters.searchTerm.toLowerCase();
+            return (
+                ((d.name || '').toLowerCase().includes(searchLower) ||
+                 (d.accountNumber || '').toLowerCase().includes(searchLower) ||
+                 (d.enterprise || '').toLowerCase().includes(searchLower)) &&
+                (dealershipFilters.status === 'all' || d.status === dealershipFilters.status)
+            );
+        }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }, [dealerships, dealershipFilters]);
+    
+    const filteredMeetings = useMemo(() => {
+      const searchLower = meetingFilters.searchTerm.toLowerCase();
+      const filtered = meetings.filter(m => 
+          !searchLower ||
+          m.name.toLowerCase().includes(searchLower) ||
+          m.attendees.some(a => a.toLowerCase().includes(searchLower)) ||
+          m.notes.toLowerCase().includes(searchLower) ||
+          new Date(m.meetingDate).toLocaleDateString().includes(searchLower)
+      );
+      return filtered.sort((a, b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
+  }, [meetings, meetingFilters]);
+
+    const filteredFeatures = useMemo(() => {
+        return features.filter(feature => {
+            const searchLower = featureFilters.searchTerm.toLowerCase();
+            const matchesSearch = !searchLower ||
+                feature.title.toLowerCase().includes(searchLower) ||
+                feature.description.toLowerCase().includes(searchLower);
+            
+            const matchesPlatform = featureFilters.platform === 'all' || feature.platform === featureFilters.platform;
+            
+            const matchesCategory = featureFilters.category === 'all' ||
+                (feature.categories || []).includes(featureFilters.category);
+
+            return matchesSearch && matchesPlatform && matchesCategory;
+        });
+    }, [features, featureFilters]);
+
+    const performanceInsights = useMemo(() => {
+        const completedLast30Days = tickets.filter(t => {
+        if (t.status !== Status.Completed || !t.completionDate) return false;
+        const completionDate = new Date(t.completionDate);
+        const diffDays = (new Date().getTime() - completionDate.getTime()) / (1000 * 3600 * 24);
+        return diffDays <= 30;
+        });
+
+        const completableTickets = tickets.filter(t => t.status === Status.Completed && t.startDate && t.completionDate);
+        const totalCompletionDays = completableTickets.reduce((acc, t) => {
+        const start = new Date(t.startDate!).getTime();
+        const end = new Date(t.completionDate!).getTime();
+        return acc + (end - start);
+        }, 0);
+        
+        const avgCompletionMs = totalCompletionDays / (completableTickets.length || 1);
+        const avgCompletionDays = completableTickets.length > 0 ? avgCompletionMs / (1000 * 3600 * 24) : null;
+        
+        return {
+        openTickets: tickets.filter(t => t.status !== Status.Completed).length,
+        completedLast30Days: completedLast30Days.length,
+        avgCompletionDays,
+        };
+    }, [tickets]);
+
+    const dealershipInsights = useMemo(() => {
+        const pendingStatuses = [DealershipStatus.PendingFocus, DealershipStatus.PendingDmt, DealershipStatus.PendingSetup];
+        return {
+            totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled).length,
+            liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
+            pendingAccounts: dealerships.filter(d => pendingStatuses.includes(d.status)).length,
+        }
+    }, [dealerships]);
+
+    const projectInsights = useMemo(() => ({
+        totalProjects: projects.length,
+        inProgressProjects: projects.filter(p => p.status === ProjectStatus.InProgress).length,
+        completedProjects: projects.filter(p => p.status === ProjectStatus.Completed).length,
+    }), [projects]);
+
+    const taskInsights = useMemo(() => {
+        const activeTasks = allTasks.filter(t => t.status !== TaskStatus.Done);
+        return {
+            totalTasks: activeTasks.length,
+            toDoTasks: activeTasks.filter(t => t.status === TaskStatus.ToDo).length,
+            inProgressTasks: activeTasks.filter(t => t.status === TaskStatus.InProgress).length,
+        };
+    }, [allTasks]);
+
+    const getTemplateHeaders = (title: string): string[] => {
+      switch (title) {
+          case 'Tickets':
+              return ['id', 'title', 'type', 'productArea', 'platform', 'pmrNumber', 'pmrLink', 'fpTicketNumber', 'ticketThreadId', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate', 'status', 'priority', 'submitterName', 'client', 'location', 'updates', 'completionNotes', 'onHoldReason', 'isFavorite', 'projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds', 'problem', 'duplicationSteps', 'workaround', 'frequency', 'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits'];
+          case 'Projects':
+              return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
+          case 'Dealerships':
+              return ['id', 'name', 'accountNumber', 'status', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+          case 'Standalone Tasks':
+              return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
+          case 'Features':
+              return ['id', 'title', 'location', 'description', 'launchDate', 'version', 'platform', 'status', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'dealershipIds', 'linkedFeatureIds'];
+          case 'Meetings':
+              return ['id', 'name', 'meetingDate', 'attendees', 'notes', 'projectIds', 'ticketIds', 'linkedMeetingIds', 'taskIds', 'dealershipIds', 'featureIds'];
+          default:
+              return [];
+      }
+    };
+
+    const handleDownloadTemplate = (title: string) => {
+        const headers = getTemplateHeaders(title);
+        if (headers.length === 0) {
+            showToast(`Template for "${title}" is not available.`, 'error');
+            return;
+        }
+        const csvHeader = headers.join(',') + '\n';
+        const blob = new Blob([csvHeader], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${title.replace(/\s+/g, '_')}_template.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    };
+
+    const formatImportedRow = (row: any, entityType: string): any => {
+        const formattedRow = { ...row };
+    
+        const toUtcIsoString = (dateString?: string): string | undefined => {
+            if (!dateString || typeof dateString !== 'string') return undefined;
+    
+            // Try parsing common formats before falling back to new Date()
+            // Format 1: YYYY-MM-DD (robust) - also catches ISO strings
+            const isoMatch = dateString.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+            if (isoMatch) {
+                const d = new Date(Date.UTC(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3])));
+                if (!isNaN(d.getTime())) return d.toISOString();
+            }
+    
+            // Format 2: MM/DD/YYYY (common US)
+            const usMatch = dateString.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+            if (usMatch) {
+                const year = parseInt(usMatch[3]);
+                const fullYear = year < 100 ? 2000 + year : year;
+                const d = new Date(Date.UTC(fullYear, parseInt(usMatch[1]) - 1, parseInt(usMatch[2])));
+                if (!isNaN(d.getTime())) return d.toISOString();
+            }
+    
+            // Fallback to native parser
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return undefined;
+    
+            // Handle timezone offset for date-only strings parsed natively
+            if (!dateString.includes('T') && !dateString.toLowerCase().includes('z')) {
+                const tzOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() + tzOffset).toISOString();
+            }
+            return date.toISOString();
         };
 
-        switch (type) {
-            case 'ticket': findAndSet(tickets, setSelectedTicket); break;
-            case 'project': findAndSet(projects, setSelectedProject); break;
-            case 'dealership': findAndSet(dealerships, setSelectedDealership); break;
-            case 'meeting': findAndSet(meetings, setSelectedMeeting); break;
-            case 'feature': findAndSet(features, setSelectedFeature); break;
-            case 'task': 
-                const task = allTasks.find(t => t.id === id);
-                if (task) {
-                    setSelectedTicket(null);
-                    setSelectedProject(null);
-                    setSelectedDealership(null);
-                    setSelectedMeeting(null);
-                    setSelectedFeature(null);
-                    setTimeout(() => {
-                       setCurrentView('tasks');
-                       setEditingTask(task);
-                    }, 50);
-                } else {
-                    showToast('Task not found.', 'error');
-                }
+        const enumFields: Record<string, any[]> = {};
+        const dateFields: string[] = [];
+        const arrayFields: string[] = [];
+        const jsonFields: string[] = ['updates', 'tasks'];
+        const booleanFields: string[] = ['isFavorite'];
+    
+        switch (entityType) {
+            case 'Tickets':
+                dateFields.push('submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate');
+                arrayFields.push('projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds');
+                enumFields['type'] = TICKET_TYPE_OPTIONS;
+                enumFields['status'] = STATUS_OPTIONS;
+                enumFields['priority'] = PRIORITY_OPTIONS;
+                enumFields['productArea'] = PRODUCT_AREA_OPTIONS;
+                enumFields['platform'] = PLATFORM_OPTIONS;
+                break;
+            case 'Projects':
+                dateFields.push('creationDate');
+                arrayFields.push('ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds', 'involvedPeople');
+                enumFields['status'] = Object.values(ProjectStatus);
+                break;
+            case 'Dealerships':
+                dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
+                arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
+                enumFields['status'] = DEALERSHIP_STATUS_OPTIONS;
+                break;
+            case 'Standalone Tasks':
+                dateFields.push('creationDate', 'dueDate');
+                arrayFields.push('linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds');
+                enumFields['status'] = Object.values(TaskStatus);
+                enumFields['priority'] = Object.values(TaskPriority);
+                break;
+            case 'Features':
+                dateFields.push('launchDate');
+                arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'dealershipIds', 'linkedFeatureIds');
+                enumFields['status'] = Object.values(FeatureStatus);
+                enumFields['platform'] = PLATFORM_OPTIONS;
+                break;
+            case 'Meetings':
+                dateFields.push('meetingDate');
+                arrayFields.push('attendees', 'projectIds', 'ticketIds', 'linkedMeetingIds', 'taskIds', 'dealershipIds', 'featureIds');
                 break;
         }
+
+        // Apply formatting
+        Object.keys(formattedRow).forEach(key => {
+            const value = formattedRow[key];
+            if (value === undefined || value === null) return;
+            
+            if (enumFields[key]) {
+                const normalized = normalizeEnumValue(value, enumFields[key]);
+                if (normalized) formattedRow[key] = normalized;
+            } else if (booleanFields.includes(key)) {
+                const normalized = normalizeBooleanValue(value);
+                if (normalized !== undefined) formattedRow[key] = normalized;
+            } else if (dateFields.includes(key)) {
+                formattedRow[key] = toUtcIsoString(value);
+            } else if (arrayFields.includes(key)) {
+                if (typeof value === 'string') {
+                    try {
+                        const parsed = JSON.parse(value.replace(/'/g, '"'));
+                        formattedRow[key] = Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                    } catch (e) {
+                        formattedRow[key] = value.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+                    }
+                } else if (!Array.isArray(value)) {
+                    formattedRow[key] = [];
+                }
+            } else if (jsonFields.includes(key)) {
+                if (typeof value === 'string') {
+                    try {
+                        formattedRow[key] = JSON.parse(value);
+                    } catch (e) {
+                        console.warn(`Could not parse JSON for field '${key}'`, { value });
+                        formattedRow[key] = (key === 'tasks') ? [] : undefined;
+                    }
+                }
+            }
+        });
+    
+        return formattedRow;
     };
 
+    const handleImport = (file: File, title: string, mode: 'append' | 'replace') => {
+        if (!file) {
+            showToast('No file selected.', 'error');
+            return;
+        }
     
-    const allDataForLinking = {
-        allTickets: tickets,
-        allProjects: projects,
-        allTasks: allTasks,
-        allMeetings: meetings,
-        allDealerships: dealerships,
-        allFeatures: features,
-        allGroups: dealershipGroups,
-    };
-    
-    const commonLinkingHandlers = (selfType: EntityType, selfId: string) => ({
-        onLink: (toType: EntityType, toId: string) => handleLinkItem(selfType, selfId, toType, toId),
-        onUnlink: (toType: EntityType, toId: string) => handleUnlinkItem(selfType, selfId, toType, toId),
-        onSwitchView: handleSwitchToItem,
-    });
-    
-    // ...
-    
-    const renderContent = () => {
-        switch (currentView) {
-            case 'dashboard':
-                const performanceInsightsData = {
-                    openTickets: tickets.filter(t => t.status !== Status.Completed).length,
-                    completedLast30Days: tickets.filter(t => t.completionDate && new Date(t.completionDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length,
-                    avgCompletionDays: (() => {
-                        const completedWithDates = tickets.filter(t => t.status === Status.Completed && t.startDate && t.completionDate);
-                        if (completedWithDates.length === 0) return null;
-                        const totalDays = completedWithDates.reduce((sum, t) => {
-                            const start = new Date(t.startDate!).getTime();
-                            const end = new Date(t.completionDate!).getTime();
-                            return sum + (end - start) / (1000 * 3600 * 24);
-                        }, 0);
-                        return totalDays / completedWithDates.length;
-                    })()
+        const requiredFieldsMap: Record<string, string[]> = {
+            'Tickets': ['title', 'type', 'submitterName'],
+            'Projects': ['name'],
+            'Dealerships': ['name', 'accountNumber'],
+            'Standalone Tasks': ['description'],
+            'Features': ['title', 'launchDate', 'status'],
+            'Meetings': ['name', 'meetingDate'],
+        };
+
+        const settersMap: Record<string, React.Dispatch<React.SetStateAction<any[]>>> = {
+            'Tickets': setTickets,
+            'Projects': setProjects,
+            'Dealerships': setDealerships,
+            'Standalone Tasks': setTasks,
+            'Features': setFeatures,
+            'Meetings': setMeetings,
+        };
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const csvString = event.target?.result as string;
+
+                const parseCsvLine = (line: string): string[] => {
+                    const result: string[] = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            if (inQuotes && line[i+1] === '"') {
+                                current += '"';
+                                i++;
+                            } else {
+                                inQuotes = !inQuotes;
+                            }
+                        } else if (char === ',' && !inQuotes) {
+                            result.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current.trim());
+                    return result;
                 };
+
+                const lines = csvString.trim().split(/\r?\n/);
+                if (lines.length < 2) {
+                    showToast('CSV file is empty or has no data.', 'error');
+                    return;
+                }
+                const headers = parseCsvLine(lines[0]);
                 
-                const deadlines = allTasks
-                    .filter(t => t.dueDate && new Date(t.dueDate) >= new Date() && new Date(t.dueDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
-                    .map(t => ({
-                        id: t.id,
-                        type: 'task' as const,
-                        title: t.description,
-                        description: t.description,
-                        dueDate: t.dueDate!,
-                    }))
-                    .concat(
-                        tickets.filter(t => t.estimatedCompletionDate && new Date(t.estimatedCompletionDate) >= new Date() && new Date(t.estimatedCompletionDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
-                        .map(t => ({
-                            id: t.id,
-                            type: 'ticket' as const,
-                            title: t.title,
-                            description: '', // Tickets have a title, so description is not strictly needed for the view
-                            dueDate: t.estimatedCompletionDate!
-                        }))
-                    )
-                    .sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-                    
-                const recentlyUpdatedItems = [
-                    ...tickets.map(t => ({...t, itemType: 'ticket'})),
-                    ...projects.map(p => ({...p, itemType: 'project'})),
-                    ...dealerships.map(d => ({...d, itemType: 'dealership'})),
-                ]
-                .filter(item => item.updates && item.updates.length > 0)
-                .map(item => {
-                    const lastUpdate = [...item.updates!].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-                    return { ...item, lastUpdate };
-                })
-                .sort((a, b) => new Date(b.lastUpdate.date).getTime() - new Date(a.lastUpdate.date).getTime())
-                .slice(0, 10);
-
-                return <DashboardView 
-                    performanceInsights={performanceInsightsData}
-                    upcomingDeadlines={deadlines}
-                    recentlyUpdatedItems={recentlyUpdatedItems}
-                    onSwitchView={handleSwitchToItem}
-                />;
-            case 'tickets':
-                return <TicketList 
-                    tickets={filteredTickets} 
-                    onRowClick={setSelectedTicket}
-                    onStatusChange={handleStatusChange}
-                    projects={projects}
-                    onToggleFavorite={handleToggleFavoriteTicket}
-                    selectedTicketIds={selectedTicketIds}
-                    onToggleSelection={handleToggleTicketSelection}
-                />;
-            case 'projects':
-                 return <ProjectList 
-                    projects={projects} 
-                    onProjectClick={setSelectedProject}
-                    tickets={tickets}
-                 />;
-            case 'dealerships':
-                return <DealershipList 
-                    dealerships={filteredDealerships} 
-                    dealershipGroups={dealershipGroups}
-                    onDealershipClick={setSelectedDealership} 
-                    showToast={showToast}
-                    onUpdateGroup={handleUpdateDealershipGroup}
-                    onDeleteGroup={handleDeleteDealershipGroup}
-                    onNewGroupClick={() => { setEditingDealershipGroup(null); setIsDealershipGroupFormOpen(true); }}
-                    onEditGroupClick={(group) => { setEditingDealershipGroup(group); setIsDealershipGroupFormOpen(true); }}
-                 />;
-            case 'tasks':
-                return <TaskList 
-                    projects={projects}
-                    onAddTask={handleAddTask}
-                    onDeleteTask={handleDeleteTask}
-                    onUpdateTaskStatus={handleUpdateTaskStatus}
-                    allTasks={allTasks}
-                    onSwitchView={handleSwitchToItem}
-                />;
-            case 'features':
-                const allCategories = useMemo(() => {
-                    const catSet = new Set<string>();
-                    features.forEach(f => (f.categories || []).forEach(cat => catSet.add(cat)));
-                    return Array.from(catSet).sort();
-                }, [features]);
-
-                const filteredFeatures = useMemo(() => {
-                    return features.filter(f => {
-                         const searchLower = featureFilters.searchTerm.toLowerCase();
-                         const matchesSearch = !searchLower ||
-                             f.title.toLowerCase().includes(searchLower) ||
-                             f.description.toLowerCase().includes(searchLower) ||
-                             (f.location || '').toLowerCase().includes(searchLower);
-
-                         const matchesPlatform = featureFilters.platform === 'all' || f.platform === featureFilters.platform;
-                         const matchesCategory = featureFilters.category === 'all' || (f.categories || []).includes(featureFilters.category);
-
-                         return matchesSearch && matchesPlatform && matchesCategory;
+                const data = lines.slice(1).map(line => {
+                    if (!line.trim()) return null;
+                    const values = parseCsvLine(line);
+                    const obj: { [key: string]: any } = {};
+                    headers.forEach((header, index) => {
+                        const value = values[index];
+                        obj[header] = value === '' || value === undefined ? undefined : value;
                     });
-                }, [features, featureFilters]);
+                    return obj;
+                }).filter(Boolean);
 
-                return <FeatureList
-                    features={filteredFeatures}
-                    onFeatureClick={setSelectedFeature}
-                    onDelete={handleDeleteFeature}
-                    filters={featureFilters}
-                    setFilters={setFeatureFilters}
-                    allCategories={allCategories}
-                />;
-            case 'meetings':
-                 const filteredMeetings = useMemo(() => {
-                    const searchLower = meetingFilters.searchTerm.toLowerCase();
-                    if (!searchLower) return meetings;
-                    return meetings.filter(m => 
-                        m.name.toLowerCase().includes(searchLower) ||
-                        m.attendees.some(a => a.toLowerCase().includes(searchLower)) ||
-                        m.notes.toLowerCase().includes(searchLower) ||
-                        new Date(m.meetingDate).toLocaleDateString().includes(searchLower)
-                    );
-                 }, [meetings, meetingFilters]);
-                 return <MeetingList 
-                    meetings={filteredMeetings} 
-                    onMeetingClick={setSelectedMeeting} 
-                    meetingFilters={meetingFilters}
-                    setMeetingFilters={setMeetingFilters}
-                 />;
-            case 'contacts':
-                return <ContactsView
-                    contacts={contacts}
-                    contactGroups={contactGroups}
-                    onUpdateContact={handleSaveContact}
-                    onDeleteContact={handleDeleteContact}
-                    onUpdateGroup={handleUpdateContactGroup}
-                    onDeleteGroup={handleDeleteGroup}
-                    showToast={showToast}
-                    isContactFormOpen={isContactFormOpen}
-                    setIsContactFormOpen={setIsContactFormOpen}
-                    editingContact={editingContact}
-                    setEditingContact={setEditingContact}
-                    onSaveContact={handleSaveContact}
-                    isGroupFormOpen={isGroupFormOpen}
-                    setIsGroupFormOpen={setIsGroupFormOpen}
-                    editingGroup={editingGroup}
-                    setEditingGroup={setEditingGroup}
-                    onSaveGroup={handleSaveGroup}
-                />
-            default:
-                return <div>Select a view</div>;
+                const requiredFields = requiredFieldsMap[title] || [];
+                const validData: any[] = [];
+                let failedRowCount = 0;
+
+                data.forEach((row, index) => {
+                    if (!row) return;
+                    
+                    const formattedRow = formatImportedRow(row, title);
+
+                    const missingFields = requiredFields.filter(field => !formattedRow[field] || String(formattedRow[field]).trim() === '');
+                    if (missingFields.length > 0) {
+                        console.error(`Import Error in ${file.name} (Row ${index + 2}): Missing required fields - ${missingFields.join(', ')}`, { row: formattedRow });
+                        failedRowCount++;
+                    } else {
+                        validData.push(formattedRow);
+                    }
+                });
+                
+                const setter = settersMap[title];
+                if (!setter) {
+                    showToast(`Could not import data for "${title}".`, 'error');
+                    return;
+                }
+
+                let addedCount = 0;
+                let updatedCount = 0;
+                let skippedCount = 0;
+
+                if (mode === 'replace') { // Upsert logic: Update existing, add new
+                    setter((currentData: any[]) => {
+                        const dataMap = new Map(currentData.map(item => [item.id, item]));
+                        validData.forEach(item => {
+                            const id = item.id;
+                            if (id && dataMap.has(id)) {
+                                const existingItem = dataMap.get(id);
+                                dataMap.set(id, { ...existingItem, ...item });
+                                updatedCount++;
+                            } else {
+                                const newId = id || crypto.randomUUID();
+                                dataMap.set(newId, { ...item, id: newId });
+                                addedCount++;
+                            }
+                        });
+                        return Array.from(dataMap.values());
+                    });
+                } else { // Append logic: Add new, skip existing
+                    setter((currentData: any[]) => {
+                        const existingIds = new Set(currentData.map(item => item.id));
+                        const newData: any[] = [];
+                        validData.forEach(item => {
+                            const id = item.id;
+                            if (id && existingIds.has(id)) {
+                                skippedCount++;
+                            } else {
+                                const newId = id || crypto.randomUUID();
+                                newData.push({ ...item, id: newId });
+                                addedCount++;
+                            }
+                        });
+                        return [...currentData, ...newData];
+                    });
+                }
+
+                let toastMessage = `Import from ${file.name} complete. `;
+                let toastType: 'success' | 'error' = 'success';
+                
+                if (addedCount > 0) toastMessage += `${addedCount} row(s) added. `;
+                if (updatedCount > 0) toastMessage += `${updatedCount} row(s) updated. `;
+                if (skippedCount > 0) toastMessage += `${skippedCount} row(s) skipped (ID already exists). `;
+
+                if (failedRowCount > 0) {
+                    toastMessage += `${failedRowCount} row(s) failed. Check console.`;
+                    if (addedCount === 0 && updatedCount === 0) toastType = 'error';
+                }
+
+                if (addedCount === 0 && updatedCount === 0 && skippedCount === 0 && failedRowCount === 0) {
+                    toastMessage = `No data was imported from ${file.name}. The file might be empty or all rows failed validation.`;
+                    toastType = 'error';
+                }
+                
+                showToast(toastMessage.trim(), toastType);
+                
+                if (addedCount > 0 || updatedCount > 0) {
+                    setIsImportModalOpen(false);
+                }
+
+            } catch (error) {
+                console.error("Error parsing CSV:", error);
+                showToast(`Failed to parse ${file.name}. Check console for details.`, 'error');
+            }
+        };
+        reader.onerror = () => {
+            showToast(`Error reading file ${file.name}.`, 'error');
+        };
+        reader.readAsText(file);
+    };
+
+    const getFormTitle = () => {
+        switch (currentView) {
+            case 'tickets': return 'Create New Ticket';
+            case 'projects': return 'Create New Project';
+            case 'dealerships': return 'Create New Account';
+            case 'features': return 'Add Feature Announcement';
+            case 'meetings': return 'Add New Meeting Note';
+            case 'contacts': return 'Create New Contact';
+            default: return 'Create New Item';
+        }
+    }
+    
+    const renderForm = () => {
+        switch (currentView) {
+            case 'tickets': return <TicketForm onSubmit={data => { handleTicketSubmit(data); setIsFormOpen(false); }} projects={projects} />;
+            case 'projects': return <ProjectForm onSubmit={data => { handleProjectSubmit(data); setIsFormOpen(false); }} />;
+            case 'dealerships': return <DealershipForm onSubmit={data => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={handleUpdateDealership} onClose={() => setIsFormOpen(false)} allGroups={dealershipGroups}/>;
+            case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
+            case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
+            case 'contacts': return <ContactForm onSave={handleSaveContact} onClose={() => setIsContactFormOpen(false)} contactToEdit={null} allGroups={contactGroups} />;
+            default: return null;
+        }
+    }
+
+    const handleCreateChoice = (view: View) => {
+        setIsCreateChoiceModalOpen(false);
+        setCurrentView(view);
+        setTimeout(() => {
+            if (view === 'contacts') {
+                setEditingContact(null);
+                setIsContactFormOpen(true);
+            } else {
+                setIsFormOpen(true);
+            }
+        }, 50);
+    };
+
+    const handleHeaderNewClick = () => {
+        if (currentView === 'dashboard') {
+            setIsCreateChoiceModalOpen(true);
+        } else if (currentView === 'contacts') {
+            setEditingContact(null);
+            setIsContactFormOpen(true);
+        } else {
+            setIsFormOpen(true);
         }
     };
+
+    const handleNewDealershipGroupClick = () => {
+        setEditingDealershipGroup(null);
+        setIsDealershipGroupFormOpen(true);
+    };
     
+    const handleEditDealershipGroupClick = (group: DealershipGroup) => {
+        setEditingDealershipGroup(group);
+        setIsDealershipGroupFormOpen(true);
+    };
+
     const getNewButtonText = () => {
-        switch(currentView) {
+        switch (currentView) {
             case 'tickets': return 'New Ticket';
             case 'projects': return 'New Project';
             case 'dealerships': return 'New Account';
             case 'features': return 'New Feature';
             case 'meetings': return 'New Note';
             case 'contacts': return 'New Contact';
+            case 'tasks': return ''; // No main "new" button for tasks view
+            case 'dashboard': return 'New Item';
             default: return 'New Item';
         }
     }
     
-    // Logic for filtering tickets
-  const filteredTickets = useMemo(() => {
-    return tickets.filter(ticket => {
-      const { searchTerm, status, priority, type, productArea } = ticketFilters;
-      const searchLower = searchTerm.toLowerCase();
+    const closeAllSideViews = () => {
+        setSelectedTicket(null);
+        setSelectedProject(null);
+        setSelectedDealership(null);
+        setSelectedMeeting(null);
+        setSelectedFeature(null);
+    };
 
-      const matchesSearch = !searchTerm ||
-        ticket.title.toLowerCase().includes(searchLower) ||
-        ticket.submitterName.toLowerCase().includes(searchLower) ||
-        (ticket.client || '').toLowerCase().includes(searchLower) ||
-        (ticket.pmrNumber || '').toLowerCase().includes(searchLower) ||
-        (ticket.fpTicketNumber || '').toLowerCase().includes(searchLower) ||
-        (ticket.id.toString() === searchTerm);
+    const handleSwitchToDetailView = (type: EntityType, id: string) => {
+        closeAllSideViews();
+        // A small delay allows for a smoother visual transition if a side view is already open.
+        setTimeout(() => {
+            switch (type) {
+                case 'ticket':
+                    const ticket = tickets.find(t => t.id === id);
+                    if (ticket) setSelectedTicket(ticket);
+                    break;
+                case 'project':
+                    const project = projects.find(p => p.id === id);
+                    if (project) setSelectedProject(project);
+                    break;
+                case 'dealership':
+                    const dealership = dealerships.find(d => d.id === id);
+                    if (dealership) setSelectedDealership(dealership);
+                    break;
+                case 'meeting':
+                    const meeting = meetings.find(m => m.id === id);
+                    if (meeting) setSelectedMeeting(meeting);
+                    break;
+                case 'feature':
+                    const feature = features.find(f => f.id === id);
+                    if (feature) setSelectedFeature(feature);
+                    break;
+                case 'task':
+                    const task = allTasks.find(t => t.id === id);
+                    if (task) setEditingTask(task);
+                    break;
+                default:
+                    break;
+            }
+        }, 100);
+    };
 
-      const matchesStatus = status === 'all' || ticket.status === status;
-      const matchesPriority = priority === 'all' || ticket.priority === priority;
-      const matchesType = type === 'all' || ticket.type === type;
-      const matchesProductArea = productArea === 'all' || ticket.productArea === productArea;
-      
-      return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesProductArea;
-    });
-  }, [tickets, ticketFilters]);
-  
-   // Logic for filtering dealerships
-  const filteredDealerships = useMemo(() => {
-    return dealerships.filter(d => {
-      const { searchTerm, status } = dealershipFilters;
-      const searchLower = searchTerm.toLowerCase();
+    const handleSwitchFromTaskModal = (type: EntityType, id: string) => {
+        setEditingTask(null);
+        handleSwitchToDetailView(type, id);
+    };
 
-      const matchesSearch = !searchTerm ||
-        d.name.toLowerCase().includes(searchLower) ||
-        d.accountNumber.toLowerCase().includes(searchLower) ||
-        (d.assignedSpecialist || '').toLowerCase().includes(searchLower) ||
-        (d.address || '').toLowerCase().includes(searchLower);
+    const handleViewChange = (view: View) => {
+        setCurrentView(view);
+        closeAllSideViews();
+    }
 
-      const matchesStatus = status === 'all' || d.status === status;
-      
-      return matchesSearch && matchesStatus;
-    });
-  }, [dealerships, dealershipFilters]);
-  
-  const handleToggleTicketSelection = (ticketId: string) => {
-    setSelectedTicketIds(prev =>
-        prev.includes(ticketId)
-            ? prev.filter(id => id !== ticketId)
-            : [...prev, ticketId]
-    );
-  };
-  
-    const handleBulkUpdateStatus = (status: Status) => {
-        setTickets(prev =>
-            prev.map(t =>
-                selectedTicketIds.includes(t.id) ? { ...t, status } : t
-            )
+    const dataSourcesForExport = [
+      { title: 'Tickets', data: tickets },
+      { title: 'Projects', data: projects },
+      { title: 'Dealerships', data: dealerships },
+      { title: 'Standalone Tasks', data: tasks },
+      { title: 'Features', data: features },
+      { title: 'Meetings', data: meetings },
+    ];
+
+    // Data for Dashboard
+    const upcomingDeadlines = useMemo(() => {
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+        const ticketDeadlines = tickets
+            .filter(t => t.estimatedCompletionDate && new Date(t.estimatedCompletionDate) <= sevenDaysFromNow && t.status !== Status.Completed)
+            .map(t => ({...t, dueDate: t.estimatedCompletionDate, type: 'ticket' as const}));
+        
+        const taskDeadlines = allTasks
+            .filter(t => t.dueDate && new Date(t.dueDate) <= sevenDaysFromNow && t.status !== TaskStatus.Done)
+            .map(t => ({...t, type: 'task' as const}));
+
+        return [...ticketDeadlines, ...taskDeadlines].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+    }, [tickets, allTasks]);
+
+    const recentlyUpdatedItems = useMemo(() => {
+        const allItemsWithUpdates = [
+            ...tickets.map(t => ({ ...t, itemType: 'ticket' as const })), 
+            ...projects.map(p => ({ ...p, itemType: 'project' as const })), 
+            ...dealerships.map(d => ({ ...d, itemType: 'dealership' as const }))
+        ];
+
+        return allItemsWithUpdates
+            .filter(item => item.updates && item.updates.length > 0)
+            .map(item => ({
+                ...item,
+                lastUpdate: item.updates!.reduce((latest, current) => new Date(current.date) > new Date(latest.date) ? current : latest)
+            }))
+            .sort((a, b) => new Date(b.lastUpdate.date).getTime() - new Date(a.lastUpdate.date).getTime())
+            .slice(0, 10);
+    }, [tickets, projects, dealerships]);
+
+    // Bulk Actions Handlers
+    const handleToggleTicketSelection = (ticketId: string) => {
+        setSelectedTicketIds(prev =>
+            prev.includes(ticketId) ? prev.filter(id => id !== ticketId) : [...prev, ticketId]
         );
-        showToast(`Updated ${selectedTicketIds.length} tickets to "${status}"`, 'success');
+    };
+
+    const handleBulkUpdateTicketStatus = (status: Status) => {
+        setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, status } : t));
+        showToast(`${selectedTicketIds.length} ticket(s) updated to ${status}.`, 'success');
         setSelectedTicketIds([]);
     };
 
-    const handleBulkUpdatePriority = (priority: Priority) => {
-        setTickets(prev =>
-            prev.map(t =>
-                selectedTicketIds.includes(t.id) ? { ...t, priority } : t
-            )
-        );
-        showToast(`Updated ${selectedTicketIds.length} tickets to "${priority}"`, 'success');
+    const handleBulkUpdateTicketPriority = (priority: Priority) => {
+        setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, priority } : t));
+        showToast(`${selectedTicketIds.length} ticket(s) updated to ${priority}.`, 'success');
         setSelectedTicketIds([]);
     };
-    
-    const handleBulkDelete = () => {
-        if (window.confirm(`Are you sure you want to delete ${selectedTicketIds.length} tickets?`)) {
+
+    const handleBulkDeleteTickets = () => {
+        if (window.confirm(`Are you sure you want to delete ${selectedTicketIds.length} ticket(s)?`)) {
             setTickets(prev => prev.filter(t => !selectedTicketIds.includes(t.id)));
-            showToast(`${selectedTicketIds.length} tickets deleted.`, 'success');
+            showToast(`${selectedTicketIds.length} ticket(s) deleted.`, 'success');
             setSelectedTicketIds([]);
         }
     };
-    
+
+    // Saved Views Handlers
     const handleSaveTicketView = (name: string) => {
         const newView: SavedTicketView = {
             id: crypto.randomUUID(),
@@ -1666,10 +1973,10 @@ function App() {
     };
 
     const handleApplyTicketView = (viewId: string) => {
-        const view = savedTicketViews.find(v => v.id === viewId);
-        if (view) {
-            setTicketFilters(view.filters);
-            showToast(`Applied view "${view.name}"`, 'success');
+        const viewToApply = savedTicketViews.find(v => v.id === viewId);
+        if (viewToApply) {
+            setTicketFilters(viewToApply.filters);
+            showToast(`Applied view: ${viewToApply.name}`, 'success');
         }
     };
 
@@ -1678,225 +1985,297 @@ function App() {
         showToast('Saved view deleted.', 'success');
     };
     
-  return (
+    const allDataForLinking = {
+        allTickets: tickets,
+        allProjects: projects,
+        allTasks: allTasks,
+        allMeetings: meetings,
+        allDealerships: dealerships,
+        allFeatures: features,
+    };
+    
+    return (
     <div className="flex h-screen bg-gray-100">
-      {toast.isVisible && <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />}
-      
-      {isDealershipGroupFormOpen && (
-        <Modal title={editingDealershipGroup ? 'Edit Group' : 'Create New Group'} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}>
-            <DealershipGroupForm 
-              onSave={handleSaveDealershipGroup}
-              onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}
-              groupToEdit={editingDealershipGroup}
-            />
-        </Modal>
-      )}
-
-      {isFormOpen && currentView === 'tickets' && (
-        <Modal title="Create New Ticket" onClose={() => setIsFormOpen(false)}>
-          <TicketForm onSubmit={(data) => { handleTicketSubmit(data); setIsFormOpen(false); }} projects={projects} />
-        </Modal>
-      )}
-      {isFormOpen && currentView === 'projects' && (
-        <Modal title="Create New Project" onClose={() => setIsFormOpen(false)} size="lg">
-          <ProjectForm onSubmit={(data) => { handleProjectSubmit(data); setIsFormOpen(false); }} />
-        </Modal>
-      )}
-      {isFormOpen && currentView === 'dealerships' && (
-        <Modal title="Create New Dealership Account" onClose={() => setIsFormOpen(false)}>
-          <DealershipForm
-            onSubmit={(data) => { handleDealershipSubmit(data); setIsFormOpen(false); }}
-            onUpdate={handleUpdateDealership}
-            onClose={() => setIsFormOpen(false)}
-            allGroups={dealershipGroups}
-          />
-        </Modal>
-      )}
-      {isFormOpen && currentView === 'features' && (
-        <Modal title="Add New Feature Announcement" onClose={() => setIsFormOpen(false)}>
-            <FeatureForm onSubmit={(data) => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={handleUpdateFeature} onClose={() => setIsFormOpen(false)}/>
-        </Modal>
-      )}
-       {isFormOpen && currentView === 'meetings' && (
-        <Modal title="Add New Meeting Note" onClose={() => setIsFormOpen(false)} size="4xl">
-            <MeetingForm onSubmit={(data) => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />
-        </Modal>
-      )}
-      {editingTask && (
-        <Modal title="Edit Task" onClose={() => setEditingTask(null)} size="4xl">
-            <EditTaskForm 
-                task={editingTask}
-                onSave={handleUpdateTask}
-                onClose={() => setEditingTask(null)}
-                onExport={() => handleExportTask(editingTask)}
-                {...allDataForLinking}
-                {...commonLinkingHandlers('task', editingTask.id)}
-            />
-        </Modal>
-      )}
-      {isCreateChoiceModalOpen && (
-        <Modal title="Create New Item" onClose={() => setIsCreateChoiceModalOpen(false)} size="md">
-            <div className="grid grid-cols-2 gap-4">
-                {[
-                    { label: 'Ticket', icon: <TicketIcon/>, view: 'tickets' },
-                    { label: 'Project', icon: <ClipboardListIcon/>, view: 'projects' },
-                    { label: 'Dealership', icon: <BuildingStorefrontIcon/>, view: 'dealerships' },
-                    { label: 'Feature', icon: <SparklesIcon/>, view: 'features' },
-                    { label: 'Meeting', icon: <DocumentTextIcon/>, view: 'meetings' },
-                    { label: 'Contact', icon: <UsersIcon/>, view: 'contacts' },
-                ].map(({ label, icon, view }) => (
-                     <button
-                        key={label}
-                        onClick={() => {
-                            setCurrentView(view as View);
-                             if (view === 'contacts') {
-                                setEditingContact(null);
-                                setIsContactFormOpen(true);
-                            } else {
-                                setIsFormOpen(true);
-                            }
-                            setIsCreateChoiceModalOpen(false);
-                        }}
-                        className="flex flex-col items-center justify-center gap-2 p-6 bg-gray-100 rounded-lg hover:bg-blue-100 hover:text-blue-700 transition-colors"
-                    >
-                        <div className="w-8 h-8">{icon}</div>
-                        <span className="font-semibold">{label}</span>
-                    </button>
-                ))}
-            </div>
-        </Modal>
-      )}
-      
-      <LeftSidebar 
-        ticketFilters={ticketFilters} 
+      <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
+      <LeftSidebar
+        ticketFilters={ticketFilters}
         setTicketFilters={setTicketFilters}
         dealershipFilters={dealershipFilters}
         setDealershipFilters={setDealershipFilters}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentView={currentView}
-        onViewChange={(view) => { setCurrentView(view); setIsSidebarOpen(false); }}
+        onViewChange={handleViewChange}
         onImportClick={() => setIsImportModalOpen(true)}
         onExportClick={() => setIsExportModalOpen(true)}
       />
-      <main className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-200" aria-label="Open sidebar">
-                <MenuIcon className="w-6 h-6" />
-            </button>
-          <h1 className="text-2xl font-bold text-gray-900 capitalize">{currentView}</h1>
-          <button 
-            onClick={() => {
-                 if (currentView === 'dashboard') {
-                    setIsCreateChoiceModalOpen(true);
-                 } else if (currentView === 'contacts') {
-                     setEditingContact(null);
-                     setIsContactFormOpen(true);
-                 } else {
-                    setIsFormOpen(true);
-                 }
-            }}
-            className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors text-sm"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>{getNewButtonText()}</span>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800" aria-label="Open sidebar">
+            <MenuIcon className="w-6 h-6" />
           </button>
-        </div>
-        
-        {currentView === 'tickets' && selectedTicketIds.length > 0 && (
-            <BulkActionBar
-                selectedCount={selectedTicketIds.length}
-                onClearSelection={() => setSelectedTicketIds([])}
-                onUpdateStatus={handleBulkUpdateStatus}
-                onUpdatePriority={handleBulkUpdatePriority}
-                onDelete={handleBulkDelete}
-            />
-        )}
-        
-        {currentView === 'tickets' && (
-            <SavedViewsBar
+          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView === 'dashboard' ? 'My Dashboard' : `${currentView} Dashboard`}</h1>
+          {getNewButtonText() && (
+            <button onClick={handleHeaderNewClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+                <PlusIcon className="w-5 h-5" />
+                <span>{getNewButtonText()}</span>
+            </button>
+          )}
+        </header>
+
+        <div className="flex-1 p-6 overflow-y-auto">
+          {currentView === 'dashboard' && (
+              <DashboardView
+                  performanceInsights={performanceInsights}
+                  upcomingDeadlines={upcomingDeadlines}
+                  recentlyUpdatedItems={recentlyUpdatedItems}
+                  onSwitchView={handleSwitchToDetailView}
+              />
+          )}
+          {currentView === 'tickets' && (
+            <>
+              {selectedTicketIds.length > 0 && (
+                <BulkActionBar
+                  selectedCount={selectedTicketIds.length}
+                  onClearSelection={() => setSelectedTicketIds([])}
+                  onUpdateStatus={handleBulkUpdateTicketStatus}
+                  onUpdatePriority={handleBulkUpdateTicketPriority}
+                  onDelete={handleBulkDeleteTickets}
+                />
+              )}
+              <SavedViewsBar
                 savedViews={savedTicketViews}
                 onSaveView={handleSaveTicketView}
                 onApplyView={handleApplyTicketView}
                 onDeleteView={handleDeleteTicketView}
+              />
+              <PerformanceInsights {...performanceInsights} />
+              <TicketList 
+                tickets={filteredTickets} 
+                onRowClick={setSelectedTicket} 
+                onStatusChange={handleStatusChange}
+                projects={projects}
+                onToggleFavorite={handleToggleFavoriteTicket}
+                selectedTicketIds={selectedTicketIds}
+                onToggleSelection={handleToggleTicketSelection}
+              />
+            </>
+          )}
+          {currentView === 'projects' && (
+            <>
+              <ProjectInsights {...projectInsights} />
+              <ProjectList projects={filteredProjects} onProjectClick={setSelectedProject} tickets={tickets}/>
+            </>
+          )}
+          {currentView === 'dealerships' && (
+              <>
+                <DealershipInsights {...dealershipInsights} />
+                <DealershipList 
+                  dealerships={filteredDealerships} 
+                  onDealershipClick={setSelectedDealership} 
+                  dealershipGroups={dealershipGroups}
+                  onUpdateGroup={handleUpdateDealershipGroup}
+                  onDeleteGroup={handleDeleteDealershipGroup}
+                  showToast={showToast}
+                  onNewGroupClick={handleNewDealershipGroupClick}
+                  onEditGroupClick={handleEditDealershipGroupClick}
+                />
+              </>
+          )}
+          {currentView === 'tasks' && (
+            <>
+              <TaskInsights {...taskInsights} />
+              <TaskList 
+                projects={projects} 
+                onAddTask={handleAddTask}
+                onDeleteTask={handleDeleteTask}
+                onUpdateTaskStatus={handleUpdateTaskStatus}
+                allTasks={allTasks} 
+                onSwitchView={handleSwitchToDetailView} 
+              />
+            </>
+          )}
+          {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature} filters={featureFilters} setFilters={setFeatureFilters} allCategories={[...new Set(features.flatMap(f => f.categories || []))]}/>}
+          {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
+          {currentView === 'contacts' && (
+            <ContactsView 
+                contacts={contacts}
+                contactGroups={contactGroups}
+                onUpdateContact={(c) => setContacts(prev => prev.map(p => p.id === c.id ? c : p))}
+                onDeleteContact={handleDeleteContact}
+                onUpdateGroup={handleUpdateContactGroup}
+                onDeleteGroup={handleDeleteGroup}
+                showToast={showToast}
+                isContactFormOpen={isContactFormOpen}
+                setIsContactFormOpen={setIsContactFormOpen}
+                editingContact={editingContact}
+                setEditingContact={setEditingContact}
+                onSaveContact={handleSaveContact}
+                isGroupFormOpen={isGroupFormOpen}
+                setIsGroupFormOpen={setIsGroupFormOpen}
+                editingGroup={editingGroup}
+                setEditingGroup={setEditingGroup}
+                onSaveGroup={handleSaveGroup}
             />
-        )}
-        
-        {renderContent()}
+          )}
+        </div>
       </main>
+      
+      {isFormOpen && currentView !== 'contacts' && (
+          <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
+              {renderForm()}
+          </Modal>
+      )}
 
-      {/* Side Views for Details */}
-      {selectedTicket && (
-        <SideView title={selectedTicket.title} onClose={() => setSelectedTicket(null)} isOpen={!!selectedTicket}>
+      {isCreateChoiceModalOpen && (
+          <Modal title="Create New Item" onClose={() => setIsCreateChoiceModalOpen(false)} size="lg">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
+                  <button onClick={() => handleCreateChoice('tickets')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <TicketIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Ticket</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('projects')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <ClipboardListIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Project</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('meetings')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <DocumentTextIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Meeting Note</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('dealerships')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <BuildingStorefrontIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Dealership</span>
+                  </button>
+                   <button onClick={() => handleCreateChoice('contacts')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <UsersIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Contact</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <SparklesIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Feature</span>
+                  </button>
+              </div>
+          </Modal>
+      )}
+
+      {editingTask && (
+        <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
+            <EditTaskForm 
+                task={editingTask} 
+                onSave={handleUpdateTask} 
+                onClose={() => setEditingTask(null)}
+                onExport={() => handleExportTask(editingTask)}
+                allTasks={allTasks}
+                allTickets={tickets}
+                allProjects={projects}
+                allMeetings={meetings}
+                allDealerships={dealerships}
+                allFeatures={features}
+                onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
+                onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
+                onSwitchView={handleSwitchFromTaskModal}
+            />
+        </Modal>
+      )}
+
+      {isExportModalOpen && (
+        <ExportModal
+          onClose={() => setIsExportModalOpen(false)}
+          dataSources={dataSourcesForExport}
+          showToast={showToast}
+        />
+      )}
+
+       {isImportModalOpen && (
+          <Modal title="Import Data" onClose={() => setIsImportModalOpen(false)}>
+              <div className="space-y-6">
+                  <div>
+                    <p className="text-sm text-gray-700">Import data from CSV files. Please ensure the CSV format matches the export format for best results.</p>
+                    <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm">
+                        <p><strong>Append:</strong> Adds new records only. Records from the file with an ID that already exists in the system will be skipped.</p>
+                        <p className="mt-1"><strong>Update &amp; Replace:</strong> Updates records with a matching ID. If no matching ID is found, a new record is added. This does not delete data.</p>
+                    </div>
+                  </div>
+
+                  <ImportSection title="Tickets" onImport={(file, mode) => handleImport(file, "Tickets", mode)} onDownloadTemplate={() => handleDownloadTemplate("Tickets")} showToast={showToast} />
+                  <ImportSection title="Projects" onImport={(file, mode) => handleImport(file, "Projects", mode)} onDownloadTemplate={() => handleDownloadTemplate("Projects")} showToast={showToast} />
+                  <ImportSection title="Dealerships" onImport={(file, mode) => handleImport(file, "Dealerships", mode)} onDownloadTemplate={() => handleDownloadTemplate("Dealerships")} showToast={showToast} />
+                  <ImportSection title="Standalone Tasks" onImport={(file, mode) => handleImport(file, "Standalone Tasks", mode)} onDownloadTemplate={() => handleDownloadTemplate("Standalone Tasks")} showToast={showToast} />
+                  <ImportSection title="Features" onImport={(file, mode) => handleImport(file, "Features", mode)} onDownloadTemplate={() => handleDownloadTemplate("Features")} showToast={showToast} />
+                  <ImportSection title="Meetings" onImport={(file, mode) => handleImport(file, "Meetings", mode)} onDownloadTemplate={() => handleDownloadTemplate("Meetings")} showToast={showToast} />
+              </div>
+          </Modal>
+      )}
+
+      {isDealershipGroupFormOpen && (
+        <Modal title={editingDealershipGroup ? 'Edit Dealership Group' : 'Create New Group'} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}>
+            <DealershipGroupForm onSave={handleSaveDealershipGroup} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }} groupToEdit={editingDealershipGroup} />
+        </Modal>
+      )}
+
+
+      <SideView 
+        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || ''}
+        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature)}
+        onClose={closeAllSideViews}
+      >
+        {selectedTicket && (
           <TicketDetailView
             ticket={selectedTicket}
             onUpdate={handleUpdateTicket}
             onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
-            onEditUpdate={(update) => handleEditUpdate(selectedTicket.id, update)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedTicket.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
             onExport={() => handleExportTicket(selectedTicket)}
-            onEmail={() => showToast('Email functionality not implemented.', 'error')}
-            onDelete={() => { handleDeleteTicket(selectedTicket.id); setSelectedTicket(null); }}
+            onEmail={() => handleEmailTicket(selectedTicket)}
+            onDelete={handleDeleteTicket}
             {...allDataForLinking}
-            {...commonLinkingHandlers('ticket', selectedTicket.id)}
+            onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
+            onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
           />
-        </SideView>
-      )}
-      {selectedProject && (
-        <SideView title={selectedProject.name} onClose={() => setSelectedProject(null)} isOpen={!!selectedProject}>
-          <ProjectDetailView
-            project={selectedProject}
-            onUpdate={handleUpdateProject}
-            onDelete={() => { handleDeleteProject(selectedProject.id); setSelectedProject(null); }}
+        )}
+        {selectedProject && <ProjectDetailView 
+            project={selectedProject} 
+            onUpdate={handleUpdateProject} 
+            onDelete={handleDeleteProject}
             onExport={() => handleExportProject(selectedProject)}
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(update) => handleEditUpdate(selectedProject.id, update)}
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
             {...allDataForLinking}
-            {...commonLinkingHandlers('project', selectedProject.id)}
-          />
-        </SideView>
-      )}
-       {selectedDealership && (
-        <SideView title={selectedDealership.name} onClose={() => setSelectedDealership(null)} isOpen={!!selectedDealership}>
-          <DealershipDetailView
-            dealership={selectedDealership}
-            onUpdate={handleUpdateDealership}
-            onDelete={() => { handleDeleteDealership(selectedDealership.id); setSelectedDealership(null); }}
-            onExport={() => handleExportDealership(selectedDealership)}
+            onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView} />}
+        {selectedDealership && <DealershipDetailView 
+            dealership={selectedDealership} 
+            onUpdate={handleUpdateDealership} 
+            onDelete={handleDeleteDealership} 
+            onExport={() => handleExportDealership(selectedDealership)} 
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(update) => handleEditUpdate(selectedDealership.id, update)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
             {...allDataForLinking}
             allGroups={dealershipGroups}
-            {...commonLinkingHandlers('dealership', selectedDealership.id)}
-          />
-        </SideView>
-      )}
-      {selectedMeeting && (
-        <SideView title={selectedMeeting.name} onClose={() => setSelectedMeeting(null)} isOpen={!!selectedMeeting}>
-            <MeetingDetailView
-                meeting={selectedMeeting}
-                onUpdate={handleUpdateMeeting}
-                onDelete={() => { handleDeleteMeeting(selectedMeeting.id); setSelectedMeeting(null); }}
-                onExport={() => handleExportMeeting(selectedMeeting)}
-                {...allDataForLinking}
-                {...commonLinkingHandlers('meeting', selectedMeeting.id)}
-            />
-        </SideView>
-      )}
-       {selectedFeature && (
-        <SideView title={selectedFeature.title} onClose={() => setSelectedFeature(null)} isOpen={!!selectedFeature}>
-            <FeatureDetailView
-                feature={selectedFeature}
-                onUpdate={handleUpdateFeature}
-                onDelete={() => { handleDeleteFeature(selectedFeature.id); setSelectedFeature(null); }}
-                onExport={() => handleExportFeature(selectedFeature)}
-                {...allDataForLinking}
-                {...commonLinkingHandlers('feature', selectedFeature.id)}
-            />
-        </SideView>
-      )}
+            onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedMeeting && <MeetingDetailView 
+            meeting={selectedMeeting} 
+            onUpdate={handleUpdateMeeting} 
+            onDelete={handleDeleteMeeting} 
+            onExport={() => handleExportMeeting(selectedMeeting)} 
+            {...allDataForLinking}
+            onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedFeature && <FeatureDetailView 
+            feature={selectedFeature} 
+            onUpdate={handleUpdateFeature} 
+            onDelete={handleDeleteFeature} 
+            onExport={() => handleExportFeature(selectedFeature)}
+            {...allDataForLinking}
+            onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+      </SideView>
     </div>
   );
 }
