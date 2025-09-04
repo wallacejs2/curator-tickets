@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
@@ -185,7 +183,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         handleDragEnd();
     };
 
-
     if (isEditing) {
         return (
             <div className="space-y-6">
@@ -319,7 +316,6 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                 </form>
             </div>
 
-            {/* FIX: Cast string literals to EntityType to resolve TS error */}
             <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
             <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
             <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />

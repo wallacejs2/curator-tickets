@@ -13,6 +13,7 @@ import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { UploadIcon } from './icons/UploadIcon.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
+import { DashboardIcon } from './icons/DashboardIcon.tsx';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
@@ -89,6 +90,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     window.localStorage.removeItem('tasks');
     window.localStorage.removeItem('features');
     window.localStorage.removeItem('meetings');
+    window.localStorage.removeItem('savedTicketViews');
     window.location.reload();
   };
   
@@ -127,6 +129,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <nav className="mb-8">
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Navigation</h2>
             <div className="space-y-1">
+              <NavItem icon={<DashboardIcon className="w-5 h-5" />} label="Dashboard" isActive={currentView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
               <NavItem icon={<TicketIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
               <NavItem icon={<ClipboardListIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
               <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />

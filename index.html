@@ -43,6 +43,35 @@
     .rich-text-content em, .rich-text-content i {
         font-style: italic;
     }
+    /* Gantt Chart Styles */
+    .gantt-chart {
+      --gantt-header-height: 60px;
+      --gantt-row-height: 40px;
+      --gantt-project-color: #3b82f6; /* blue-500 */
+      --gantt-task-color: #60a5fa; /* blue-400 */
+      --gantt-grid-color: #e5e7eb; /* gray-200 */
+    }
+    .gantt-timeline {
+      display: grid;
+      grid-template-rows: var(--gantt-header-height);
+      grid-auto-rows: var(--gantt-row-height);
+      overflow-x: auto;
+    }
+    .gantt-month {
+      border-right: 1px solid var(--gantt-grid-color);
+      border-bottom: 1px solid var(--gantt-grid-color);
+    }
+    .gantt-day-cell {
+      border-right: 1px solid var(--gantt-grid-color);
+    }
+    .gantt-project-bar {
+      background-color: var(--gantt-project-color);
+      height: 20px;
+    }
+    .gantt-task-bar {
+      background-color: var(--gantt-task-color);
+      height: 12px;
+    }
   </style>
 </head>
   <body class="bg-gray-100">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform } from '../types.ts';
+import { FEATURE_STATUS_OPTIONS, PLATFORM_OPTIONS } from '../constants.ts';
 
 type FormSubmitCallback = (feature: Omit<FeatureAnnouncement, 'id'>) => void;
 type FormUpdateCallback = (feature: FeatureAnnouncement) => void;
@@ -11,14 +12,18 @@ interface FeatureFormProps {
   onClose: () => void;
 }
 
-const getInitialState = (): Omit<FeatureAnnouncement, 'id'> => ({
+const getInitialState = (): Omit<FeatureAnnouncement, 'id'> & { categoriesString?: string } => ({
     title: '',
     location: '',
     description: '',
     launchDate: new Date().toISOString().split('T')[0],
     version: '',
     platform: Platform.Curator,
-    status: FeatureStatus.Upcoming,
+    status: FeatureStatus.Backlog,
+    categories: [],
+    categoriesString: '',
+    successMetrics: '',
+    targetAudience: '',
 });
 
 const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureToEdit, onClose }) => {
@@ -30,6 +35,7 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
       setFormData({
         ...featureToEdit,
         launchDate: featureToEdit.launchDate.split('T')[0],
+        categoriesString: (featureToEdit.categories || []).join(', '),
       });
     } else {
       setFormData(getInitialState());
@@ -38,14 +44,20 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value as any }));
+    if (name === 'categoriesString') {
+        setFormData(prev => ({ ...prev, categoriesString: value }));
+    } else {
+        setFormData(prev => ({ ...prev, [name]: value as any }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const { categoriesString, ...rest } = formData;
     const submissionData = {
-        ...formData,
+        ...rest,
         launchDate: new Date(`${formData.launchDate}T00:00:00`).toISOString(),
+        categories: categoriesString?.split(',').map(c => c.trim()).filter(Boolean) || [],
     };
     if (isEditing) {
       onUpdate({ id: featureToEdit!.id, ...submissionData });
@@ -74,7 +86,7 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
       </div>
       <div className="grid grid-cols-2 gap-x-6">
         <div>
-          <label className={labelClasses}>Launch Date</label>
+          <label className={labelClasses}>Target Launch Date</label>
           <input type="date" name="launchDate" value={formData.launchDate} onChange={handleChange} required className={formElementClasses} />
         </div>
         <div>
@@ -86,15 +98,27 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
         <div>
           <label className={labelClasses}>Platform</label>
           <select name="platform" value={formData.platform} onChange={handleChange} className={formElementClasses}>
-            {Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}
+            {PLATFORM_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
         <div>
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
-            {Object.values(FeatureStatus).map(s => <option key={s} value={s}>{s}</option>)}
+            {FEATURE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
+      </div>
+      <div>
+        <label className={labelClasses}>Categories (comma-separated)</label>
+        <input type="text" name="categoriesString" value={formData.categoriesString || ''} onChange={handleChange} className={formElementClasses} placeholder="e.g., UI/UX, Reporting, API" />
+      </div>
+       <div>
+        <label className={labelClasses}>Target Audience</label>
+        <textarea name="targetAudience" value={formData.targetAudience || ''} onChange={handleChange} rows={2} className={formElementClasses} placeholder="Who is this feature for?" />
+      </div>
+       <div>
+        <label className={labelClasses}>Success Metrics</label>
+        <textarea name="successMetrics" value={formData.successMetrics || ''} onChange={handleChange} rows={2} className={formElementClasses} placeholder="How will we measure the success of this feature?" />
       </div>
       <div className="mt-8 flex justify-end gap-3">
         <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>

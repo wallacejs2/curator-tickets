@@ -7,6 +7,7 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { BuildingStorefrontIcon } from './icons/BuildingStorefrontIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { ClipboardListIcon } from './icons/ClipboardListIcon.tsx';
+import GanttChartView from './GanttChartView.tsx';
 
 
 interface ProjectListProps {
@@ -23,8 +24,6 @@ const statusColors: Record<ProjectStatus, { bg: string; text: string; progress: 
 };
 
 const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> = ({ project, tickets }) => {
-    // FIX: The Ticket type uses `projectIds` (an array) instead of `projectId`.
-    // Filter for tickets where the project's ID is included in the ticket's `projectIds` array.
     const linkedTickets = tickets.filter(t => (t.projectIds || []).includes(project.id));
     const mostRecentUpdate = project.updates && project.updates.length > 0
         ? [...project.updates].pop()
@@ -133,6 +132,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tickets }) => {
   const [projectView, setProjectView] = useState<'active' | 'completed'>('active');
+  const [listOrGantt, setListOrGantt] = useState<'list' | 'gantt'>('list');
 
   const { activeProjects, completedProjects } = useMemo(() => {
     return projects.reduce<{ activeProjects: Project[]; completedProjects: Project[] }>(
@@ -161,29 +161,37 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
 
   return (
     <div>
-      <div className="mb-4 flex border-b border-gray-200">
-        <button
-          onClick={() => setProjectView('active')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            projectView === 'active'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          aria-pressed={projectView === 'active'}
-        >
-          Active ({activeProjects.length})
-        </button>
-        <button
-          onClick={() => setProjectView('completed')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            projectView === 'completed'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          aria-pressed={projectView === 'completed'}
-        >
-          Completed ({completedProjects.length})
-        </button>
+      <div className="mb-4 flex border-b border-gray-200 justify-between">
+        <div className="flex">
+            <button
+            onClick={() => setProjectView('active')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                projectView === 'active'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={projectView === 'active'}
+            >
+            Active ({activeProjects.length})
+            </button>
+            <button
+            onClick={() => setProjectView('completed')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                projectView === 'completed'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={projectView === 'completed'}
+            >
+            Completed ({completedProjects.length})
+            </button>
+        </div>
+        <div className="flex items-center">
+            <div className="bg-gray-200 p-0.5 rounded-md flex">
+                <button onClick={() => setListOrGantt('list')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'list' ? 'bg-white shadow' : 'text-gray-600'}`}>List</button>
+                <button onClick={() => setListOrGantt('gantt')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'gantt' ? 'bg-white shadow' : 'text-gray-600'}`}>Gantt</button>
+            </div>
+        </div>
       </div>
       
       {projectsToShow.length === 0 ? (
@@ -195,12 +203,14 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
               : "Completed projects will appear here once they are finished."}
           </p>
         </div>
-      ) : (
+      ) : listOrGantt === 'list' ? (
         <div className="space-y-4">
           {projectsToShow.map(project => (
             <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
           ))}
         </div>
+      ) : (
+        <GanttChartView projects={projectsToShow} onProjectClick={onProjectClick} />
       )}
     </div>
   );

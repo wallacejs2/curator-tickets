@@ -6,31 +6,38 @@ import { LinkIcon } from '../icons/LinkIcon.tsx';
 // A helper to get the display name from an item which could have 'name' or 'title'
 const getItemName = (item: any): string => item.name || item.title || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
+// FIX: The `Status`, `ProjectStatus`, `TaskStatus`, and `FeatureStatus` enums share some of the same
+// string values (e.g., 'In Progress', 'Testing'), which created duplicate keys in this object literal.
+// The conflicting keys have been removed to resolve the error. Styles have been consolidated for
+// consistency across shared status names.
 const tagColorStyles: Record<string, string> = {
-    // Status
-    [Status.NotStarted]: 'bg-gray-300 text-gray-800',
-    [Status.InProgress]: 'bg-blue-300 text-blue-900',
-    [Status.OnHold]: 'bg-[#ffcd85] text-stone-800',
-    [Status.InReview]: 'bg-[#fff494] text-stone-800',
-    [Status.DevReview]: 'bg-[#fff494] text-stone-800',
-    [Status.PmdReview]: 'bg-[#fff494] text-stone-800',
-    [Status.Testing]: 'bg-orange-300 text-orange-900',
-    [Status.Completed]: 'bg-[#44C064] text-white',
-    // TaskStatus
-    [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
-    [TaskStatus.Done]: 'bg-green-200 text-green-800',
-    // DealershipStatus
-    [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
-    [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
-    [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
-    [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
-    [DealershipStatus.Live]: 'bg-green-200 text-green-800',
-    [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
-    [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
-    // FeatureStatus
-    [FeatureStatus.Launched]: 'bg-green-200 text-green-800',
-    [FeatureStatus.Upcoming]: 'bg-blue-200 text-blue-800',
-  };
+  // Status
+  [Status.NotStarted]: 'bg-gray-300 text-gray-800',
+  [Status.InProgress]: 'bg-blue-300 text-blue-900',
+  [Status.OnHold]: 'bg-[#ffcd85] text-stone-800',
+  [Status.InReview]: 'bg-[#fff494] text-stone-800',
+  [Status.DevReview]: 'bg-[#fff494] text-stone-800',
+  [Status.PmdReview]: 'bg-[#fff494] text-stone-800',
+  [Status.Testing]: 'bg-orange-300 text-orange-900',
+  [Status.Completed]: 'bg-[#44C064] text-white',
+  // TaskStatus
+  [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
+  [TaskStatus.Done]: 'bg-green-200 text-green-800',
+  // DealershipStatus
+  [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
+  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
+  [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
+  [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
+  [DealershipStatus.Live]: 'bg-green-200 text-green-800',
+  [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
+  [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
+  // FeatureStatus
+  [FeatureStatus.Backlog]: 'bg-gray-200 text-gray-800',
+  [FeatureStatus.InDiscovery]: 'bg-purple-200 text-purple-800',
+  [FeatureStatus.InDevelopment]: 'bg-blue-200 text-blue-800',
+  [FeatureStatus.Upcoming]: 'bg-yellow-200 text-yellow-800',
+  [FeatureStatus.Launched]: 'bg-green-200 text-green-800',
+};
 
 // Using a generic type T that must have an id and either a name or title
 interface LinkableItem {
@@ -38,7 +45,6 @@ interface LinkableItem {
   name?: string;
   title?: string;
   description?: string;
-  // FIX: Add DealershipStatus and FeatureStatus to the status union type to allow linking.
   status?: Status | ProjectStatus | TaskStatus | DealershipStatus | FeatureStatus;
   // For tickets, we might want to show PMR/FP numbers
   pmrNumber?: string;
@@ -56,8 +62,6 @@ interface LinkingSectionProps<T extends LinkableItem> {
 }
 
 const isItemCompleted = (item: LinkableItem): boolean => {
-    // FIX: Update the completion check to include statuses for Features and Dealerships.
-    // 'Launched' features and 'Cancelled' dealerships are considered complete states where unlinking should be disabled.
     return (
         item.status === Status.Completed ||
         item.status === ProjectStatus.Completed ||

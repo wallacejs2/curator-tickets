@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership, Status, ProjectStatus, TaskStatus } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -39,8 +37,12 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 );
 
 const statusColors: Record<FeatureStatus, string> = {
+    [FeatureStatus.Backlog]: 'bg-gray-200 text-gray-800',
+    [FeatureStatus.InDiscovery]: 'bg-purple-200 text-purple-800',
+    [FeatureStatus.InDevelopment]: 'bg-blue-200 text-blue-800',
+    [FeatureStatus.Testing]: 'bg-orange-200 text-orange-800',
+    [FeatureStatus.Upcoming]: 'bg-yellow-200 text-yellow-800',
     [FeatureStatus.Launched]: 'bg-green-200 text-green-800',
-    [FeatureStatus.Upcoming]: 'bg-blue-200 text-blue-800',
 };
 
 const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -119,6 +121,19 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
                 </div>
                  <div className="border-t border-gray-200 pt-6">
                     <DetailField label="Description" value={feature.description} />
+                </div>
+                <div className="border-t border-gray-200 pt-6">
+                     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Categories</h4>
+                    <div className="flex flex-wrap gap-2">
+                        {(feature.categories || []).length > 0 ? feature.categories!.map(cat => (
+                            <span key={cat} className="px-2.5 py-1 text-sm font-medium bg-gray-200 text-gray-800 rounded-full">{cat}</span>
+                        )) : <p className="text-sm text-gray-500 italic">No categories assigned.</p>}
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <DetailField label="Target Audience" value={feature.targetAudience} />
+                    <DetailField label="Success Metrics" value={feature.successMetrics} />
                 </div>
 
                 <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />

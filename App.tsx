@@ -1,7 +1,5 @@
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -39,8 +37,15 @@ import ExportModal from './components/ExportModal.tsx';
 import ProjectInsights from './components/ProjectInsights.tsx';
 import TaskInsights from './components/TaskInsights.tsx';
 import EditTaskForm from './components/common/EditTaskForm.tsx';
-// FIX: Import the 'MeetingForm' component to resolve the "Cannot find name" error.
 import MeetingForm from './components/MeetingForm.tsx';
+import DashboardView from './components/DashboardView.tsx';
+import BulkActionBar from './components/common/BulkActionBar.tsx';
+import SavedViewsBar from './components/SavedViewsBar.tsx';
+import { TicketIcon } from './components/icons/TicketIcon.tsx';
+import { ClipboardListIcon } from './components/icons/ClipboardListIcon.tsx';
+import { DocumentTextIcon } from './components/icons/DocumentTextIcon.tsx';
+import { BuildingStorefrontIcon } from './components/icons/BuildingStorefrontIcon.tsx';
+import { SparklesIcon } from './components/icons/SparklesIcon.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -199,6 +204,9 @@ const normalizeBooleanValue = (value: any): boolean | undefined => {
     return undefined;
 };
 
+// Hardcoded current user for dashboard widgets
+const CURRENT_USER = 'John Doe';
+
 function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
@@ -206,6 +214,7 @@ function App() {
   const [tasks, setTasks] = useLocalStorage<Task[]>('tasks', initialTasks);
   const [features, setFeatures] = useLocalStorage<FeatureAnnouncement[]>('features', initialFeatures);
   const [meetings, setMeetings] = useLocalStorage<Meeting[]>('meetings', initialMeetings);
+  const [savedTicketViews, setSavedTicketViews] = useLocalStorage<SavedTicketView[]>('savedTicketViews', []);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -213,8 +222,10 @@ function App() {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
   const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string; ticketId: string | null; ticketTitle?: string; }) | null>(null);
+  const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCreateChoiceModalOpen, setIsCreateChoiceModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -233,13 +244,21 @@ function App() {
   });
   
   const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
+
+  const [featureFilters, setFeatureFilters] = useState<FeatureAnnouncementFilterState>({
+    searchTerm: '',
+    platform: 'all',
+    category: 'all',
+  });
   
-  const [currentView, setCurrentView] = useState<View>('tickets');
+  const [currentView, setCurrentView] = useState<View>('dashboard');
   const { toast, showToast, hideToast } = useToast();
 
-  // FIX: Add useEffect hooks to synchronize selected items with their master data arrays.
-  // This ensures that when an item is updated (e.g., by linking another item to it),
-  // the detail view re-renders with the fresh data.
+  const dataMap = useMemo(() => ({
+    tickets, projects, dealerships, tasks, features, meetings
+  }), [tickets, projects, dealerships, tasks, features, meetings]);
+
+
   useEffect(() => {
     if (selectedTicket) {
       const freshTicket = tickets.find(t => t.id === selectedTicket.id);
@@ -274,6 +293,11 @@ function App() {
       setSelectedFeature(freshFeature || null);
     }
   }, [features]);
+
+  // When changing views, clear selections
+  useEffect(() => {
+    setSelectedTicketIds([]);
+  }, [currentView]);
 
 
   const allTasks = useMemo(() => {
@@ -559,7 +583,6 @@ function App() {
     } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
         const updatedProject = { ...selectedProject, updates: [...(selectedProject.updates || []), newUpdate] };
         setSelectedProject(updatedProject);
-        // FIX: The variable 't' was used here instead of 'p', causing an error.
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
     } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
         const updatedDealership = { ...selectedDealership, updates: [...(selectedDealership.updates || []), newUpdate] };
@@ -791,7 +814,6 @@ function App() {
         }
     };
     
-    // FIX: Refactored linking logic for robustness and clarity.
     const getLinkKeys = (fromType: EntityType, toType: EntityType): { forwardKey: string, reverseKey: string } => {
         const getSelfLinkKey = (type: EntityType) => {
             switch (type) {
@@ -814,13 +836,11 @@ function App() {
     const handleLinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
         const { forwardKey, reverseKey } = getLinkKeys(fromType, toType);
 
-        // Update the 'from' entity
         updateEntity(fromType, fromId, (entity) => ({
             ...entity,
             [forwardKey]: [...new Set([...(entity[forwardKey] || []), toId])]
         }));
         
-        // Update the 'to' entity
         updateEntity(toType, toId, (entity) => ({
             ...entity,
             [reverseKey]: [...new Set([...(entity[reverseKey] || []), fromId])]
@@ -832,13 +852,11 @@ function App() {
     const handleUnlinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
         const { forwardKey, reverseKey } = getLinkKeys(fromType, toType);
         
-        // Update the 'from' entity
         updateEntity(fromType, fromId, (entity) => ({
             ...entity,
             [forwardKey]: (entity[forwardKey] || []).filter((id: string) => id !== toId)
         }));
         
-        // Update the 'to' entity
         updateEntity(toType, toId, (entity) => ({
             ...entity,
             [reverseKey]: (entity[reverseKey] || []).filter((id: string) => id !== fromId)
@@ -902,8 +920,20 @@ function App() {
   }, [meetings, meetingFilters]);
 
     const filteredFeatures = useMemo(() => {
-        return [...features].sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime());
-    }, [features]);
+        return features.filter(feature => {
+            const searchLower = featureFilters.searchTerm.toLowerCase();
+            const matchesSearch = !searchLower ||
+                feature.title.toLowerCase().includes(searchLower) ||
+                feature.description.toLowerCase().includes(searchLower);
+            
+            const matchesPlatform = featureFilters.platform === 'all' || feature.platform === featureFilters.platform;
+            
+            const matchesCategory = featureFilters.category === 'all' ||
+                (feature.categories || []).includes(featureFilters.category);
+
+            return matchesSearch && matchesPlatform && matchesCategory;
+        });
+    }, [features, featureFilters]);
 
     const performanceInsights = useMemo(() => {
         const completedLast30Days = tickets.filter(t => {
@@ -1298,6 +1328,21 @@ function App() {
         }
     }
 
+    const handleCreateChoice = (view: View) => {
+        setIsCreateChoiceModalOpen(false);
+        setCurrentView(view);
+        // A small delay ensures the view changes before the form opens, which can be smoother.
+        setTimeout(() => setIsFormOpen(true), 50);
+    };
+
+    const handleHeaderNewClick = () => {
+        if (currentView === 'dashboard') {
+            setIsCreateChoiceModalOpen(true);
+        } else {
+            setIsFormOpen(true);
+        }
+    };
+
     const getNewButtonText = () => {
         switch (currentView) {
             case 'tickets': return 'New Ticket';
@@ -1306,6 +1351,7 @@ function App() {
             case 'features': return 'New Feature';
             case 'meetings': return 'New Note';
             case 'tasks': return ''; // No main "new" button for tasks view
+            case 'dashboard': return 'New Item';
             default: return 'New Item';
         }
     }
@@ -1371,6 +1417,99 @@ function App() {
       { title: 'Features', data: features },
       { title: 'Meetings', data: meetings },
     ];
+
+    // Data for Dashboard
+    const upcomingDeadlines = useMemo(() => {
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+
+        const ticketDeadlines = tickets
+            .filter(t => t.estimatedCompletionDate && new Date(t.estimatedCompletionDate) <= sevenDaysFromNow && t.status !== Status.Completed)
+            .map(t => ({...t, dueDate: t.estimatedCompletionDate, type: 'ticket' as const}));
+        
+        const taskDeadlines = allTasks
+            .filter(t => t.dueDate && new Date(t.dueDate) <= sevenDaysFromNow && t.status !== TaskStatus.Done)
+            .map(t => ({...t, type: 'task' as const}));
+
+        return [...ticketDeadlines, ...taskDeadlines].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+    }, [tickets, allTasks]);
+
+    const recentlyUpdatedItems = useMemo(() => {
+        const allItemsWithUpdates = [
+            ...tickets.map(t => ({ ...t, itemType: 'ticket' as const })), 
+            ...projects.map(p => ({ ...p, itemType: 'project' as const })), 
+            ...dealerships.map(d => ({ ...d, itemType: 'dealership' as const }))
+        ];
+
+        return allItemsWithUpdates
+            .filter(item => item.updates && item.updates.length > 0)
+            .map(item => ({
+                ...item,
+                lastUpdate: item.updates!.reduce((latest, current) => new Date(current.date) > new Date(latest.date) ? current : latest)
+            }))
+            .sort((a, b) => new Date(b.lastUpdate.date).getTime() - new Date(a.lastUpdate.date).getTime())
+            .slice(0, 10);
+    }, [tickets, projects, dealerships]);
+
+    // Bulk Actions Handlers
+    const handleToggleTicketSelection = (ticketId: string) => {
+        setSelectedTicketIds(prev =>
+            prev.includes(ticketId) ? prev.filter(id => id !== ticketId) : [...prev, ticketId]
+        );
+    };
+
+    const handleBulkUpdateTicketStatus = (status: Status) => {
+        setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, status } : t));
+        showToast(`${selectedTicketIds.length} ticket(s) updated to ${status}.`, 'success');
+        setSelectedTicketIds([]);
+    };
+
+    const handleBulkUpdateTicketPriority = (priority: Priority) => {
+        setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, priority } : t));
+        showToast(`${selectedTicketIds.length} ticket(s) updated to ${priority}.`, 'success');
+        setSelectedTicketIds([]);
+    };
+
+    const handleBulkDeleteTickets = () => {
+        if (window.confirm(`Are you sure you want to delete ${selectedTicketIds.length} ticket(s)?`)) {
+            setTickets(prev => prev.filter(t => !selectedTicketIds.includes(t.id)));
+            showToast(`${selectedTicketIds.length} ticket(s) deleted.`, 'success');
+            setSelectedTicketIds([]);
+        }
+    };
+
+    // Saved Views Handlers
+    const handleSaveTicketView = (name: string) => {
+        const newView: SavedTicketView = {
+            id: crypto.randomUUID(),
+            name,
+            filters: ticketFilters,
+        };
+        setSavedTicketViews(prev => [...prev, newView]);
+        showToast(`View "${name}" saved!`, 'success');
+    };
+
+    const handleApplyTicketView = (viewId: string) => {
+        const viewToApply = savedTicketViews.find(v => v.id === viewId);
+        if (viewToApply) {
+            setTicketFilters(viewToApply.filters);
+            showToast(`Applied view: ${viewToApply.name}`, 'success');
+        }
+    };
+
+    const handleDeleteTicketView = (viewId: string) => {
+        setSavedTicketViews(prev => prev.filter(v => v.id !== viewId));
+        showToast('Saved view deleted.', 'success');
+    };
+    
+    const allDataForLinking = {
+        allTickets: tickets,
+        allProjects: projects,
+        allTasks: allTasks,
+        allMeetings: meetings,
+        allDealerships: dealerships,
+        allFeatures: features,
+    };
     
     return (
     <div className="flex h-screen bg-gray-100">
@@ -1392,9 +1531,9 @@ function App() {
           <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800" aria-label="Open sidebar">
             <MenuIcon className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView} Dashboard</h1>
+          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView === 'dashboard' ? 'My Dashboard' : `${currentView} Dashboard`}</h1>
           {getNewButtonText() && (
-            <button onClick={() => setIsFormOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
+            <button onClick={handleHeaderNewClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
                 <PlusIcon className="w-5 h-5" />
                 <span>{getNewButtonText()}</span>
             </button>
@@ -1402,8 +1541,31 @@ function App() {
         </header>
 
         <div className="flex-1 p-6 overflow-y-auto">
+          {currentView === 'dashboard' && (
+              <DashboardView
+                  performanceInsights={performanceInsights}
+                  upcomingDeadlines={upcomingDeadlines}
+                  recentlyUpdatedItems={recentlyUpdatedItems}
+                  onSwitchView={handleSwitchToDetailView}
+              />
+          )}
           {currentView === 'tickets' && (
             <>
+              {selectedTicketIds.length > 0 && (
+                <BulkActionBar
+                  selectedCount={selectedTicketIds.length}
+                  onClearSelection={() => setSelectedTicketIds([])}
+                  onUpdateStatus={handleBulkUpdateTicketStatus}
+                  onUpdatePriority={handleBulkUpdateTicketPriority}
+                  onDelete={handleBulkDeleteTickets}
+                />
+              )}
+              <SavedViewsBar
+                savedViews={savedTicketViews}
+                onSaveView={handleSaveTicketView}
+                onApplyView={handleApplyTicketView}
+                onDeleteView={handleDeleteTicketView}
+              />
               <PerformanceInsights {...performanceInsights} />
               <TicketList 
                 tickets={filteredTickets} 
@@ -1411,6 +1573,8 @@ function App() {
                 onStatusChange={handleStatusChange}
                 projects={projects}
                 onToggleFavorite={handleToggleFavoriteTicket}
+                selectedTicketIds={selectedTicketIds}
+                onToggleSelection={handleToggleTicketSelection}
               />
             </>
           )}
@@ -1439,7 +1603,7 @@ function App() {
               />
             </>
           )}
-          {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature}/>}
+          {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature} filters={featureFilters} setFilters={setFeatureFilters} allCategories={[...new Set(features.flatMap(f => f.categories || []))]}/>}
           {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
         </div>
       </main>
@@ -1447,6 +1611,33 @@ function App() {
       {isFormOpen && (
           <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
               {renderForm()}
+          </Modal>
+      )}
+
+      {isCreateChoiceModalOpen && (
+          <Modal title="Create New Item" onClose={() => setIsCreateChoiceModalOpen(false)} size="lg">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
+                  <button onClick={() => handleCreateChoice('tickets')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <TicketIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Ticket</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('projects')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <ClipboardListIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Project</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('meetings')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <DocumentTextIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Meeting Note</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('dealerships')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <BuildingStorefrontIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Dealership</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <SparklesIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Feature</span>
+                  </button>
+              </div>
           </Modal>
       )}
 
@@ -1515,12 +1706,7 @@ function App() {
             onExport={() => handleExportTicket(selectedTicket)}
             onEmail={() => handleEmailTicket(selectedTicket)}
             onDelete={handleDeleteTicket}
-            allTickets={tickets}
-            allProjects={projects}
-            allTasks={allTasks}
-            allMeetings={meetings}
-            allDealerships={dealerships}
-            allFeatures={features}
+            {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
@@ -1534,12 +1720,7 @@ function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
-            allTickets={tickets} 
-            allProjects={projects} 
-            allTasks={allTasks} 
-            allMeetings={meetings} 
-            allDealerships={dealerships} 
-            allFeatures={features} 
+            {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView} />}
@@ -1551,12 +1732,25 @@ function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
-            allTickets={tickets} allProjects={projects} allTasks={allTasks} 
-            allMeetings={meetings} allDealerships={dealerships} allFeatures={features} 
+            {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
-        {selectedMeeting && <MeetingDetailView meeting={selectedMeeting} onUpdate={handleUpdateMeeting} onDelete={handleDeleteMeeting} onExport={() => handleExportMeeting(selectedMeeting)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
-        {selectedFeature && <FeatureDetailView feature={selectedFeature} onUpdate={handleUpdateFeature} onDelete={handleDeleteFeature} onExport={() => handleExportFeature(selectedFeature)} allTickets={tickets} allProjects={projects} allTasks={allTasks} allMeetings={meetings} allDealerships={dealerships} allFeatures={features} onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedMeeting && <MeetingDetailView 
+            meeting={selectedMeeting} 
+            onUpdate={handleUpdateMeeting} 
+            onDelete={handleDeleteMeeting} 
+            onExport={() => handleExportMeeting(selectedMeeting)} 
+            {...allDataForLinking}
+            onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedFeature && <FeatureDetailView 
+            feature={selectedFeature} 
+            onUpdate={handleUpdateFeature} 
+            onDelete={handleDeleteFeature} 
+            onExport={() => handleExportFeature(selectedFeature)}
+            {...allDataForLinking}
+            onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
+            onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
       </SideView>
     </div>
   );

@@ -1,7 +1,4 @@
-
-
 import React, { useState, useEffect } from 'react';
-// FIX: Import missing constants
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, TaskPriority } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
@@ -99,7 +96,7 @@ interface TicketDetailViewProps {
 }
 
 const TicketDetailView = ({ 
-    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete, 
+    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
  }: TicketDetailViewProps) => {
@@ -164,7 +161,17 @@ const TicketDetailView = ({
   };
   
   const handleSave = () => {
-      onUpdate(editableTicket);
+      const ticketToSave: Ticket = { ...editableTicket };
+
+      const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
+      if (ticketToSave.status !== Status.OnHold && !reviewStatuses.includes(ticketToSave.status)) {
+          delete ticketToSave.onHoldReason;
+      }
+      if (ticketToSave.status !== Status.Completed) {
+          delete ticketToSave.completionNotes;
+      }
+
+      onUpdate(ticketToSave);
       setIsEditing(false);
   };
   
@@ -253,7 +260,7 @@ const TicketDetailView = ({
   };
   
   const handleDrop = () => {
-      if (!dragItem.current || !dragOverItem.current || dragItem.current === dragOverItem.current) {
+      if (!dragItem.current || !dragOverItem.current || dragItem.current === dragItem.current) {
           handleDragEnd();
           return;
       }

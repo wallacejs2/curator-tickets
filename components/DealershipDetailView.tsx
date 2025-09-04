@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update } from '../types.ts';
 import Modal from './common/Modal.tsx';

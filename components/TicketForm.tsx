@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
@@ -37,7 +35,7 @@ interface FormData {
   benefits: string;
   completionNotes: string;
   onHoldReason: string;
-  projectId: string;
+  selectedProjectId: string;
 }
 
 const getInitialState = (): FormData => {
@@ -70,7 +68,7 @@ const getInitialState = (): FormData => {
     benefits: '',
     completionNotes: '',
     onHoldReason: '',
-    projectId: '',
+    selectedProjectId: '',
   };
 };
 
@@ -101,19 +99,27 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
     });
   };
 
-  // FIX: This function was using `projectId` which does not exist on the Ticket type.
-  // It has been updated to use `projectIds` (an array of strings) to correctly link a ticket to a project.
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { type, projectId, ...rest } = formData;
+    const { type, selectedProjectId, ...rest } = formData;
 
-    const dataToSubmit = {
+    const dataToSubmit: any = {
       ...rest,
       estimatedCompletionDate: rest.estimatedCompletionDate ? new Date(`${rest.estimatedCompletionDate}T00:00:00`).toISOString() : undefined,
       startDate: rest.startDate ? new Date(`${rest.startDate}T00:00:00`).toISOString() : undefined,
-      projectIds: projectId ? [projectId] : [],
+      projectIds: selectedProjectId ? [selectedProjectId] : [],
+    };
+    
+    // Clean up reason fields if status doesn't require them
+    const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
+    if (dataToSubmit.status !== Status.OnHold && !reviewStatuses.includes(dataToSubmit.status)) {
+        delete dataToSubmit.onHoldReason;
     }
+    if (dataToSubmit.status !== Status.Completed) {
+        delete dataToSubmit.completionNotes;
+    }
+
 
     if (type === TicketType.Issue) {
       const {
@@ -251,7 +257,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         </div>
         <div className="col-span-2">
             <label className={labelClasses}>Project</label>
-            <select name="projectId" value={formData.projectId} onChange={handleChange} className={formElementClasses}>
+            <select name="selectedProjectId" value={formData.selectedProjectId} onChange={handleChange} className={formElementClasses}>
                 <option value="">None</option>
                 {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>

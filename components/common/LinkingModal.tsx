@@ -5,10 +5,10 @@ import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';
 import { Status, Priority, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus, ProductArea, Platform } from '../../types.ts';
 
-// FIX: The `Status`, `ProjectStatus`, and `TaskStatus` enums share some of the same string values
-// (e.g., 'In Progress'), which created duplicate keys in this object literal. The conflicting
-// keys from `ProjectStatus` and `TaskStatus` have been removed to resolve the error. The styles
-// from the `Status` enum will now be used consistently for those shared status names.
+// FIX: The `Status`, `ProjectStatus`, `TaskStatus`, and `FeatureStatus` enums share some of the same string values
+// (e.g., 'In Progress', 'Testing'), which created duplicate keys in this object literal. The conflicting
+// keys have been removed to resolve the error. Styles have been consolidated for
+// consistency across shared status names.
 const tagColorStyles: Record<string, string> = {
   // Priority
   [Priority.P1]: 'bg-red-200 text-red-800',
@@ -38,8 +38,11 @@ const tagColorStyles: Record<string, string> = {
   [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
   // FeatureStatus
+  [FeatureStatus.Backlog]: 'bg-gray-200 text-gray-800',
+  [FeatureStatus.InDiscovery]: 'bg-purple-200 text-purple-800',
+  [FeatureStatus.InDevelopment]: 'bg-blue-200 text-blue-800',
+  [FeatureStatus.Upcoming]: 'bg-yellow-200 text-yellow-800',
   [FeatureStatus.Launched]: 'bg-green-200 text-green-800',
-  [FeatureStatus.Upcoming]: 'bg-blue-200 text-blue-800',
 };
 
 // A more detailed interface for items that can be linked

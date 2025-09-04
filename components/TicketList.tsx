@@ -20,6 +20,8 @@ interface TicketTableProps {
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
   projects: Project[];
   onToggleFavorite: (ticketId: string) => void;
+  selectedTicketIds: string[];
+  onToggleSelection: (ticketId: string) => void;
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -107,7 +109,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 type TicketView = 'active' | 'completed' | 'favorites';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -130,6 +132,22 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   }, [tickets]);
 
   const ticketsToShow = ticketView === 'active' ? activeTickets : ticketView === 'completed' ? completedTickets : favoriteTickets;
+  
+  const areAllShownTicketsSelected = useMemo(() => {
+    return ticketsToShow.length > 0 && ticketsToShow.every(t => selectedTicketIds.includes(t.id));
+  }, [ticketsToShow, selectedTicketIds]);
+
+  const handleToggleAll = () => {
+    if (areAllShownTicketsSelected) {
+        ticketsToShow.forEach(t => onToggleSelection(t.id)); // Effectively deselects all
+    } else {
+        ticketsToShow.forEach(t => {
+            if (!selectedTicketIds.includes(t.id)) {
+                onToggleSelection(t.id);
+            }
+        });
+    }
+  };
 
 
   const calculateDaysActive = (ticket: Ticket): string => {
@@ -156,40 +174,54 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   
   return (
     <div>
-      <div className="mb-4 flex border-b border-gray-200">
-        <button
-          onClick={() => setTicketView('active')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            ticketView === 'active'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          aria-pressed={ticketView === 'active'}
-        >
-          Active ({activeTickets.length})
-        </button>
-        <button
-          onClick={() => setTicketView('completed')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            ticketView === 'completed'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          aria-pressed={ticketView === 'completed'}
-        >
-          Completed ({completedTickets.length})
-        </button>
-        <button
-          onClick={() => setTicketView('favorites')}
-          className={`px-4 py-2 text-sm font-medium transition-colors ${
-            ticketView === 'favorites'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          aria-pressed={ticketView === 'favorites'}
-        >
-          Favorites ({favoriteTickets.length})
-        </button>
+      <div className="mb-4 flex border-b border-gray-200 justify-between items-center">
+        <div className="flex">
+            <button
+            onClick={() => setTicketView('active')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'active'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'active'}
+            >
+            Active ({activeTickets.length})
+            </button>
+            <button
+            onClick={() => setTicketView('completed')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'completed'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'completed'}
+            >
+            Completed ({completedTickets.length})
+            </button>
+            <button
+            onClick={() => setTicketView('favorites')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'favorites'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'favorites'}
+            >
+            Favorites ({favoriteTickets.length})
+            </button>
+        </div>
+        {ticketsToShow.length > 0 && (
+            <div className="flex items-center gap-2 pr-4">
+                 <input
+                    type="checkbox"
+                    checked={areAllShownTicketsSelected}
+                    onChange={handleToggleAll}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    aria-label="Select all visible tickets"
+                />
+                <label className="text-sm text-gray-600">Select All</label>
+            </div>
+        )}
       </div>
 
       {ticketsToShow.length === 0 ? (
@@ -204,6 +236,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
             let reasonText: string | undefined;
             let reasonLabel: string | undefined;
             let reasonContainerStyle: string | undefined;
+            const isSelected = selectedTicketIds.includes(ticket.id);
 
             if (ticket.status === Status.Completed) {
                 reasonText = ticket.completionNotes;
@@ -220,106 +253,115 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
             }
 
             return (
-            <div key={ticket.id} className="bg-white rounded-md shadow-sm border border-gray-200 flex flex-col">
-              <div className="p-4 cursor-pointer flex-grow" onClick={() => onRowClick(ticket)}>
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{ticket.title}</h3>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleFavorite(ticket.id);
-                        }}
-                        className="p-1 text-gray-400 hover:text-yellow-500 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-yellow-500"
-                        aria-label={ticket.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                        title={ticket.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                        <StarIcon filled={!!ticket.isFavorite} className={`w-5 h-5 ${ticket.isFavorite ? 'text-yellow-500' : ''}`} />
-                    </button>
-                    <Tag label={ticket.priority} />
-                  </div>
-                </div>
-
-                <div className="mt-2 flex items-center gap-3 flex-wrap">
-                    {(ticket.linkedTicketIds?.length || 0) > 0 && <span title={`${ticket.linkedTicketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.linkedTicketIds?.length}</span></span>}
-                    {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
-                    {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
-                    {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
-                    {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
-                    {(ticket.featureIds?.length || 0) > 0 && <span title={`${ticket.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.featureIds?.length}</span></span>}
-                </div>
-                
-                <div className="text-sm text-gray-500 mt-2">
-                  <div>
-                    {ticket.client && (
-                      <>
-                        <span className="font-medium text-gray-600">{ticket.client}</span>
-                        <span className="mx-2 text-gray-300">•</span>
-                      </>
-                    )}
-                    <span>{ticket.submitterName}</span>
-                  </div>
-                  <div className="mt-1">
-                    <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'}</span>
-                    <span className="mx-2 text-gray-300">•</span>
-                    <span>{calculateDaysActive(ticket)}</span>
-                  </div>
-                </div>
-
-                {reasonText && reasonLabel && (
-                  <div className={`mt-3 p-2 rounded-md text-sm text-ellipsis overflow-hidden border ${reasonContainerStyle}`}>
-                      <span className="font-semibold">{reasonLabel}:</span> {reasonText}
-                  </div>
-                )}
-                
-                 <div className="text-xs text-gray-500 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    {ticket.pmrNumber && (
-                        <span>
-                            PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span>
-                            {ticket.pmrLink && (
-                                <a
-                                    href={ticket.pmrLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="ml-2 font-semibold text-blue-600 hover:underline"
-                                >
-                                    Visit PMR
-                                </a>
-                            )}
-                        </span>
-                    )}
-                    {ticket.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{ticket.fpTicketNumber}</span></span>}
-                    {ticket.ticketThreadId && <span>Thread: <span className="font-medium text-gray-700">{ticket.ticketThreadId}</span></span>}
-                 </div>
-
-                <div className="mt-4 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Tag label={ticket.type} />
-                    <Tag label={ticket.productArea} />
-                    <Tag label={ticket.platform} />
-                  </div>
-                  <select
-                    value={ticket.status}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      const newStatus = e.target.value as Status;
-                      let reason = ticket.onHoldReason;
-                      if (newStatus === Status.OnHold && !reason) {
-                          reason = 'No reason provided. Click to edit.';
-                      }
-                      onStatusChange(ticket.id, newStatus, reason);
-                    }}
+            <div key={ticket.id} className={`bg-white rounded-md shadow-sm border flex flex-col transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-gray-200'}`}>
+              <div className="p-4 flex-grow flex gap-4">
+                <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onToggleSelection(ticket.id)}
                     onClick={(e) => e.stopPropagation()}
-                    className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
-                    aria-label={`Change status for ticket ${ticket.title}`}
-                  >
-                    {STATUS_OPTIONS.map(status => (
-                        <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer"
+                />
+                <div className="flex-grow cursor-pointer" onClick={() => onRowClick(ticket)}>
+                    <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{ticket.title}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite(ticket.id);
+                            }}
+                            className="p-1 text-gray-400 hover:text-yellow-500 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-yellow-500"
+                            aria-label={ticket.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                            title={ticket.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                            <StarIcon filled={!!ticket.isFavorite} className={`w-5 h-5 ${ticket.isFavorite ? 'text-yellow-500' : ''}`} />
+                        </button>
+                        <Tag label={ticket.priority} />
+                    </div>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-3 flex-wrap">
+                        {(ticket.linkedTicketIds?.length || 0) > 0 && <span title={`${ticket.linkedTicketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><TicketIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.linkedTicketIds?.length}</span></span>}
+                        {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><ClipboardListIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
+                        {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
+                        {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
+                        {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><BuildingStorefrontIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
+                        {(ticket.featureIds?.length || 0) > 0 && <span title={`${ticket.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.featureIds?.length}</span></span>}
+                    </div>
+                    
+                    <div className="text-sm text-gray-500 mt-2">
+                    <div>
+                        {ticket.client && (
+                        <>
+                            <span className="font-medium text-gray-600">{ticket.client}</span>
+                            <span className="mx-2 text-gray-300">•</span>
+                        </>
+                        )}
+                        <span>{ticket.submitterName}</span>
+                    </div>
+                    <div className="mt-1">
+                        <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'}</span>
+                        <span className="mx-2 text-gray-300">•</span>
+                        <span>{calculateDaysActive(ticket)}</span>
+                    </div>
+                    </div>
+
+                    {reasonText && reasonLabel && (
+                    <div className={`mt-3 p-2 rounded-md text-sm text-ellipsis overflow-hidden border ${reasonContainerStyle}`}>
+                        <span className="font-semibold">{reasonLabel}:</span> {reasonText}
+                    </div>
+                    )}
+                    
+                    <div className="text-xs text-gray-500 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {ticket.pmrNumber && (
+                            <span>
+                                PMR: <span className="font-medium text-gray-700">{ticket.pmrNumber}</span>
+                                {ticket.pmrLink && (
+                                    <a
+                                        href={ticket.pmrLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="ml-2 font-semibold text-blue-600 hover:underline"
+                                    >
+                                        Visit PMR
+                                    </a>
+                                )}
+                            </span>
+                        )}
+                        {ticket.fpTicketNumber && <span>FP#: <span className="font-medium text-gray-700">{ticket.fpTicketNumber}</span></span>}
+                        {ticket.ticketThreadId && <span>Thread: <span className="font-medium text-gray-700">{ticket.ticketThreadId}</span></span>}
+                    </div>
+
+                    <div className="mt-4 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <Tag label={ticket.type} />
+                        <Tag label={ticket.productArea} />
+                        <Tag label={ticket.platform} />
+                    </div>
+                    <select
+                        value={ticket.status}
+                        onChange={(e) => {
+                        e.stopPropagation();
+                        const newStatus = e.target.value as Status;
+                        let reason = ticket.onHoldReason;
+                        if (newStatus === Status.OnHold && !reason) {
+                            reason = 'No reason provided. Click to edit.';
+                        }
+                        onStatusChange(ticket.id, newStatus, reason);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className={`px-2 py-1 text-xs font-semibold rounded-full border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${tagColorStyles[ticket.status]}`}
+                        aria-label={`Change status for ticket ${ticket.title}`}
+                    >
+                        {STATUS_OPTIONS.map(status => (
+                            <option key={status} value={status}>{status}</option>
+                        ))}
+                    </select>
+                    </div>
                 </div>
               </div>
                 <div className="border-t border-gray-200">

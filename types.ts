@@ -37,6 +37,10 @@ export enum Platform {
 
 // New types for Feature Announcements
 export enum FeatureStatus {
+  Backlog = 'Backlog',
+  InDiscovery = 'In Discovery',
+  InDevelopment = 'In Development',
+  Testing = 'Testing',
   Upcoming = 'Upcoming',
   Launched = 'Launched',
 }
@@ -50,6 +54,9 @@ export interface FeatureAnnouncement {
   version?: string;
   platform: Platform;
   status: FeatureStatus;
+  categories?: string[];
+  successMetrics?: string;
+  targetAudience?: string;
   // Linking fields
   ticketIds?: string[];
   projectIds?: string[];
@@ -135,6 +142,12 @@ export interface MeetingFilterState {
   searchTerm: string;
 }
 
+export interface FeatureAnnouncementFilterState {
+  searchTerm: string;
+  platform: string;
+  category: string;
+}
+
 
 // New types for Projects
 export enum ProjectStatus {
@@ -211,7 +224,7 @@ export interface Meeting {
 }
 
 // Type for main application view
-export type View = 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings';
 
 // New types for Dealerships
 export enum DealershipStatus {
@@ -253,4 +266,10 @@ export interface Dealership {
   taskIds?: string[];
   linkedDealershipIds?: string[];
   featureIds?: string[];
+}
+
+export interface SavedTicketView {
+  id: string;
+  name: string;
+  filters: FilterState;
 }
