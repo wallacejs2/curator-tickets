@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -45,6 +43,7 @@ const DealershipCard: React.FC<{
     const [isExpanded, setIsExpanded] = useState(false);
     
     const dealershipMemberOfGroups = useMemo(() => allGroups.filter(g => (dealership.groupIds || []).includes(g.id)), [allGroups, dealership.groupIds]);
+    const linkedDealershipsCount = (dealership.linkedDealershipIds || []).filter(id => id !== dealership.id).length;
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -88,9 +87,6 @@ const DealershipCard: React.FC<{
             <div className="flex justify-between items-start gap-3">
               <div className="flex-1 cursor-pointer">
                 <h3 className="text-xl font-semibold text-gray-900">{dealership.name}</h3>
-                <p className="text-md text-gray-500 mt-1">
-                  {dealership.enterprise || 'No group assigned'}
-                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={handleCopyInfo} className="p-2 text-gray-500 hover:text-blue-600 rounded-full flex-shrink-0" title="Copy Info">
@@ -111,7 +107,7 @@ const DealershipCard: React.FC<{
                 <p>Specialist: <span className="font-medium text-gray-800">{dealership.assignedSpecialist || 'N/A'}</span></p>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">
-                {(dealership.linkedDealershipIds?.length || 0) > 0 && <span title={`${dealership.linkedDealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.linkedDealershipIds?.length}</span></span>}
+                {linkedDealershipsCount > 0 && <span title={`${linkedDealershipsCount} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedDealershipsCount}</span></span>}
                 {(dealership.ticketIds?.length || 0) > 0 && <span title={`${dealership.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.ticketIds?.length}</span></span>}
                 {(dealership.projectIds?.length || 0) > 0 && <span title={`${dealership.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.projectIds?.length}</span></span>}
             </div>

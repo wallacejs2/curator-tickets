@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Project, Task, TaskPriority, TaskStatus } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
@@ -186,54 +184,57 @@ const TaskList: React.FC<TaskListProps> = ({
       </div>
 
       <div className="space-y-2">
-        {tasksToShow.length > 0 ? tasksToShow.map(task => (
-          <div key={task.id} className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-colors ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
-            <div className="flex-grow">
-              <div className="flex justify-between items-start gap-2">
-                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>
-                    {task.description}
-                </p>
-                <select
-                    value={task.status}
-                    onChange={(e) => {
-                        e.stopPropagation();
-                        onUpdateTaskStatus(task.id, e.target.value as TaskStatus);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap border-transparent focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 focus:outline-none appearance-none ${statusColorStyles[task.status]}`}
-                    aria-label={`Change status for ${task.description}`}
-                >
-                    {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-              <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                 {task.assignedUser && <span>Assigned to: <span className="font-medium">{task.assignedUser}</span></span>}
-                {task.projectName && task.projectName !== 'General' && <span>Project: <span className="font-medium">{task.projectName}</span></span>}
-                {task.ticketTitle && <span>Ticket: <span className="font-medium">{task.ticketTitle}</span></span>}
-                {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
-                {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
-                <span>Priority: <span className="font-medium">{task.priority}</span></span>
-                {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
-              </div>
-               <div className="mt-2 flex items-center gap-3 flex-wrap">
-                    {(task.linkedTaskIds?.length || 0) > 0 && <span title={`${task.linkedTaskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.linkedTaskIds?.length}</span></span>}
-                    {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
-                    {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
-                    {(task.meetingIds?.length || 0) > 0 && <span title={`${task.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.meetingIds?.length}</span></span>}
-                    {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
-                    {(task.featureIds?.length || 0) > 0 && <span title={`${task.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.featureIds?.length}</span></span>}
+        {tasksToShow.length > 0 ? tasksToShow.map(task => {
+          const linkedTasksCount = (task.linkedTaskIds || []).filter(id => id !== task.id).length;
+          return (
+            <div key={task.id} className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-colors ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'}`}>
+              <div className="flex-grow">
+                <div className="flex justify-between items-start gap-2">
+                  <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>
+                      {task.description}
+                  </p>
+                  <select
+                      value={task.status}
+                      onChange={(e) => {
+                          e.stopPropagation();
+                          onUpdateTaskStatus(task.id, e.target.value as TaskStatus);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap border-transparent focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 focus:outline-none appearance-none ${statusColorStyles[task.status]}`}
+                      aria-label={`Change status for ${task.description}`}
+                  >
+                      {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </div>
+                <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {task.assignedUser && <span>Assigned to: <span className="font-medium">{task.assignedUser}</span></span>}
+                  {task.projectName && task.projectName !== 'General' && <span>Project: <span className="font-medium">{task.projectName}</span></span>}
+                  {task.ticketTitle && <span>Ticket: <span className="font-medium">{task.ticketTitle}</span></span>}
+                  {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString()}</span></span>}
+                  {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
+                  <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                  {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
+                </div>
+                <div className="mt-2 flex items-center gap-3 flex-wrap">
+                      {linkedTasksCount > 0 && <span title={`${linkedTasksCount} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedTasksCount}</span></span>}
+                      {(task.ticketIds?.length || 0) > 0 && <span title={`${task.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.ticketIds?.length}</span></span>}
+                      {(task.projectIds?.length || 0) > 0 && <span title={`${task.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.projectIds?.length}</span></span>}
+                      {(task.meetingIds?.length || 0) > 0 && <span title={`${task.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.meetingIds?.length}</span></span>}
+                      {(task.dealershipIds?.length || 0) > 0 && <span title={`${task.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.dealershipIds?.length}</span></span>}
+                      {(task.featureIds?.length || 0) > 0 && <span title={`${task.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{task.featureIds?.length}</span></span>}
+                  </div>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
+                  <PencilIcon className="w-4 h-4" />
+                </button>
+                <button onClick={() => onDeleteTask(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
+                  <TrashIcon className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500" aria-label={`Edit task ${task.description}`}>
-                <PencilIcon className="w-4 h-4" />
-              </button>
-              <button onClick={() => onDeleteTask(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500" aria-label={`Delete task ${task.description}`}>
-                <TrashIcon className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )) : (
+          )
+        }) : (
           <div className="text-center py-16 px-6 bg-white rounded-md shadow-sm border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-800">No {taskView} tasks found</h3>
             <p className="text-gray-500 mt-2">

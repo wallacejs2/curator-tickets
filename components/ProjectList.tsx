@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -76,6 +75,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
   const totalTasks = projectTasks.length;
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const statusColor = statusColors[project.status];
+  const linkedProjectsCount = (project.linkedProjectIds || []).filter(id => id !== project.id).length;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 flex flex-col">
@@ -89,7 +89,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description || 'No description provided.'}</p>
 
         <div className="mt-3 flex items-center gap-3 flex-wrap">
-            {(project.linkedProjectIds?.length || 0) > 0 && <span title={`${project.linkedProjectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.linkedProjectIds?.length}</span></span>}
+            {linkedProjectsCount > 0 && <span title={`${linkedProjectsCount} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedProjectsCount}</span></span>}
             {(project.ticketIds?.length || 0) > 0 && <span title={`${project.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.ticketIds?.length}</span></span>}
             {(project.taskIds?.length || 0) > 0 && <span title={`${project.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.taskIds?.length}</span></span>}
             {(project.meetingIds?.length || 0) > 0 && <span title={`${project.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{project.meetingIds?.length}</span></span>}

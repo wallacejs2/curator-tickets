@@ -82,7 +82,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const linkedTickets = allTickets.filter(item => (dealership.ticketIds || []).includes(item.id));
     const linkedProjects = allProjects.filter(item => (dealership.projectIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => (dealership.meetingIds || []).includes(item.id));
-    const linkedDealerships = allDealerships.filter(item => (dealership.linkedDealershipIds || []).includes(item.id));
+    const linkedDealerships = allDealerships.filter(item => item.id !== dealership.id && (dealership.linkedDealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (dealership.featureIds || []).includes(item.id));
 
     // Enhanced Task Linking Logic: Include tasks from linked tickets and projects

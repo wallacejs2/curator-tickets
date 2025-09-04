@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform, FeatureAnnouncementFilterState } from '../types.ts';
 import { PLATFORM_OPTIONS } from '../constants.ts';
@@ -23,6 +22,8 @@ const platformColors: Record<Platform, string> = {
 };
 
 const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onClick: () => void }> = ({ feature, onClick }) => {
+    const linkedFeaturesCount = (feature.linkedFeatureIds || []).filter(id => id !== feature.id).length;
+    
     return (
         <div 
             className="bg-white rounded-md shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-400 transition-all space-y-3" 
@@ -45,7 +46,7 @@ const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onClick: () => void 
              <div className="flex items-center gap-3 text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
                  {(feature.ticketIds?.length || 0) > 0 && <span title={`${feature.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><ReceiptLongIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.ticketIds?.length}</span></span>}
                  {(feature.projectIds?.length || 0) > 0 && <span title={`${feature.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><WorkspaceIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.projectIds?.length}</span></span>}
-                 {(feature.linkedFeatureIds?.length || 0) > 0 && <span title={`${feature.linkedFeatureIds?.length} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.linkedFeatureIds?.length}</span></span>}
+                 {linkedFeaturesCount > 0 && <span title={`${linkedFeaturesCount} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-3.5 h-3.5" /><span className="font-medium">{linkedFeaturesCount}</span></span>}
              </div>
         </div>
     );

@@ -61,7 +61,7 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     const linkedTickets = allTickets.filter(item => (meeting.ticketIds || []).includes(item.id));
     const linkedProjects = allProjects.filter(item => (meeting.projectIds || []).includes(item.id));
     const linkedTasks = allTasks.filter(item => (meeting.taskIds || []).includes(item.id));
-    const linkedMeetings = allMeetings.filter(item => (meeting.linkedMeetingIds || []).includes(item.id));
+    const linkedMeetings = allMeetings.filter(item => item.id !== meeting.id && (meeting.linkedMeetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (meeting.dealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (meeting.featureIds || []).includes(item.id));
     

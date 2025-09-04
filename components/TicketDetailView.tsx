@@ -135,7 +135,7 @@ const TicketDetailView = ({
   const ticketTasks = ticket.tasks || [];
 
   // Linked items
-  const linkedTickets = allTickets.filter(item => (ticket.linkedTicketIds || []).includes(item.id));
+  const linkedTickets = allTickets.filter(item => item.id !== ticket.id && (ticket.linkedTicketIds || []).includes(item.id));
   const linkedProjects = allProjects.filter(item => (ticket.projectIds || []).includes(item.id));
   const linkedTasks = allTasks.filter(item => (ticket.taskIds || []).includes(item.id));
   const linkedMeetings = allMeetings.filter(item => (ticket.meetingIds || []).includes(item.id));

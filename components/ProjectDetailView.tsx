@@ -71,7 +71,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
     // Linked items
     const linkedTickets = allTickets.filter(item => (project.ticketIds || []).includes(item.id));
-    const linkedProjects = allProjects.filter(item => (project.linkedProjectIds || []).includes(item.id));
+    const linkedProjects = allProjects.filter(item => item.id !== project.id && (project.linkedProjectIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => (project.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (project.dealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (project.featureIds || []).includes(item.id));

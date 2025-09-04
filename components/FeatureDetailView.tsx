@@ -69,7 +69,7 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
     const linkedTasks = allTasks.filter(item => (feature.taskIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => (feature.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (feature.dealershipIds || []).includes(item.id));
-    const linkedFeatures = allFeatures.filter(item => (feature.linkedFeatureIds || []).includes(item.id));
+    const linkedFeatures = allFeatures.filter(item => item.id !== feature.id && (feature.linkedFeatureIds || []).includes(item.id));
     
     // Available items for linking (filter out completed items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(feature.ticketIds || []).includes(item.id));

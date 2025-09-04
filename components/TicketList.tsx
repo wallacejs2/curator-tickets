@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
@@ -249,6 +248,8 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                 reasonLabel = ticket.status;
                 reasonContainerStyle = "bg-[#fff494]/40 border-yellow-300 text-stone-800";
             }
+            
+            const linkedTicketsCount = (ticket.linkedTicketIds || []).filter(id => id !== ticket.id).length;
 
             return (
             <div key={ticket.id} className={`bg-white rounded-md shadow-sm border flex flex-col transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-gray-200'}`}>
@@ -282,7 +283,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                     </div>
 
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
-                        {(ticket.linkedTicketIds?.length || 0) > 0 && <span title={`${ticket.linkedTicketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.linkedTicketIds?.length}</span></span>}
+                        {linkedTicketsCount > 0 && <span title={`${linkedTicketsCount} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedTicketsCount}</span></span>}
                         {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
                         {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
                         {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
