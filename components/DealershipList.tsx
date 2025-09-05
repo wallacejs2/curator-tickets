@@ -12,11 +12,13 @@ import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
+import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 
 interface DealershipListProps {
   dealerships: Dealership[];
   dealershipGroups: DealershipGroup[];
   onDealershipClick: (dealership: Dealership) => void;
+  onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
   onUpdateGroup: (group: DealershipGroup) => void;
   onDeleteGroup: (groupId: string) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
@@ -38,8 +40,9 @@ const DealershipCard: React.FC<{
     dealership: Dealership;
     allGroups: DealershipGroup[];
     onClick: () => void;
+    onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
     showToast: (message: string, type: 'success' | 'error') => void;
-}> = ({ dealership, allGroups, onClick, showToast }) => {
+}> = ({ dealership, allGroups, onClick, onStatusChange, showToast }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
     const dealershipMemberOfGroups = useMemo(() => allGroups.filter(g => (dealership.groupIds || []).includes(g.id)), [allGroups, dealership.groupIds]);
@@ -83,34 +86,47 @@ const DealershipCard: React.FC<{
     
     return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-blue-300 transition-all duration-200 flex flex-col">
-          <div className="p-5" onClick={onClick}>
+          <div className="p-5">
             <div className="flex justify-between items-start gap-3">
-              <div className="flex-1 cursor-pointer">
+              <div className="flex-1 cursor-pointer" onClick={onClick}>
                 <h3 className="text-xl font-semibold text-gray-900">{dealership.name}</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={handleCopyInfo} className="p-2 text-gray-500 hover:text-blue-600 rounded-full flex-shrink-0" title="Copy Info">
                     <ContentCopyIcon className="w-5 h-5" />
                 </button>
-                <span className={`flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColors[dealership.status] || 'bg-gray-200 text-gray-800'}`}>
-                    {dealership.status}
-                </span>
+                <select
+                    value={dealership.status}
+                    onChange={(e) => {
+                        e.stopPropagation();
+                        onStatusChange(dealership.id, e.target.value as DealershipStatus);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap border-2 border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none appearance-none ${statusColors[dealership.status] || 'bg-gray-200 text-gray-800'}`}
+                    aria-label={`Change status for dealership ${dealership.name}`}
+                >
+                    {DEALERSHIP_STATUS_OPTIONS.map(status => (
+                        <option key={status} value={status}>{status}</option>
+                    ))}
+                </select>
               </div>
             </div>
-            {dealershipMemberOfGroups.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                    {dealershipMemberOfGroups.map(g => <span key={g.id} className="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">{g.name}</span>)}
+             <div className="cursor-pointer" onClick={onClick}>
+                {dealershipMemberOfGroups.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                        {dealershipMemberOfGroups.map(g => <span key={g.id} className="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">{g.name}</span>)}
+                    </div>
+                )}
+                <div className="mt-4 text-sm text-gray-600 space-y-1">
+                    <p>CIF: <span className="font-medium text-gray-800">{dealership.accountNumber}</span></p>
+                    <p>Specialist: <span className="font-medium text-gray-800">{dealership.assignedSpecialist || 'N/A'}</span></p>
                 </div>
-            )}
-            <div className="mt-4 text-sm text-gray-600 space-y-1">
-                <p>CIF: <span className="font-medium text-gray-800">{dealership.accountNumber}</span></p>
-                <p>Specialist: <span className="font-medium text-gray-800">{dealership.assignedSpecialist || 'N/A'}</span></p>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">
-                {linkedDealershipsCount > 0 && <span title={`${linkedDealershipsCount} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedDealershipsCount}</span></span>}
-                {(dealership.ticketIds?.length || 0) > 0 && <span title={`${dealership.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.ticketIds?.length}</span></span>}
-                {(dealership.projectIds?.length || 0) > 0 && <span title={`${dealership.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.projectIds?.length}</span></span>}
-            </div>
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 flex-wrap">
+                    {linkedDealershipsCount > 0 && <span title={`${linkedDealershipsCount} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedDealershipsCount}</span></span>}
+                    {(dealership.ticketIds?.length || 0) > 0 && <span title={`${dealership.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.ticketIds?.length}</span></span>}
+                    {(dealership.projectIds?.length || 0) > 0 && <span title={`${dealership.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{dealership.projectIds?.length}</span></span>}
+                </div>
+             </div>
           </div>
 
           <div className="border-t border-gray-200">
@@ -127,16 +143,17 @@ const DealershipCard: React.FC<{
     );
 };
 
-const DealershipGroupCard: React.FC<{
+const ContactGroupCard: React.FC<{
     group: DealershipGroup;
     allDealerships: Dealership[];
     onGroupEdit: () => void;
     onGroupDelete: () => void;
     onDealershipClick: (dealership: Dealership) => void;
+    onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
     showToast: (message: string, type: 'success' | 'error') => void;
     onManageMembers: () => void;
     allGroups: DealershipGroup[];
-}> = ({ group, allDealerships, onGroupEdit, onGroupDelete, onDealershipClick, showToast, onManageMembers, allGroups }) => {
+}> = ({ group, allDealerships, onGroupEdit, onGroupDelete, onDealershipClick, onStatusChange, showToast, onManageMembers, allGroups }) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const memberDealerships = useMemo(() => allDealerships.filter(d => group.dealershipIds.includes(d.id)), [allDealerships, group.dealershipIds]);
 
@@ -162,6 +179,7 @@ const DealershipGroupCard: React.FC<{
                             dealership={dealership}
                             allGroups={allGroups}
                             onClick={() => onDealershipClick(dealership)}
+                            onStatusChange={onStatusChange}
                             showToast={showToast}
                         />
                     )) : (
@@ -212,7 +230,7 @@ const ManageGroupMembersModal: React.FC<{
 type DealershipView = 'active' | 'cancelled';
 type DisplayMode = 'all' | 'groups';
 
-const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick }) => {
+const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick }) => {
   const [dealershipView, setDealershipView] = useState<DealershipView>('active');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('all');
   const [managingGroup, setManagingGroup] = useState<DealershipGroup | null>(null);
@@ -271,13 +289,13 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
       ) : displayMode === 'all' ? (
         <div className="space-y-4">
           {dealershipsToShow.map(dealership => (
-            <DealershipCard key={dealership.id} dealership={dealership} allGroups={dealershipGroups} onClick={() => onDealershipClick(dealership)} showToast={showToast} />
+            <DealershipCard key={dealership.id} dealership={dealership} allGroups={dealershipGroups} onClick={() => onDealershipClick(dealership)} onStatusChange={onStatusChange} showToast={showToast} />
           ))}
         </div>
       ) : (
         <div className="space-y-6">
             {dealershipGroups.map(group => (
-                <DealershipGroupCard 
+                <ContactGroupCard 
                     key={group.id}
                     group={group}
                     allDealerships={dealershipsToShow}
@@ -285,6 +303,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
                     onGroupEdit={() => onEditGroupClick(group)}
                     onGroupDelete={() => onDeleteGroup(group.id)}
                     onDealershipClick={onDealershipClick}
+                    onStatusChange={onStatusChange}
                     showToast={showToast}
                     onManageMembers={() => setManagingGroup(group)}
                 />

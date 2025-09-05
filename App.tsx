@@ -564,6 +564,13 @@ function App() {
     handleSaveDealership(updatedDealership);
   };
   
+  const handleDealershipStatusChange = (dealershipId: string, newStatus: DealershipStatus) => {
+    setDealerships(prev => prev.map(d => 
+        d.id === dealershipId ? { ...d, status: newStatus } : d
+    ));
+    showToast('Dealership status updated!', 'success');
+  };
+
   const handleDeleteDealership = (dealershipId: string) => {
     if (window.confirm('Are you sure you want to delete this dealership account?')) {
       setDealerships(prev => prev.filter(d => d.id !== dealershipId));
@@ -2136,6 +2143,7 @@ function App() {
                 <DealershipList 
                   dealerships={filteredDealerships} 
                   onDealershipClick={setSelectedDealership} 
+                  onStatusChange={handleDealershipStatusChange}
                   dealershipGroups={dealershipGroups}
                   onUpdateGroup={handleUpdateDealershipGroup}
                   onDeleteGroup={handleDeleteDealershipGroup}
