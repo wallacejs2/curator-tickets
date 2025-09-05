@@ -48,6 +48,7 @@ const EditableRichText: React.FC<EditableRichTextProps> = ({ value, onSave, isRe
                 <div
                     ref={editorRef}
                     contentEditable
+                    onBlur={handleSave}
                     className="w-full text-sm p-2 min-h-[200px] border border-blue-400 rounded-b-md focus:outline-none rich-text-content text-gray-900 bg-white"
                 />
             </div>

@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, HistoryEntry, WidgetConfig, KnowledgeArticle, EnrichedTask } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -15,7 +16,7 @@ import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
@@ -51,6 +52,10 @@ import ContactsView from './components/ContactsView.tsx';
 import ContactForm from './components/ContactForm.tsx';
 import ContactGroupForm from './components/ContactGroupForm.tsx';
 import DealershipGroupForm from './components/DealershipGroupForm.tsx';
+import { SearchIcon } from './components/icons/SearchIcon.tsx';
+import { ShareIcon } from './components/icons/ShareIcon.tsx';
+import MyDayView from './components/MyDayView.tsx';
+import KnowledgeBaseView from './components/KnowledgeBaseView.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -172,7 +177,7 @@ const ImportSection: React.FC<{
 };
 
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge';
 
 const normalizeEnumValue = <T extends string>(value: any, validEnumValues: readonly T[]): T | undefined => {
     if (typeof value !== 'string' || !value) return undefined;
@@ -223,6 +228,7 @@ function App() {
   const [contactGroups, setContactGroups] = useLocalStorage<ContactGroup[]>('contactGroups', initialContactGroups);
   const [dealershipGroups, setDealershipGroups] = useLocalStorage<DealershipGroup[]>('dealershipGroups', initialDealershipGroups);
   const [savedTicketViews, setSavedTicketViews] = useLocalStorage<SavedTicketView[]>('savedTicketViews', []);
+  const [knowledgeArticles, setKnowledgeArticles] = useLocalStorage<KnowledgeArticle[]>('knowledgeArticles', initialKnowledgeArticles);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -317,21 +323,21 @@ function App() {
   }, [currentView]);
 
 
-  const allTasks = useMemo(() => {
+  const allTasks: EnrichedTask[] = useMemo(() => {
     const projectTasks = projects.flatMap(p => 
       (p.tasks || []).map(task => ({
         ...task,
         projectId: p.id,
         projectName: p.name,
         ticketId: null,
-        ticketTitle: null,
+        ticketTitle: undefined,
       }))
     );
      const ticketTasks = tickets.flatMap(t => 
         (t.tasks || []).map(task => ({
             ...task,
             projectId: null,
-            projectName: null,
+            projectName: undefined,
             ticketId: t.id,
             ticketTitle: t.title,
         }))
@@ -341,7 +347,7 @@ function App() {
         projectId: null,
         projectName: 'General',
         ticketId: null,
-        ticketTitle: null,
+        ticketTitle: undefined,
     }));
     return [...projectTasks, ...ticketTasks, ...standaloneTasks];
   }, [projects, tickets, tasks]);
@@ -1248,6 +1254,8 @@ function App() {
           case 'meeting': return setMeetings;
           case 'dealership': return setDealerships;
           case 'feature': return setFeatures;
+          case 'contact': return setContacts;
+          case 'knowledge': return setKnowledgeArticles;
       }
     };
     
@@ -1271,7 +1279,9 @@ function App() {
             }
         } else {
             const setter = getSetterForType(type);
-            setter((prev: any[]) => prev.map(e => e.id === id ? updateFn(e) : e));
+            if(setter) {
+              setter((prev: any[]) => prev.map(e => e.id === id ? updateFn(e) : e));
+            }
         }
     };
     
@@ -1284,6 +1294,7 @@ function App() {
                 case 'meeting': return 'linkedMeetingIds';
                 case 'dealership': return 'linkedDealershipIds';
                 case 'feature': return 'linkedFeatureIds';
+                case 'knowledge': return 'linkedArticleIds';
                 default: return `${type}Ids`;
             }
         }
@@ -1835,6 +1846,8 @@ function App() {
             case 'contacts': return 'New Contact';
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
+            case 'knowledge': return '';
+            case 'my_day': return '';
             default: return 'New Item';
         }
     }
@@ -1994,6 +2007,45 @@ function App() {
         allFeatures: features,
     };
     
+    // Knowledge Base Handlers
+    const handleSaveKnowledgeArticle = (articleData: Omit<KnowledgeArticle, 'id'> | KnowledgeArticle) => {
+        if ('id' in articleData) {
+            setKnowledgeArticles(prev => prev.map(a => a.id === articleData.id ? articleData : a));
+            showToast('Article updated!', 'success');
+        } else {
+            const newArticle = { ...articleData, id: crypto.randomUUID() };
+            setKnowledgeArticles(prev => [...prev, newArticle]);
+            showToast('Article created!', 'success');
+        }
+    };
+
+    const handleDeleteKnowledgeArticle = (articleId: string) => {
+        setKnowledgeArticles(prev => prev.filter(a => a.id !== articleId));
+        showToast('Article deleted!', 'success');
+    };
+
+    const handleToggleFavoriteArticle = (articleId: string) => {
+        setKnowledgeArticles(prev => prev.map(a => a.id === articleId ? { ...a, isFavorite: !a.isFavorite } : a));
+    };
+    
+    // Data for "My Day" View
+    const myDayData = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const dueTodayTickets = tickets.filter(t => t.estimatedCompletionDate?.startsWith(today) && t.status !== Status.Completed);
+        const dueTodayTasks = allTasks.filter(t => t.dueDate?.startsWith(today) && t.status !== TaskStatus.Done);
+        const dueToday: (Ticket | EnrichedTask)[] = [...dueTodayTickets, ...dueTodayTasks];
+        
+        const myTasks = allTasks.filter(t => t.assignedUser === CURRENT_USER && t.status !== TaskStatus.Done);
+
+        const favoriteTickets = tickets.filter(t => t.isFavorite);
+        const favoriteArticles = knowledgeArticles.filter(a => a.isFavorite);
+        const myFavorites: (Ticket | KnowledgeArticle)[] = [...favoriteTickets, ...favoriteArticles];
+        
+        return { dueToday, myTasks, myFavorites };
+    }, [tickets, allTasks, knowledgeArticles]);
+
+
     return (
     <div className="flex h-screen bg-gray-100">
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
@@ -2014,7 +2066,7 @@ function App() {
           <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800" aria-label="Open sidebar">
             <MenuIcon className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView === 'dashboard' ? 'My Dashboard' : `${currentView} Dashboard`}</h1>
+          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView.replace('_', ' ')}</h1>
           {getNewButtonText() && (
             <button onClick={handleHeaderNewClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
                 <PlusIcon className="w-5 h-5" />
@@ -2030,6 +2082,17 @@ function App() {
                   upcomingDeadlines={upcomingDeadlines}
                   recentlyUpdatedItems={recentlyUpdatedItems}
                   onSwitchView={handleSwitchToDetailView}
+              />
+          )}
+           {currentView === 'my_day' && (
+              <MyDayView {...myDayData} onSwitchView={handleSwitchToDetailView} />
+          )}
+           {currentView === 'knowledge' && (
+              <KnowledgeBaseView 
+                articles={knowledgeArticles}
+                onSave={handleSaveKnowledgeArticle}
+                onDelete={handleDeleteKnowledgeArticle}
+                onToggleFavorite={handleToggleFavoriteArticle}
               />
           )}
           {currentView === 'tickets' && (

@@ -1,5 +1,5 @@
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -58,7 +58,7 @@ export const initialTickets: Ticket[] = [
     ticketThreadId: 'THREAD-DEF-456',
     submissionDate: new Date('2024-07-15T14:30:00Z').toISOString(),
     startDate: new Date('2024-07-18T09:00:00Z').toISOString(),
-    estimatedCompletionDate: new Date('2024-08-15T17:00:00Z').toISOString(),
+    estimatedCompletionDate: new Date().toISOString(), // Due today for "My Day" view
     status: Status.InReview,
     priority: Priority.P5,
     submitterName: 'Bob Williams',
@@ -82,6 +82,7 @@ export const initialTickets: Ticket[] = [
     taskIds: [],
     dealershipIds: [],
     featureIds: [],
+    isFavorite: true,
   },
   {
     id: '3',
@@ -193,7 +194,7 @@ export const initialProjects: Project[] = [
     ],
     tasks: [
       { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', creationDate: new Date('2024-07-11T10:00:00Z').toISOString(), dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
-      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date('2024-07-30T17:00:00Z').toISOString(), linkedTaskIds: ['sub-1-4'], notifyOnCompletion: 'Project Lead' },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date().toISOString(), linkedTaskIds: ['sub-1-4'], notifyOnCompletion: 'Project Lead' }, // Due today for "My Day"
       { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', creationDate: new Date('2024-07-12T10:00:00Z').toISOString(), dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
       { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', creationDate: new Date('2024-07-12T11:00:00Z').toISOString(), dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
     ],
@@ -264,7 +265,7 @@ export const initialTasks: Task[] = [
   {
     id: 'task-2',
     description: 'Plan the team offsite for Q4',
-    assignedUser: 'Admin Team',
+    assignedUser: 'John Doe',
     status: TaskStatus.ToDo,
     priority: TaskPriority.P4,
     type: 'Planning',
@@ -627,4 +628,26 @@ export const initialContactGroups: ContactGroup[] = [
 export const initialDealershipGroups: DealershipGroup[] = [
   { id: 'd-group-1', name: 'Luxury Auto Group', description: 'High-end dealerships.', dealershipIds: ['dealership-1'] },
   { id: 'd-group-2', name: 'Urban Motors Inc.', description: 'Dealerships located in metropolitan areas.', dealershipIds: ['dealership-2', 'dealership-5'] },
+];
+
+export const initialKnowledgeArticles: KnowledgeArticle[] = [
+    {
+        id: 'kb-1',
+        title: 'Onboarding Checklist for New Clients',
+        content: '<h3>Phase 1: Pre-Kickoff</h3><ul><li>Send welcome email</li><li>Schedule kickoff call</li><li>Grant system access</li></ul><h3>Phase 2: Post-Kickoff</h3><ol><li>Complete user training</li><li>Set up initial reports</li><li>Schedule first check-in</li></ol>',
+        tags: ['onboarding', 'checklist', 'client-success'],
+        category: 'Process',
+        createdDate: new Date('2024-07-20T10:00:00Z').toISOString(),
+        lastModifiedDate: new Date('2024-07-22T11:00:00Z').toISOString(),
+        isFavorite: true,
+    },
+    {
+        id: 'kb-2',
+        title: 'Common Safari CSS Bugs',
+        content: '<p>Safari can be tricky. Here are a few common issues:</p><p><strong>1. Flexbox alignment:</strong> Sometimes requires explicit `align-items` settings.</p><p><strong>2. `vh` units in modals:</strong> Can cause sizing issues due to the browser UI. Use JavaScript to calculate height instead.</p>',
+        tags: ['css', 'safari', 'frontend', 'bugs'],
+        category: 'Technical',
+        createdDate: new Date('2024-07-15T14:30:00Z').toISOString(),
+        lastModifiedDate: new Date('2024-07-15T14:30:00Z').toISOString(),
+    }
 ];

@@ -7,6 +7,7 @@ import Modal from './common/Modal.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
+import { LinkIcon } from './icons/LinkIcon.tsx';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -229,17 +230,33 @@ const TicketDetailView = ({
   };
 
   const handleTaskToggleStatus = (taskId: string) => {
-    const updatedTasks = ticketTasks.map(task =>
-        task.id === taskId
-            ? { ...task, status: task.status === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done }
-            : task
-    );
+    const toggleRecursively = (tasks: Task[]): Task[] => {
+        return tasks.map(task => {
+            if (task.id === taskId) {
+                return { ...task, status: task.status === TaskStatus.Done ? TaskStatus.ToDo : TaskStatus.Done };
+            }
+            if (task.subTasks) {
+                return { ...task, subTasks: toggleRecursively(task.subTasks) };
+            }
+            return task;
+        });
+    };
+    const updatedTasks = toggleRecursively(ticketTasks);
     onUpdate({ ...ticket, tasks: updatedTasks });
   };
 
   const handleTaskDelete = (taskId: string) => {
     if (window.confirm('Are you sure you want to delete this task?')) {
-        const updatedTasks = ticketTasks.filter(task => task.id !== taskId);
+        const deleteRecursively = (tasks: Task[]): Task[] => {
+            return tasks.filter(task => {
+                if (task.id === taskId) return false;
+                if (task.subTasks) {
+                    task.subTasks = deleteRecursively(task.subTasks);
+                }
+                return true;
+            });
+        };
+        const updatedTasks = deleteRecursively(ticketTasks);
         onUpdate({ ...ticket, tasks: updatedTasks });
     }
   };
@@ -440,6 +457,42 @@ const TicketDetailView = ({
      </>
   )};
 
+  const TaskItem: React.FC<{ task: Task, level: number }> = ({ task, level }) => (
+    <div style={{ marginLeft: `${level * 20}px` }}>
+        <div
+            key={task.id}
+            draggable={!isReadOnly}
+            onDragStart={(e) => !isReadOnly && handleDragStart(e, task.id)}
+            onDragEnter={() => !isReadOnly && handleDragEnter(task.id)}
+            onDragEnd={!isReadOnly ? handleDragEnd : undefined}
+            onDrop={!isReadOnly ? handleDrop : undefined}
+            onDragOver={(e) => e.preventDefault()}
+            className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-all duration-300 ${!isReadOnly && 'cursor-grab'} ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} ${dragging && dragItem.current === task.id ? 'opacity-50 scale-105' : ''} ${dragging && dragOverItem.current === task.id ? 'bg-blue-100' : ''}`}
+        >
+            <input type="checkbox" checked={task.status === TaskStatus.Done} onChange={() => handleTaskToggleStatus(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer" disabled={isReadOnly}/>
+            <div className="flex-grow">
+                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>{task.description}</p>
+                <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {task.assignedUser && <span>To: <span className="font-medium">{task.assignedUser}</span></span>}
+                    {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></span>}
+                    {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
+                    <span>Priority: <span className="font-medium">{task.priority}</span></span>
+                    {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
+                </div>
+            </div>
+            {!isReadOnly && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                  <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
+                  <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
+              </div>
+            )}
+        </div>
+        {task.subTasks && task.subTasks.map(subTask => (
+            <TaskItem key={subTask.id} task={subTask} level={level + 1} />
+        ))}
+    </div>
+  );
+
   return (
     <div>
       {isDeleteModalOpen && (
@@ -475,32 +528,7 @@ const TicketDetailView = ({
                 
                 <div className="space-y-2">
                     {ticketTasks.length > 0 ? ticketTasks.map(task => (
-                        <div
-                            key={task.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, task.id)}
-                            onDragEnter={() => handleDragEnter(task.id)}
-                            onDragEnd={handleDragEnd}
-                            onDrop={handleDrop}
-                            onDragOver={(e) => e.preventDefault()}
-                            className={`p-3 rounded-md shadow-sm border flex items-start gap-3 transition-all duration-300 cursor-grab ${task.status === TaskStatus.Done ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} ${dragging && dragItem.current === task.id ? 'opacity-50 scale-105' : ''} ${dragging && dragOverItem.current === task.id ? 'bg-blue-100' : ''}`}
-                        >
-                            <input type="checkbox" checked={task.status === TaskStatus.Done} onChange={() => handleTaskToggleStatus(task.id)} className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0 mt-1 cursor-pointer"/>
-                            <div className="flex-grow">
-                                <p className={`font-medium ${task.status === TaskStatus.Done ? 'text-green-900 line-through' : 'text-gray-800'}`}>{task.description}</p>
-                                <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    {task.assignedUser && <span>To: <span className="font-medium">{task.assignedUser}</span></span>}
-                                    {task.dueDate && <span>Due: <span className="font-medium">{new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></span>}
-                                    {task.type && <span>Type: <span className="font-medium">{task.type}</span></span>}
-                                    <span>Priority: <span className="font-medium">{task.priority}</span></span>
-                                    {task.notifyOnCompletion && <span>Notify: <span className="font-medium">{task.notifyOnCompletion}</span></span>}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                                <button onClick={() => onSwitchView('task', task.id)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-blue-500"><PencilIcon className="w-4 h-4" /></button>
-                                <button onClick={() => handleTaskDelete(task.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full focus:outline-none focus:ring-2 ring-offset-1 ring-red-500"><TrashIcon className="w-4 h-4" /></button>
-                            </div>
-                        </div>
+                        <TaskItem key={task.id} task={task} level={0} />
                     )) : (
                         <p className="text-sm text-gray-500 italic">No tasks have been added to this ticket yet.</p>
                     )}

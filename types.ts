@@ -1,4 +1,5 @@
 
+
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -57,6 +58,7 @@ export interface FeatureAnnouncement {
   categories?: string[];
   successMetrics?: string;
   targetAudience?: string;
+  history?: HistoryEntry[];
   // Linking fields
   ticketIds?: string[];
   projectIds?: string[];
@@ -64,6 +66,17 @@ export interface FeatureAnnouncement {
   taskIds?: string[];
   dealershipIds?: string[];
   linkedFeatureIds?: string[];
+}
+
+export interface HistoryEntry {
+  id: string;
+  author: string;
+  timestamp: string;
+  type: 'comment' | 'creation' | 'edit';
+  field?: string; // e.g., 'status', 'priority'
+  oldValue?: string;
+  newValue?: string;
+  comment?: string;
 }
 
 export interface Update {
@@ -93,6 +106,7 @@ interface BaseTicket {
   client?: string;
   location: string;
   updates?: Update[];
+  history?: HistoryEntry[];
   completionNotes?: string;
   onHoldReason?: string;
   isFavorite?: boolean;
@@ -153,6 +167,12 @@ export interface ContactFilterState {
   type: string; // 'all' or a ContactType enum value
 }
 
+export interface KnowledgeBaseFilterState {
+  searchTerm: string;
+  category: string;
+  tag: string;
+}
+
 
 // New types for Projects
 export enum ProjectStatus {
@@ -185,6 +205,10 @@ export interface Task {
   creationDate: string;
   dueDate?: string;
   notifyOnCompletion?: string;
+  history?: HistoryEntry[];
+  // Hierarchical fields
+  subTasks?: Task[];
+  dependsOn?: string[]; // Array of task IDs this task is waiting for
   // Linking fields
   linkedTaskIds?: string[];
   ticketIds?: string[];
@@ -194,6 +218,16 @@ export interface Task {
   featureIds?: string[];
 }
 
+export interface EnrichedTask extends Task {
+  projectName?: string;
+  projectId: string | null;
+  ticketId: string | null;
+  ticketTitle?: string;
+  parentTaskId?: string | null;
+  level?: number;
+}
+
+
 export interface Project {
   id: string;
   name: string;
@@ -202,6 +236,7 @@ export interface Project {
   tasks: Task[];
   creationDate: string;
   updates?: Update[];
+  history?: HistoryEntry[];
   involvedPeople?: string[];
   // Linking fields
   ticketIds: string[];
@@ -219,6 +254,7 @@ export interface Meeting {
   meetingDate: string;
   attendees: string[];
   notes: string; // Rich text content
+  history?: HistoryEntry[];
   // Linking fields
   projectIds: string[];
   ticketIds: string[];
@@ -229,7 +265,7 @@ export interface Meeting {
 }
 
 // Type for main application view
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts';
+export type View = 'dashboard' | 'my_day' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge';
 
 // New types for Dealerships
 export enum DealershipStatus {
@@ -264,6 +300,7 @@ export interface Dealership {
   pocEmail?: string;
   pocPhone?: string;
   updates?: Update[];
+  history?: HistoryEntry[];
   groupIds?: string[];
   // Linking fields
   ticketIds?: string[];
@@ -302,6 +339,7 @@ export interface Contact {
   type: ContactType;
   isFavorite?: boolean;
   groupIds?: string[];
+  history?: HistoryEntry[];
 }
 
 export interface ContactGroup {
@@ -309,4 +347,34 @@ export interface ContactGroup {
   name: string;
   description?: string;
   contactIds: string[];
+}
+
+// New for Knowledge Base
+export interface KnowledgeArticle {
+  id: string;
+  title: string;
+  content: string; // Rich text
+  tags: string[];
+  category: string;
+  createdDate: string;
+  lastModifiedDate: string;
+  isFavorite?: boolean;
+  history?: HistoryEntry[];
+
+  // Linking fields
+  linkedArticleIds?: string[];
+  ticketIds?: string[];
+  projectIds?: string[];
+  meetingIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
+}
+
+// Types for Dashboard Customization
+export type WidgetType = 'performance' | 'deadlines' | 'updates' | 'favorites' | 'my_tasks';
+
+export interface WidgetConfig {
+    id: string;
+    type: WidgetType;
 }

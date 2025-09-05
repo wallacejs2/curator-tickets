@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Project, ProjectStatus, TaskStatus, Ticket } from '../types.ts';
+import { Project, ProjectStatus, TaskStatus, Ticket, Task } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
@@ -70,9 +70,26 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
 
 const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ticket[] }> = ({ project, onClick, tickets }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const projectTasks = project.tasks || [];
-  const completedTasks = projectTasks.filter(t => t.status === TaskStatus.Done).length;
-  const totalTasks = projectTasks.length;
+  
+  const { completedTasks, totalTasks } = useMemo(() => {
+    const countTasks = (tasks: Task[]): { completed: number; total: number } => {
+        let completed = 0;
+        let total = 0;
+        for (const task of tasks) {
+            total++;
+            if (task.status === TaskStatus.Done) completed++;
+            if (task.subTasks) {
+                const subCounts = countTasks(task.subTasks);
+                completed += subCounts.completed;
+                total += subCounts.total;
+            }
+        }
+        return { completed, total };
+    };
+    const counts = countTasks(project.tasks || []);
+    return { completedTasks: counts.completed, totalTasks: counts.total };
+  }, [project.tasks]);
+
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const statusColor = statusColors[project.status];
   const linkedProjectsCount = (project.linkedProjectIds || []).filter(id => id !== project.id).length;
