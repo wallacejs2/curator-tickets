@@ -8,6 +8,7 @@ import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { LinkIcon } from './icons/LinkIcon.tsx';
+import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -82,6 +83,7 @@ interface TicketDetailViewProps {
     onEmail: () => void, 
     onDelete: (ticketId: string) => void, 
     isReadOnly?: boolean;
+    showToast: (message: string, type: 'success' | 'error') => void;
     
     // All entities for linking
     allTickets: Ticket[];
@@ -99,6 +101,7 @@ interface TicketDetailViewProps {
 
 const TicketDetailView = ({ 
     ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete, isReadOnly = false,
+    showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
  }: TicketDetailViewProps) => {
@@ -186,6 +189,20 @@ const TicketDetailView = ({
         }
         return newState;
     });
+  };
+
+  const handleCopyInfo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    let content = `Ticket: ${ticket.title}\n`;
+    content += `Status: ${ticket.status}\n`;
+    content += `Priority: ${ticket.priority}\n`;
+    if (ticket.client) content += `Client: ${ticket.client}\n`;
+    if (ticket.submitterName) content += `Submitter: ${ticket.submitterName}\n`;
+    if (ticket.pmrNumber) content += `PMR: ${ticket.pmrNumber}\n`;
+    if (ticket.fpTicketNumber) content += `FP Ticket: ${ticket.fpTicketNumber}\n`;
+    
+    navigator.clipboard.writeText(content);
+    showToast('Ticket info copied!', 'success');
   };
   
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -278,7 +295,7 @@ const TicketDetailView = ({
   };
   
   const handleDrop = () => {
-      if (!dragItem.current || !dragOverItem.current || dragItem.current === dragItem.current) {
+      if (!dragItem.current || !dragOverItem.current || dragItem.current === dragOverItem.current) {
           handleDragEnd();
           return;
       }
@@ -457,8 +474,9 @@ const TicketDetailView = ({
      </>
   )};
 
+  // ENHANCEMENT: Create a recursive TaskItem component to render nested tasks.
   const TaskItem: React.FC<{ task: Task, level: number }> = ({ task, level }) => (
-    <div style={{ marginLeft: `${level * 20}px` }}>
+    <div className="space-y-2" style={{ marginLeft: level > 0 ? '20px' : '0' }}>
         <div
             key={task.id}
             draggable={!isReadOnly}
@@ -507,6 +525,10 @@ const TicketDetailView = ({
 
       {!isEditing && !isReadOnly && (
         <div className="flex justify-end items-center gap-3 mb-6">
+            <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm">
+                <ContentCopyIcon className="w-4 h-4"/>
+                <span>Copy Info</span>
+            </button>
             <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><span>Email</span></button>
             <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
                 <DownloadIcon className="w-4 h-4"/>

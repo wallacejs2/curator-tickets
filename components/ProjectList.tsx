@@ -71,22 +71,25 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
 const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ticket[] }> = ({ project, onClick, tickets }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
+  // FIX: Make task counting recursive to accurately reflect progress of nested sub-tasks.
   const { completedTasks, totalTasks } = useMemo(() => {
-    const countTasks = (tasks: Task[]): { completed: number; total: number } => {
+    const countTasksRecursively = (tasks: Task[]): { completed: number; total: number } => {
         let completed = 0;
         let total = 0;
         for (const task of tasks) {
             total++;
-            if (task.status === TaskStatus.Done) completed++;
-            if (task.subTasks) {
-                const subCounts = countTasks(task.subTasks);
+            if (task.status === TaskStatus.Done) {
+                completed++;
+            }
+            if (task.subTasks && task.subTasks.length > 0) {
+                const subCounts = countTasksRecursively(task.subTasks);
                 completed += subCounts.completed;
                 total += subCounts.total;
             }
         }
         return { completed, total };
     };
-    const counts = countTasks(project.tasks || []);
+    const counts = countTasksRecursively(project.tasks || []);
     return { completedTasks: counts.completed, totalTasks: counts.total };
   }, [project.tasks]);
 
@@ -205,30 +208,21 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
             </button>
         </div>
         <div className="flex items-center">
-            <div className="bg-gray-200 p-0.5 rounded-md flex">
+             <div className="bg-gray-200 p-0.5 rounded-md flex">
                 <button onClick={() => setListOrGantt('list')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'list' ? 'bg-white shadow' : 'text-gray-600'}`}>List</button>
                 <button onClick={() => setListOrGantt('gantt')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'gantt' ? 'bg-white shadow' : 'text-gray-600'}`}>Gantt</button>
             </div>
         </div>
       </div>
       
-      {projectsToShow.length === 0 ? (
-        <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-800">No {projectView} projects found</h3>
-          <p className="text-gray-500 mt-2">
-            {projectView === 'active' 
-              ? "You can create a new project using the 'New Project' button."
-              : "Completed projects will appear here once they are finished."}
-          </p>
-        </div>
-      ) : listOrGantt === 'list' ? (
-        <div className="space-y-4">
+      {listOrGantt === 'list' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {projectsToShow.map(project => (
             <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
           ))}
         </div>
       ) : (
-        <GanttChartView projects={projectsToShow} onProjectClick={onProjectClick} />
+         <GanttChartView projects={projectsToShow} onProjectClick={onProjectClick} />
       )}
     </div>
   );

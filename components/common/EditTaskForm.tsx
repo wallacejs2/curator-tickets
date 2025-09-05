@@ -3,6 +3,7 @@ import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, F
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
 import { DownloadIcon } from '../icons/DownloadIcon.tsx';
+import { ContentCopyIcon } from '../icons/ContentCopyIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
@@ -11,6 +12,7 @@ interface EditTaskFormProps {
   onSave: (task: Task) => void;
   onClose: () => void;
   onExport: () => void;
+  showToast: (message: string, type: 'success' | 'error') => void;
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   // Add all other entities for linking
   allTickets: Ticket[];
@@ -28,6 +30,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     onSave, 
     onClose,
     onExport,
+    showToast,
     allTasks,
     allTickets,
     allProjects,
@@ -43,7 +46,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     // FIX: Add this useEffect to synchronize the form's internal state
     // with the task prop. This is crucial for when the parent component
     // updates the task (e.g., after a linking action) and passes down
-    // the new version.
+    // the new version, preventing a stale state bug.
     useEffect(() => {
         setEditedTask(task);
     }, [task]);
@@ -64,6 +67,18 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     const handleItemClick = (type: EntityType, id: string) => {
         onClose(); // Close the edit task modal first
         onSwitchView(type, id); // Then open the new view
+    };
+
+    const handleCopyInfo = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        let content = `Task: ${editedTask.description}\n`;
+        content += `Status: ${editedTask.status}\n`;
+        content += `Priority: ${editedTask.priority}\n`;
+        if (editedTask.assignedUser) content += `Assigned to: ${editedTask.assignedUser}\n`;
+        if (editedTask.dueDate) content += `Due Date: ${new Date(editedTask.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+        
+        navigator.clipboard.writeText(content);
+        showToast('Task info copied!', 'success');
     };
 
     const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
@@ -134,14 +149,24 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
             <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => handleItemClick('task', id)} />
 
             <div className="flex justify-between items-center gap-3 pt-4 border-t border-gray-200 mt-6">
-                <button
-                    type="button"
-                    onClick={onExport}
-                    className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                    <DownloadIcon className="w-4 h-4" />
-                    <span>Export</span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={handleCopyInfo}
+                        className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                        <ContentCopyIcon className="w-4 h-4" />
+                        <span>Copy Info</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onExport}
+                        className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    >
+                        <DownloadIcon className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+                </div>
                 <div className="flex gap-3">
                     <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
                     <button type="submit" className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">Save Changes</button>

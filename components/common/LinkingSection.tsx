@@ -6,12 +6,10 @@ import { LinkIcon } from '../icons/LinkIcon.tsx';
 // A helper to get the display name from an item which could have 'name' or 'title'
 const getItemName = (item: any): string => item.name || item.title || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
-// FIX: The `Status`, `ProjectStatus`, `TaskStatus`, and `FeatureStatus` enums share some of the same
-// string values (e.g., 'In Progress', 'Testing'), which created duplicate keys in this object literal.
-// The conflicting keys have been removed to resolve the error. Styles have been consolidated for
-// consistency across shared status names.
+// FIX: This style object had duplicate keys because different enums share string values (e.g., 'In Progress').
+// This caused key overwriting and inconsistent styling. The object is now consolidated to have one style per unique status string.
 const tagColorStyles: Record<string, string> = {
-  // Status
+  // Statuses
   [Status.NotStarted]: 'bg-gray-300 text-gray-800',
   [Status.InProgress]: 'bg-blue-300 text-blue-900',
   [Status.OnHold]: 'bg-[#ffcd85] text-stone-800',

@@ -38,6 +38,8 @@ const PublicView: React.FC<PublicViewProps> = ({ item, type, allData }) => {
       onLink: doNothing,
       onUnlink: doNothing,
       onSwitchView: doNothing,
+      // FIX: Added missing showToast prop for TicketDetailView and ProjectDetailView
+      showToast: doNothing,
     };
 
     switch (type) {

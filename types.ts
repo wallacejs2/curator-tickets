@@ -265,7 +265,7 @@ export interface Meeting {
 }
 
 // Type for main application view
-export type View = 'dashboard' | 'my_day' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge';
 
 // New types for Dealerships
 export enum DealershipStatus {

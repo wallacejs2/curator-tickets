@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { FilterState, View, DealershipFilterState } from '../types.ts';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
@@ -128,7 +129,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Navigation</h2>
             <div className="space-y-1">
               <NavItem icon={<DashboardIcon className="w-5 h-5" />} label="Dashboard" isActive={currentView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
-              <NavItem icon={<SunIcon className="w-5 h-5" />} label="My Day" isActive={currentView === 'my_day'} onClick={() => onViewChange('my_day')} />
               <NavItem icon={<BrainCircuitIcon className="w-5 h-5" />} label="Knowledge Base" isActive={currentView === 'knowledge'} onClick={() => onViewChange('knowledge')} />
               <div className="pt-2 mt-2 border-t border-gray-700/50">
                 <NavItem icon={<ReceiptLongIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />

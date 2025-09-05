@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, HistoryEntry, WidgetConfig, KnowledgeArticle, EnrichedTask } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -1847,7 +1848,6 @@ function App() {
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
             case 'knowledge': return '';
-            case 'my_day': return '';
             default: return 'New Item';
         }
     }
@@ -2028,7 +2028,7 @@ function App() {
         setKnowledgeArticles(prev => prev.map(a => a.id === articleId ? { ...a, isFavorite: !a.isFavorite } : a));
     };
     
-    // Data for "My Day" View
+    // Data for "My Day" View, now passed to Dashboard
     const myDayData = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
         
@@ -2036,13 +2036,11 @@ function App() {
         const dueTodayTasks = allTasks.filter(t => t.dueDate?.startsWith(today) && t.status !== TaskStatus.Done);
         const dueToday: (Ticket | EnrichedTask)[] = [...dueTodayTickets, ...dueTodayTasks];
         
-        const myTasks = allTasks.filter(t => t.assignedUser === CURRENT_USER && t.status !== TaskStatus.Done);
-
         const favoriteTickets = tickets.filter(t => t.isFavorite);
         const favoriteArticles = knowledgeArticles.filter(a => a.isFavorite);
         const myFavorites: (Ticket | KnowledgeArticle)[] = [...favoriteTickets, ...favoriteArticles];
         
-        return { dueToday, myTasks, myFavorites };
+        return { dueToday, myFavorites };
     }, [tickets, allTasks, knowledgeArticles]);
 
 
@@ -2079,13 +2077,15 @@ function App() {
           {currentView === 'dashboard' && (
               <DashboardView
                   performanceInsights={performanceInsights}
+                  projectInsights={projectInsights}
+                  dealershipInsights={dealershipInsights}
+                  taskInsights={taskInsights}
                   upcomingDeadlines={upcomingDeadlines}
                   recentlyUpdatedItems={recentlyUpdatedItems}
+                  dueToday={myDayData.dueToday}
+                  myFavorites={myDayData.myFavorites}
                   onSwitchView={handleSwitchToDetailView}
               />
-          )}
-           {currentView === 'my_day' && (
-              <MyDayView {...myDayData} onSwitchView={handleSwitchToDetailView} />
           )}
            {currentView === 'knowledge' && (
               <KnowledgeBaseView 
@@ -2178,6 +2178,7 @@ function App() {
                 setIsGroupFormOpen={setIsGroupFormOpen}
                 editingGroup={editingGroup}
                 setEditingGroup={setEditingGroup}
+                // FIX: Corrected typo from onSaveGroup to handleSaveGroup
                 onSaveGroup={handleSaveGroup}
             />
           )}
@@ -2237,6 +2238,7 @@ function App() {
                 onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
                 onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
                 onSwitchView={handleSwitchFromTaskModal}
+                showToast={showToast}
             />
         </Modal>
       )}
@@ -2296,6 +2298,7 @@ function App() {
             onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
+            showToast={showToast}
           />
         )}
         {selectedProject && <ProjectDetailView 
@@ -2309,7 +2312,9 @@ function App() {
             {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
-            onSwitchView={handleSwitchToDetailView} />}
+            onSwitchView={handleSwitchToDetailView} 
+            showToast={showToast}
+            />}
         {selectedDealership && <DealershipDetailView 
             dealership={selectedDealership} 
             onUpdate={handleUpdateDealership} 

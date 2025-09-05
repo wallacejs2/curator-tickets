@@ -12,7 +12,6 @@ type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'fe
 
 interface MyDayViewProps {
     dueToday: (Ticket | EnrichedTask)[];
-    myTasks: EnrichedTask[];
     myFavorites: (Ticket | KnowledgeArticle)[];
     onSwitchView: (type: EntityType, id: string) => void;
 }
@@ -29,7 +28,7 @@ const Widget: React.FC<{ icon: React.ReactNode; title: string; count: number; ch
     </div>
 );
 
-const MyDayView: React.FC<MyDayViewProps> = ({ dueToday, myTasks, myFavorites, onSwitchView }) => {
+const MyDayView: React.FC<MyDayViewProps> = ({ dueToday, myFavorites, onSwitchView }) => {
 
     const daysUntil = (dateString: string) => {
         const diff = new Date(dateString).setHours(0,0,0,0) - new Date().setHours(0,0,0,0);
@@ -40,7 +39,7 @@ const MyDayView: React.FC<MyDayViewProps> = ({ dueToday, myTasks, myFavorites, o
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Widget icon={<ClockIcon className="w-6 h-6" />} title="Due Today" count={dueToday.length}>
                 {dueToday.map(item => (
                     <div key={`${'title' in item ? 'ticket' : 'task'}-${item.id}`} onClick={() => onSwitchView('title' in item ? 'ticket' : 'task', item.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200">
@@ -51,15 +50,6 @@ const MyDayView: React.FC<MyDayViewProps> = ({ dueToday, myTasks, myFavorites, o
                             </div>
                             <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">{daysUntil('title' in item ? item.estimatedCompletionDate! : item.dueDate!)}</span>
                         </div>
-                    </div>
-                ))}
-            </Widget>
-
-            <Widget icon={<UserIcon className="w-6 h-6" />} title="My Tasks" count={myTasks.length}>
-                {myTasks.map(item => (
-                    <div key={`task-${item.id}`} onClick={() => onSwitchView('task', item.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200">
-                        <p className="font-medium text-sm text-gray-800">{item.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">In: <span className="font-medium">{item.projectName || item.ticketTitle || 'General'}</span></p>
                     </div>
                 ))}
             </Widget>
