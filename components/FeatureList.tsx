@@ -26,28 +26,57 @@ const FeatureCard: React.FC<{ feature: FeatureAnnouncement, onClick: () => void 
     
     return (
         <div 
-            className="bg-white rounded-md shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-400 transition-all space-y-3" 
+            className="bg-white rounded-md shadow-sm border border-gray-200 p-4 cursor-pointer hover:shadow-md hover:border-blue-400 transition-all" 
             onClick={onClick}
         >
+            {/* Header: Title and Platform */}
             <div className="flex justify-between items-start gap-3">
                 <p className="font-semibold text-gray-800 flex-1">{feature.title}</p>
                 <span className={`px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap ${platformColors[feature.platform]}`}>
                     {feature.platform}
                 </span>
             </div>
-             <p className="text-xs text-gray-500">Launch: {new Date(feature.launchDate).toLocaleDateString()}</p>
-            <div className="flex flex-wrap gap-1.5">
-                {(feature.categories || []).slice(0, 3).map(cat => (
-                    <span key={cat} className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">
-                        {cat}
-                    </span>
-                ))}
+
+            {/* Details: Location and Launch Date */}
+            <div className="mt-3 space-y-1 text-sm text-gray-600">
+                <p><span className="font-semibold text-gray-500">Location:</span> {feature.location}</p>
+                <p><span className="font-semibold text-gray-500">Launch Date:</span> {new Date(feature.launchDate).toLocaleDateString()}</p>
             </div>
-             <div className="flex items-center gap-3 text-xs text-gray-500 pt-3 border-t border-gray-100 mt-3">
-                 {(feature.ticketIds?.length || 0) > 0 && <span title={`${feature.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><ReceiptLongIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.ticketIds?.length}</span></span>}
-                 {(feature.projectIds?.length || 0) > 0 && <span title={`${feature.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><WorkspaceIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.projectIds?.length}</span></span>}
-                 {linkedFeaturesCount > 0 && <span title={`${linkedFeaturesCount} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-3.5 h-3.5" /><span className="font-medium">{linkedFeaturesCount}</span></span>}
-             </div>
+
+            {/* Categories */}
+            {(feature.categories && feature.categories.length > 0) && (
+              <div className="mt-3">
+                  <div className="flex flex-wrap gap-1.5">
+                      {feature.categories.slice(0, 4).map(cat => (
+                          <span key={cat} className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">
+                              {cat}
+                          </span>
+                      ))}
+                  </div>
+              </div>
+            )}
+            
+            {/* Footer with support URL and linked items */}
+            <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-100">
+                <div className="text-xs text-gray-500">
+                    {feature.supportUrl && (
+                        <a
+                            href={feature.supportUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-semibold text-blue-600 hover:underline"
+                        >
+                            View Support Material
+                        </a>
+                    )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                    {(feature.ticketIds?.length || 0) > 0 && <span title={`${feature.ticketIds?.length} linked ticket(s)`} className="flex items-center gap-1"><ReceiptLongIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.ticketIds?.length}</span></span>}
+                    {(feature.projectIds?.length || 0) > 0 && <span title={`${feature.projectIds?.length} linked project(s)`} className="flex items-center gap-1"><WorkspaceIcon className="w-3.5 h-3.5" /><span className="font-medium">{feature.projectIds?.length}</span></span>}
+                    {linkedFeaturesCount > 0 && <span title={`${linkedFeaturesCount} linked feature(s)`} className="flex items-center gap-1"><SparklesIcon className="w-3.5 h-3.5" /><span className="font-medium">{linkedFeaturesCount}</span></span>}
+                </div>
+            </div>
         </div>
     );
 };

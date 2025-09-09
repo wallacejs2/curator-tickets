@@ -58,6 +58,7 @@ export interface FeatureAnnouncement {
   categories?: string[];
   successMetrics?: string;
   targetAudience?: string;
+  supportUrl?: string;
   history?: HistoryEntry[];
   // Linking fields
   ticketIds?: string[];

@@ -24,6 +24,7 @@ const getInitialState = (): Omit<FeatureAnnouncement, 'id'> & { categoriesString
     categoriesString: '',
     successMetrics: '',
     targetAudience: '',
+    supportUrl: '',
 });
 
 const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureToEdit, onClose }) => {
@@ -111,6 +112,10 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
       <div>
         <label className={labelClasses}>Categories (comma-separated)</label>
         <input type="text" name="categoriesString" value={formData.categoriesString || ''} onChange={handleChange} className={formElementClasses} placeholder="e.g., UI/UX, Reporting, API" />
+      </div>
+      <div>
+        <label className={labelClasses}>Support Material URL (Optional)</label>
+        <input type="url" name="supportUrl" value={formData.supportUrl || ''} onChange={handleChange} className={formElementClasses} placeholder="https://example.com/support/feature-name" />
       </div>
        <div>
         <label className={labelClasses}>Target Audience</label>

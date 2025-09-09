@@ -121,6 +121,20 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
                     <DetailField label="Location" value={feature.location} />
                     <DetailField label="Version" value={feature.version} />
                     <DetailField label="Launch Date" value={new Date(feature.launchDate).toLocaleDateString(undefined, { timeZone: 'UTC' })} />
+                     <div className="sm:col-span-2">
+                        <DetailField label="Support Material" value={
+                            feature.supportUrl && (
+                                <a
+                                    href={feature.supportUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-semibold text-blue-600 hover:underline"
+                                >
+                                    View Support Material
+                                </a>
+                            )
+                        } />
+                    </div>
                 </div>
                  <div className="border-t border-gray-200 pt-6">
                     <DetailField label="Description" value={feature.description} />
