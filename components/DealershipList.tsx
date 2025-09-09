@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -50,17 +51,67 @@ const DealershipCard: React.FC<{
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const infoString = [
-            `Account Name: ${dealership.name}`,
-            `Account Number: ${dealership.accountNumber}`,
-            dealership.enterprise ? `Enterprise (Group): ${dealership.enterprise}` : null,
-            dealership.storeNumber ? `Store Number: ${dealership.storeNumber}` : null,
-            dealership.branchNumber ? `Branch Number: ${dealership.branchNumber}` : null,
-            dealership.eraSystemId ? `ERA System ID: ${dealership.eraSystemId}` : null,
-            dealership.ppSysId ? `PPSYS ID: ${dealership.ppSysId}` : null
-        ].filter(Boolean).join('\n');
+        let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
+        content += `==================================================\n\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
 
-        navigator.clipboard.writeText(infoString);
+        appendSection('Account Information');
+        appendField('ID', dealership.id);
+        appendField('Account Number (CIF)', dealership.accountNumber);
+        appendField('Status', dealership.status);
+        appendField('Enterprise (Group)', dealership.enterprise);
+        appendField('Address', dealership.address);
+    
+        appendSection('Key Contacts');
+        appendField('Assigned Specialist', dealership.assignedSpecialist);
+        appendField('Sales', dealership.sales);
+        appendField('POC Name', dealership.pocName);
+        appendField('POC Email', dealership.pocEmail);
+        appendField('POC Phone', dealership.pocPhone);
+    
+        appendSection('Order & Dates');
+        appendField('Order Number', dealership.orderNumber);
+        appendDateField('Order Received Date', dealership.orderReceivedDate);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        appendDateField('Term Date', dealership.termDate);
+        
+        appendSection('Identifiers');
+        appendField('Store Number', dealership.storeNumber);
+        appendField('Branch Number', dealership.branchNumber);
+        appendField('ERA System ID', dealership.eraSystemId);
+        appendField('PPSysID', dealership.ppSysId);
+        appendField('BU-ID', dealership.buId);
+    
+        if (dealership.updates && dealership.updates.length > 0) {
+            appendSection(`Updates (${dealership.updates.length})`);
+            [...dealership.updates].reverse().forEach(update => {
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
+                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+            });
+        }
+        
+        appendSection('Linked Item IDs');
+        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
+        appendField('Project IDs', (dealership.projectIds || []).join(', '));
+        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
+        appendField('Task IDs', (dealership.taskIds || []).join(', '));
+        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
+        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
+    
+        navigator.clipboard.writeText(content);
         showToast('Dealership info copied!', 'success');
     };
 

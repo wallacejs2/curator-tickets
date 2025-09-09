@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Status, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus } from '../../types.ts';
 import LinkingModal from './LinkingModal.tsx';
@@ -6,10 +7,8 @@ import { LinkIcon } from '../icons/LinkIcon.tsx';
 // A helper to get the display name from an item which could have 'name' or 'title'
 const getItemName = (item: any): string => item.name || item.title || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
-// FIX: This style object had duplicate keys because different enums share string values (e.g., 'In Progress').
-// This caused key overwriting and inconsistent styling. The object is now consolidated to have one style per unique status string.
 const tagColorStyles: Record<string, string> = {
-  // Statuses
+  // Statuses from types.ts Status enum
   [Status.NotStarted]: 'bg-gray-300 text-gray-800',
   [Status.InProgress]: 'bg-blue-300 text-blue-900',
   [Status.OnHold]: 'bg-[#ffcd85] text-stone-800',
@@ -18,10 +17,10 @@ const tagColorStyles: Record<string, string> = {
   [Status.PmdReview]: 'bg-[#fff494] text-stone-800',
   [Status.Testing]: 'bg-orange-300 text-orange-900',
   [Status.Completed]: 'bg-[#44C064] text-white',
-  // TaskStatus
+  // Statuses from types.ts TaskStatus enum
   [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
-  // DealershipStatus
+  // Statuses from types.ts DealershipStatus enum
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
   [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
@@ -29,7 +28,7 @@ const tagColorStyles: Record<string, string> = {
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
   [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
-  // FeatureStatus
+  // Statuses from types.ts FeatureStatus enum
   [FeatureStatus.Backlog]: 'bg-gray-200 text-gray-800',
   [FeatureStatus.InDiscovery]: 'bg-purple-200 text-purple-800',
   [FeatureStatus.InDevelopment]: 'bg-blue-200 text-blue-800',

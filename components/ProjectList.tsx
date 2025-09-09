@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket, Task } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -26,7 +27,7 @@ const statusColors: Record<ProjectStatus, { bg: string; text: string; progress: 
 const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> = ({ project, tickets }) => {
     const linkedTickets = tickets.filter(t => (t.projectIds || []).includes(project.id));
     const mostRecentUpdate = project.updates && project.updates.length > 0
-        ? [...project.updates].pop()
+        ? [...project.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
         : null;
     const projectTasks = project.tasks || [];
 
@@ -71,7 +72,6 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
 const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ticket[] }> = ({ project, onClick, tickets }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   
-  // FIX: Make task counting recursive to accurately reflect progress of nested sub-tasks.
   const { completedTasks, totalTasks } = useMemo(() => {
     const countTasksRecursively = (tasks: Task[]): { completed: number; total: number } => {
         let completed = 0;

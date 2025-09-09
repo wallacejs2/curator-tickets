@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
@@ -122,7 +123,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const handleUpdateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (newUpdate.trim() && authorName.trim() && updateDate) {
-          onAddUpdate(project.id, newUpdate.trim(), authorName.trim(), updateDate);
+          const commentAsHtml = newUpdate.replace(/\n/g, '<br />');
+          onAddUpdate(project.id, commentAsHtml, authorName.trim(), updateDate);
           setNewUpdate('');
           setAuthorName('');
         }
@@ -171,12 +173,59 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
-        let content = `Project: ${project.name}\n`;
-        content += `Status: ${project.status}\n`;
-        content += `Description: ${project.description}\n`;
-        if (project.involvedPeople && project.involvedPeople.length > 0) {
-            content += `Involved: ${project.involvedPeople.join(', ')}\n`;
+        let content = `PROJECT DETAILS: ${project.name}\n`;
+        content += `==================================================\n\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        const appendTextArea = (label: string, value: any) => {
+             if (value) {
+                content += `${label}:\n${value}\n\n`;
+            }
+        };
+
+        appendField('ID', project.id);
+        appendField('Status', project.status);
+        appendDateField('Creation Date', project.creationDate);
+        appendTextArea('Description', project.description);
+        appendField('Involved People', (project.involvedPeople || []).join(', '));
+
+        if (project.tasks && project.tasks.length > 0) {
+            appendSection(`Tasks (${project.tasks.length})`);
+            project.tasks.forEach(task => {
+                content += `- ${task.description}\n`;
+                content += `  (Assigned: ${task.assignedUser}, Status: ${task.status}, Priority: ${task.priority}, Type: ${task.type})\n`;
+                if(task.dueDate) content += `  (Due: ${new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })})\n`;
+            });
+            content += '\n';
         }
+
+        if (project.updates && project.updates.length > 0) {
+            appendSection(`Updates (${project.updates.length})`);
+            [...project.updates].reverse().forEach(update => {
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
+                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+            });
+        }
+
+        appendSection('Linked Item IDs');
+        appendField('Ticket IDs', (project.ticketIds || []).join(', '));
+        appendField('Linked Project IDs', (project.linkedProjectIds || []).join(', '));
+        appendField('Meeting IDs', (project.meetingIds || []).join(', '));
+        appendField('Task IDs', (project.taskIds || []).join(', '));
+        appendField('Dealership IDs', (project.dealershipIds || []).join(', '));
+        appendField('Feature IDs', (project.featureIds || []).join(', '));
         
         navigator.clipboard.writeText(content);
         showToast('Project info copied!', 'success');
@@ -401,7 +450,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                             <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
                                             <button
                                                 onClick={() => {
-                                                onEditUpdate({ ...update, comment: editedComment.trim() });
+                                                const commentAsHtml = editedComment.replace(/\n/g, '<br />');
+                                                onEditUpdate({ ...update, comment: commentAsHtml });
                                                 setEditingUpdateId(null);
                                                 }}
                                                 className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
@@ -422,7 +472,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                                 <button
                                                     onClick={() => {
                                                         setEditingUpdateId(update.id);
-                                                        setEditedComment(update.comment);
+                                                        const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
+                                                        setEditedComment(commentForEditing);
                                                     }}
                                                     className="p-1 text-gray-400 hover:text-blue-600"
                                                     aria-label="Edit update"
@@ -442,7 +493,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">{update.comment}</div>
+                                        <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
                                     </div>
                                 )}
                             </div>

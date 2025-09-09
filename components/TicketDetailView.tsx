@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from 'react';
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, TaskPriority } from '../types.ts';
@@ -193,13 +195,93 @@ const TicketDetailView = ({
 
   const handleCopyInfo = (e: React.MouseEvent) => {
     e.stopPropagation();
-    let content = `Ticket: ${ticket.title}\n`;
-    content += `Status: ${ticket.status}\n`;
-    content += `Priority: ${ticket.priority}\n`;
-    if (ticket.client) content += `Client: ${ticket.client}\n`;
-    if (ticket.submitterName) content += `Submitter: ${ticket.submitterName}\n`;
-    if (ticket.pmrNumber) content += `PMR: ${ticket.pmrNumber}\n`;
-    if (ticket.fpTicketNumber) content += `FP Ticket: ${ticket.fpTicketNumber}\n`;
+    let content = `TICKET DETAILS: ${ticket.title}\n`;
+    content += `==================================================\n\n`;
+    
+    const appendField = (label: string, value: any) => {
+        if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+            content += `${label}: ${value}\n`;
+        }
+    };
+    const appendDateField = (label: string, value: any) => {
+        if (value) {
+            content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+        }
+    };
+    const appendSection = (title: string) => {
+        content += `\n--- ${title.toUpperCase()} ---\n`;
+    };
+    const appendTextArea = (label: string, value: any) => {
+         if (value) {
+            content += `${label}:\n${value}\n\n`;
+        }
+    };
+
+    appendField('ID', ticket.id);
+    appendField('Type', ticket.type);
+    appendField('Status', ticket.status);
+    appendField('Priority', ticket.priority);
+
+    appendSection('Core Information');
+    appendField('Product Area', ticket.productArea);
+    appendField('Platform', ticket.platform);
+    appendField('Location', ticket.location);
+    appendTextArea('On Hold Reason', ticket.onHoldReason);
+    appendTextArea('Completion Notes', ticket.completionNotes);
+    
+    appendSection('Tracking & Ownership');
+    appendField('Submitter', ticket.submitterName);
+    appendField('Client', ticket.client);
+    appendField('PMR Number', ticket.pmrNumber);
+    appendField('PMR Link', ticket.pmrLink);
+    appendField('FP Ticket Number', ticket.fpTicketNumber);
+    appendField('Ticket Thread ID', ticket.ticketThreadId);
+
+    appendSection('Dates');
+    appendDateField('Submission Date', ticket.submissionDate);
+    appendDateField('Start Date', ticket.startDate);
+    appendDateField('Est. Completion Date', ticket.estimatedCompletionDate);
+    appendDateField('Completion Date', ticket.completionDate);
+
+    if (ticket.type === TicketType.Issue) {
+        const issue = ticket as IssueTicket;
+        appendSection('Issue Details');
+        appendTextArea('Problem', issue.problem);
+        appendTextArea('Duplication Steps', issue.duplicationSteps);
+        appendTextArea('Workaround', issue.workaround);
+        appendTextArea('Frequency', issue.frequency);
+    } else {
+        const feature = ticket as FeatureRequestTicket;
+        appendSection('Feature Request Details');
+        appendTextArea('Improvement', feature.improvement);
+        appendTextArea('Current Functionality', feature.currentFunctionality);
+        appendTextArea('Suggested Solution', feature.suggestedSolution);
+        appendTextArea('Benefits', feature.benefits);
+    }
+    
+    if (ticket.tasks && ticket.tasks.length > 0) {
+        appendSection(`Tasks (${ticket.tasks.length})`);
+        ticket.tasks.forEach(task => {
+            content += `- ${task.description} (Assigned: ${task.assignedUser}, Status: ${task.status}, Priority: ${task.priority})\n`;
+        });
+        content += '\n';
+    }
+
+    if (ticket.updates && ticket.updates.length > 0) {
+        appendSection(`Updates (${ticket.updates.length})`);
+        [...ticket.updates].reverse().forEach(update => {
+            const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
+            content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+        });
+    }
+
+    appendSection('Linked Item IDs');
+    appendField('Project IDs', (ticket.projectIds || []).join(', '));
+    appendField('Linked Ticket IDs', (ticket.linkedTicketIds || []).join(', '));
+    appendField('Meeting IDs', (ticket.meetingIds || []).join(', '));
+    appendField('Task IDs', (ticket.taskIds || []).join(', '));
+    appendField('Dealership IDs', (ticket.dealershipIds || []).join(', '));
+    appendField('Feature IDs', (ticket.featureIds || []).join(', '));
     
     navigator.clipboard.writeText(content);
     showToast('Ticket info copied!', 'success');
@@ -579,6 +661,7 @@ const TicketDetailView = ({
             <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
             <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
             <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
+            {/* FIX: Corrected a typo in the `LinkingSection` for Dealerships. The `availableItems` prop was incorrectly passed `availableItems` instead of the correct `availableDealerships` variable, causing a reference error. */}
             <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
             <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
 

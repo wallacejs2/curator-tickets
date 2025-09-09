@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
@@ -43,10 +44,6 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
 }) => {
     const [editedTask, setEditedTask] = useState(task);
 
-    // FIX: Add this useEffect to synchronize the form's internal state
-    // with the task prop. This is crucial for when the parent component
-    // updates the task (e.g., after a linking action) and passes down
-    // the new version, preventing a stale state bug.
     useEffect(() => {
         setEditedTask(task);
     }, [task]);
@@ -71,11 +68,45 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
-        let content = `Task: ${editedTask.description}\n`;
-        content += `Status: ${editedTask.status}\n`;
-        content += `Priority: ${editedTask.priority}\n`;
-        if (editedTask.assignedUser) content += `Assigned to: ${editedTask.assignedUser}\n`;
-        if (editedTask.dueDate) content += `Due Date: ${new Date(editedTask.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+        let content = `TASK DETAILS: ${editedTask.description.substring(0, 50)}...\n`;
+        content += `==================================================\n\n`;
+    
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        const appendTextArea = (label: string, value: any) => {
+            if (value) {
+               content += `${label}:\n${value}\n\n`;
+           }
+       };
+    
+        appendField('ID', editedTask.id);
+        appendTextArea('Description', editedTask.description);
+        appendField('Status', editedTask.status);
+        appendField('Priority', editedTask.priority);
+        appendField('Assigned to', editedTask.assignedUser);
+        appendField('Type', editedTask.type);
+        appendDateField('Creation Date', editedTask.creationDate);
+        appendDateField('Due Date', editedTask.dueDate);
+        appendField('Notify on Completion', editedTask.notifyOnCompletion);
+    
+        appendSection('Linked Item IDs');
+        appendField('Linked Task IDs', (editedTask.linkedTaskIds || []).join(', '));
+        appendField('Ticket IDs', (editedTask.ticketIds || []).join(', '));
+        appendField('Project IDs', (editedTask.projectIds || []).join(', '));
+        appendField('Meeting IDs', (editedTask.meetingIds || []).join(', '));
+        appendField('Dealership IDs', (editedTask.dealershipIds || []).join(', '));
+        appendField('Feature IDs', (editedTask.featureIds || []).join(', '));
         
         navigator.clipboard.writeText(content);
         showToast('Task info copied!', 'success');
