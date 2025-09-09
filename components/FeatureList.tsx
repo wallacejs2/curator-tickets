@@ -104,7 +104,7 @@ const FeatureList: React.FC<FeatureListProps> = ({ features, onFeatureClick, fil
         }
     }
     
-    const sortByLaunchDate = (a: FeatureAnnouncement, b: FeatureAnnouncement) => new Date(a.launchDate).getTime() - new Date(b.launchDate).getTime();
+    const sortByLaunchDate = (a: FeatureAnnouncement, b: FeatureAnnouncement) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime();
     active.sort(sortByLaunchDate);
     planned.sort(sortByLaunchDate);
     launched.sort(sortByLaunchDate);
