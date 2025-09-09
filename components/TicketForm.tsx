@@ -99,6 +99,9 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
     });
   };
 
+  const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
+  const onHoldReasonStatuses = [Status.OnHold, Status.Testing, ...reviewStatuses];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -112,8 +115,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
     };
     
     // Clean up reason fields if status doesn't require them
-    const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
-    if (dataToSubmit.status !== Status.OnHold && !reviewStatuses.includes(dataToSubmit.status)) {
+    if (!onHoldReasonStatuses.includes(dataToSubmit.status)) {
         delete dataToSubmit.onHoldReason;
     }
     if (dataToSubmit.status !== Status.Completed) {
@@ -165,8 +167,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
     </>
   );
 
-  const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
-  const statusesWithReason = [Status.OnHold, Status.Completed, ...reviewStatuses];
+  const statusesWithReason = [...onHoldReasonStatuses, Status.Completed];
   const currentStatusHasReason = statusesWithReason.includes(formData.status);
   const reasonField = formData.status === Status.Completed ? 'completionNotes' : 'onHoldReason';
   const reasonValue = formData.status === Status.Completed ? formData.completionNotes : formData.onHoldReason;

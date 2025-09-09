@@ -243,10 +243,14 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                 reasonText = ticket.onHoldReason;
                 reasonLabel = "On Hold";
                 reasonContainerStyle = "bg-[#ffcd85]/20 border-[#ffcd85] text-stone-800";
-            } else if (reviewStatuses.includes(ticket.status)) {
+            } else if ([...reviewStatuses, Status.Testing].includes(ticket.status)) {
                 reasonText = ticket.onHoldReason;
                 reasonLabel = ticket.status;
-                reasonContainerStyle = "bg-[#fff494]/40 border-yellow-300 text-stone-800";
+                if(ticket.status === Status.Testing) {
+                    reasonContainerStyle = "bg-orange-50 border-orange-200 text-orange-800";
+                } else {
+                    reasonContainerStyle = "bg-[#fff494]/40 border-yellow-300 text-stone-800";
+                }
             }
             
             const linkedTicketsCount = (ticket.linkedTicketIds || []).filter(id => id !== ticket.id).length;

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, TaskPriority } from '../types.ts';
@@ -171,7 +170,7 @@ const TicketDetailView = ({
       const ticketToSave: Ticket = { ...editableTicket };
 
       const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
-      if (ticketToSave.status !== Status.OnHold && !reviewStatuses.includes(ticketToSave.status)) {
+      if (ticketToSave.status !== Status.OnHold && ![...reviewStatuses, Status.Testing].includes(ticketToSave.status)) {
           delete ticketToSave.onHoldReason;
       }
       if (ticketToSave.status !== Status.Completed) {
@@ -407,7 +406,7 @@ const TicketDetailView = ({
         reasonText = ticket.onHoldReason;
         reasonLabel = "Reason for 'On Hold'";
         reasonContainerStyle = "bg-yellow-50 border-yellow-200 text-yellow-800";
-    } else if (reviewStatuses.includes(ticket.status)) {
+    } else if ([...reviewStatuses, Status.Testing].includes(ticket.status)) {
         reasonText = ticket.onHoldReason;
         reasonLabel = `Reason for '${ticket.status}'`;
         reasonContainerStyle = "bg-yellow-50 border-yellow-200 text-yellow-800";
@@ -475,7 +474,7 @@ const TicketDetailView = ({
 
   const renderEditMode = () => {
     const reviewStatuses = [Status.InReview, Status.DevReview, Status.PmdReview];
-    const statusesWithReason = [Status.OnHold, Status.Completed, ...reviewStatuses];
+    const statusesWithReason = [Status.OnHold, Status.Completed, Status.Testing, ...reviewStatuses];
     const currentStatusHasReason = statusesWithReason.includes(editableTicket.status);
     const reasonField = editableTicket.status === Status.Completed ? 'completionNotes' : 'onHoldReason';
     const reasonValue = editableTicket.status === Status.Completed ? (editableTicket as FeatureRequestTicket).completionNotes : editableTicket.onHoldReason;
