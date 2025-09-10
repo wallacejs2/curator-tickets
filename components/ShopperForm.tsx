@@ -2,14 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Shopper, Dealership } from '../types.ts';
 
-type FormSubmitCallback = (shopper: Omit<Shopper, 'id'>) => void;
-type FormUpdateCallback = (shopper: Shopper) => void;
+type FormSaveCallback = (shopper: Omit<Shopper, 'id'> | Shopper) => void;
 
 interface ShopperFormProps {
-  onSubmit: FormSubmitCallback;
-  onUpdate: FormUpdateCallback;
-  shopperToEdit?: Shopper | null;
+  onSave: FormSaveCallback;
   onClose: () => void;
+  shopperToEdit?: Shopper | null;
   allDealerships: Dealership[];
 }
 
@@ -38,8 +36,8 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
   </fieldset>
 );
 
-const ShopperForm: React.FC<ShopperFormProps> = ({ onSubmit, onUpdate, shopperToEdit, onClose, allDealerships }) => {
-  const [formData, setFormData] = useState(getInitialState());
+const ShopperForm: React.FC<ShopperFormProps> = ({ onSave, onClose, shopperToEdit, allDealerships }) => {
+  const [formData, setFormData] = useState<Omit<Shopper, 'id'> | Shopper>(getInitialState());
   const isEditing = !!shopperToEdit;
 
   useEffect(() => {
@@ -57,12 +55,7 @@ const ShopperForm: React.FC<ShopperFormProps> = ({ onSubmit, onUpdate, shopperTo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isEditing) {
-      onUpdate({ id: shopperToEdit!.id, ...formData });
-    } else {
-      onSubmit(formData);
-    }
-    onClose();
+    onSave(formData);
   };
 
   const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";

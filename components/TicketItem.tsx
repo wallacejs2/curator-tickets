@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ticket, TicketType, Status, Priority } from '../types.ts';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket } from '../types.ts';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 
@@ -93,20 +93,22 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onEdit }) => {
                      <DetailField label="Location" value={ticket.location} />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                    {/* FIX: Cast ticket to IssueTicket to access specific properties */}
                     {ticket.type === TicketType.Issue && (
                     <>
-                        <DetailField label="Problem" value={ticket.problem} />
-                        <DetailField label="Duplication Steps" value={ticket.duplicationSteps} />
-                        <DetailField label="Workaround" value={ticket.workaround} />
-                        <DetailField label="Frequency" value={ticket.frequency} />
+                        <DetailField label="Problem" value={(ticket as IssueTicket).problem} />
+                        <DetailField label="Duplication Steps" value={(ticket as IssueTicket).duplicationSteps} />
+                        <DetailField label="Workaround" value={(ticket as IssueTicket).workaround} />
+                        <DetailField label="Frequency" value={(ticket as IssueTicket).frequency} />
                     </>
                     )}
+                    {/* FIX: Cast ticket to FeatureRequestTicket to access specific properties */}
                     {ticket.type === TicketType.FeatureRequest && (
                     <>
-                        <DetailField label="Improvement" value={ticket.improvement} />
-                        <DetailField label="Current Functionality" value={ticket.currentFunctionality} />
-                        <DetailField label="Suggested Solution" value={ticket.suggestedSolution} />
-                        <DetailField label="Benefits" value={ticket.benefits} />
+                        <DetailField label="Improvement" value={(ticket as FeatureRequestTicket).improvement} />
+                        <DetailField label="Current Functionality" value={(ticket as FeatureRequestTicket).currentFunctionality} />
+                        <DetailField label="Suggested Solution" value={(ticket as FeatureRequestTicket).suggestedSolution} />
+                        <DetailField label="Benefits" value={(ticket as FeatureRequestTicket).benefits} />
                     </>
                     )}
                 </div>

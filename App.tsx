@@ -56,7 +56,7 @@ import { SearchIcon } from './components/icons/SearchIcon.tsx';
 import { ShareIcon } from './components/icons/ShareIcon.tsx';
 import MyDayView from './components/MyDayView.tsx';
 import KnowledgeBaseView from './components/KnowledgeBaseView.tsx';
-import ShopperList from './components/ShopperList.tsx';
+import ShoppersView from './components/ShopperList.tsx';
 import ShopperForm from './components/ShopperForm.tsx';
 import ShopperDetailView from './components/ShopperDetailView.tsx';
 import { PersonIcon } from './components/icons/PersonIcon.tsx';
@@ -251,6 +251,9 @@ function App() {
 
   const [isDealershipGroupFormOpen, setIsDealershipGroupFormOpen] = useState(false);
   const [editingDealershipGroup, setEditingDealershipGroup] = useState<DealershipGroup | null>(null);
+  
+  const [editingShopper, setEditingShopper] = useState<Shopper | null>(null);
+  const [isShopperFormOpen, setIsShopperFormOpen] = useState(false);
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -433,13 +436,21 @@ function App() {
       showToast('Meeting note saved!', 'success');
   };
   
-  const handleShopperSubmit = (newShopperData: Omit<Shopper, 'id'>) => {
-      const newShopper: Shopper = {
-          id: crypto.randomUUID(),
-          ...newShopperData,
-      };
-      setShoppers(prev => [...prev, newShopper]);
-      showToast('Shopper created successfully!', 'success');
+  const handleSaveShopper = (shopperData: Omit<Shopper, 'id'> | Shopper) => {
+    if ('id' in shopperData) {
+        const updatedShopper = shopperData;
+        setShoppers(prev => prev.map(s => s.id === updatedShopper.id ? updatedShopper : s));
+        showToast('Shopper updated!', 'success');
+        if (selectedShopper?.id === updatedShopper.id) {
+            setSelectedShopper(updatedShopper);
+        }
+    } else {
+        const newShopper: Shopper = { ...shopperData, id: crypto.randomUUID(), recentActivity: [], ticketIds: [], taskIds: [] };
+        setShoppers(prev => [...prev, newShopper]);
+        showToast('Shopper created!', 'success');
+    }
+    setIsShopperFormOpen(false);
+    setEditingShopper(null);
   };
 
   const handleSaveContact = (contactData: Omit<Contact, 'id'> | Contact) => {
@@ -1850,7 +1861,6 @@ function App() {
             case 'features': return 'Add Feature Announcement';
             case 'meetings': return 'Add New Meeting Note';
             case 'contacts': return 'Create New Contact';
-            case 'shoppers': return 'Create New Shopper';
             default: return 'Create New Item';
         }
     }
@@ -1863,7 +1873,6 @@ function App() {
             case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
             case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
             case 'contacts': return <ContactForm onSave={handleSaveContact} onClose={() => setIsContactFormOpen(false)} contactToEdit={null} allGroups={contactGroups} />;
-            case 'shoppers': return <ShopperForm onSubmit={data => { handleShopperSubmit(data); setIsFormOpen(false); }} onUpdate={handleUpdateShopper} onClose={() => setIsFormOpen(false)} allDealerships={dealerships} />;
             default: return null;
         }
     }
@@ -1875,6 +1884,9 @@ function App() {
             if (view === 'contacts') {
                 setEditingContact(null);
                 setIsContactFormOpen(true);
+            } else if (view === 'shoppers') {
+                setEditingShopper(null);
+                setIsShopperFormOpen(true);
             } else {
                 setIsFormOpen(true);
             }
@@ -1887,6 +1899,9 @@ function App() {
         } else if (currentView === 'contacts') {
             setEditingContact(null);
             setIsContactFormOpen(true);
+        } else if (currentView === 'shoppers') {
+            setEditingShopper(null);
+            setIsShopperFormOpen(true);
         } else {
             setIsFormOpen(true);
         }
@@ -2222,11 +2237,16 @@ function App() {
               </>
           )}
            {currentView === 'shoppers' && (
-            <ShopperList 
+            <ShoppersView 
                 shoppers={filteredShoppers} 
                 onShopperClick={setSelectedShopper} 
                 allDealerships={dealerships} 
                 showToast={showToast} 
+                onUpdateShopper={handleUpdateShopper}
+                onDeleteShopper={handleDeleteShopper}
+                onEditShopperClick={(shopper) => { setEditingShopper(shopper); setIsShopperFormOpen(true); }}
+                shopperFilters={shopperFilters}
+                setShopperFilters={setShopperFilters}
             />
           )}
           {currentView === 'tasks' && (
@@ -2269,10 +2289,16 @@ function App() {
         </div>
       </main>
       
-      {isFormOpen && currentView !== 'contacts' && (
+      {isFormOpen && (
           <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
               {renderForm()}
           </Modal>
+      )}
+
+      {isShopperFormOpen && (
+        <Modal title={editingShopper ? 'Edit Shopper' : 'Create New Shopper'} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }}>
+            <ShopperForm onSave={handleSaveShopper} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }} shopperToEdit={editingShopper} allDealerships={dealerships} />
+        </Modal>
       )}
 
       {isCreateChoiceModalOpen && (

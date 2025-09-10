@@ -1,5 +1,6 @@
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity } from './types.ts';
+
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -46,7 +47,7 @@ export const initialTickets: Ticket[] = [
     dealershipIds: [],
     featureIds: [],
     shopperIds: ['shopper-1'],
-  },
+  } as IssueTicket,
   {
     id: '2',
     type: TicketType.FeatureRequest,
@@ -84,7 +85,7 @@ export const initialTickets: Ticket[] = [
     dealershipIds: [],
     featureIds: [],
     isFavorite: true,
-  },
+  } as FeatureRequestTicket,
   {
     id: '3',
     type: TicketType.Issue,
@@ -112,7 +113,7 @@ export const initialTickets: Ticket[] = [
     taskIds: [],
     dealershipIds: [],
     featureIds: [],
-  },
+  } as IssueTicket,
   {
     id: '4',
     type: TicketType.Issue,
@@ -146,7 +147,7 @@ export const initialTickets: Ticket[] = [
     taskIds: [],
     dealershipIds: [],
     featureIds: [],
-  },
+  } as IssueTicket,
   {
     id: '5',
     type: TicketType.Issue,
@@ -172,7 +173,7 @@ export const initialTickets: Ticket[] = [
     taskIds: [],
     dealershipIds: [],
     featureIds: [],
-  }
+  } as IssueTicket
 ];
 
 export const initialProjects: Project[] = [
@@ -687,6 +688,7 @@ export const initialShoppers: Shopper[] = [
     ],
     dealershipIds: ['dealership-1'],
     ticketIds: ['1'],
+    isFavorite: true,
   },
   {
     id: 'shopper-2',
@@ -697,5 +699,6 @@ export const initialShoppers: Shopper[] = [
     dealershipIds: ['dealership-2'],
     ticketIds: [],
     taskIds: ['task-1'],
+    isFavorite: false,
   }
 ];
