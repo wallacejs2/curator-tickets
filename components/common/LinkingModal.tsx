@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';
@@ -16,7 +17,7 @@ const tagColorStyles: Record<string, string> = {
   [Priority.P4]: 'bg-yellow-200 text-yellow-800',
   [Priority.P5]: 'bg-green-200 text-green-800',
   [Priority.P8]: 'bg-blue-200 text-blue-800',
-  // Status
+  // Statuses from types.ts Status enum
   [Status.NotStarted]: 'bg-gray-300 text-gray-800',
   [Status.InProgress]: 'bg-blue-300 text-blue-900',
   [Status.OnHold]: 'bg-[#ffcd85] text-stone-800',
@@ -25,10 +26,10 @@ const tagColorStyles: Record<string, string> = {
   [Status.PmdReview]: 'bg-[#fff494] text-stone-800',
   [Status.Testing]: 'bg-orange-300 text-orange-900',
   [Status.Completed]: 'bg-[#44C064] text-white',
-  // TaskStatus
+  // Statuses from types.ts TaskStatus enum
   [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
-  // DealershipStatus
+  // Statuses from types.ts DealershipStatus enum
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
   [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
@@ -36,7 +37,7 @@ const tagColorStyles: Record<string, string> = {
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
   [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
-  // FeatureStatus
+  // Statuses from types.ts FeatureStatus enum
   [FeatureStatus.Backlog]: 'bg-gray-200 text-gray-800',
   [FeatureStatus.InDiscovery]: 'bg-purple-200 text-purple-800',
   [FeatureStatus.InDevelopment]: 'bg-blue-200 text-blue-800',
