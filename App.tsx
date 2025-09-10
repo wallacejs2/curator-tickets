@@ -1,7 +1,6 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, HistoryEntry, WidgetConfig, KnowledgeArticle, EnrichedTask } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, HistoryEntry, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -17,7 +16,7 @@ import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers } from './mockData.ts';
 import { UploadIcon } from './components/icons/UploadIcon.tsx';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
@@ -57,6 +56,10 @@ import { SearchIcon } from './components/icons/SearchIcon.tsx';
 import { ShareIcon } from './components/icons/ShareIcon.tsx';
 import MyDayView from './components/MyDayView.tsx';
 import KnowledgeBaseView from './components/KnowledgeBaseView.tsx';
+import ShopperList from './components/ShopperList.tsx';
+import ShopperForm from './components/ShopperForm.tsx';
+import ShopperDetailView from './components/ShopperDetailView.tsx';
+import { PersonIcon } from './components/icons/PersonIcon.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -178,7 +181,7 @@ const ImportSection: React.FC<{
 };
 
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper';
 
 const normalizeEnumValue = <T extends string>(value: any, validEnumValues: readonly T[]): T | undefined => {
     if (typeof value !== 'string' || !value) return undefined;
@@ -230,12 +233,14 @@ function App() {
   const [dealershipGroups, setDealershipGroups] = useLocalStorage<DealershipGroup[]>('dealershipGroups', initialDealershipGroups);
   const [savedTicketViews, setSavedTicketViews] = useLocalStorage<SavedTicketView[]>('savedTicketViews', []);
   const [knowledgeArticles, setKnowledgeArticles] = useLocalStorage<KnowledgeArticle[]>('knowledgeArticles', initialKnowledgeArticles);
+  const [shoppers, setShoppers] = useLocalStorage<Shopper[]>('shoppers', initialShoppers);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
+  const [selectedShopper, setSelectedShopper] = useState<Shopper | null>(null);
   const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string; ticketId: string | null; ticketTitle?: string; }) | null>(null);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   
@@ -268,6 +273,8 @@ function App() {
   });
   
   const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
+  
+  const [shopperFilters, setShopperFilters] = useState<ShopperFilterState>({ searchTerm: '' });
 
   const [featureFilters, setFeatureFilters] = useState<FeatureAnnouncementFilterState>({
     searchTerm: '',
@@ -279,8 +286,8 @@ function App() {
   const { toast, showToast, hideToast } = useToast();
 
   const dataMap = useMemo(() => ({
-    tickets, projects, dealerships, tasks, features, meetings
-  }), [tickets, projects, dealerships, tasks, features, meetings]);
+    tickets, projects, dealerships, tasks, features, meetings, shoppers
+  }), [tickets, projects, dealerships, tasks, features, meetings, shoppers]);
 
 
   useEffect(() => {
@@ -317,6 +324,13 @@ function App() {
       setSelectedFeature(freshFeature || null);
     }
   }, [features]);
+
+  useEffect(() => {
+    if (selectedShopper) {
+      const freshShopper = shoppers.find(s => s.id === selectedShopper.id);
+      setSelectedShopper(freshShopper || null);
+    }
+  }, [shoppers]);
 
   // When changing views, clear selections
   useEffect(() => {
@@ -417,6 +431,15 @@ function App() {
       };
       setMeetings(prev => [...prev, newMeeting]);
       showToast('Meeting note saved!', 'success');
+  };
+  
+  const handleShopperSubmit = (newShopperData: Omit<Shopper, 'id'>) => {
+      const newShopper: Shopper = {
+          id: crypto.randomUUID(),
+          ...newShopperData,
+      };
+      setShoppers(prev => [...prev, newShopper]);
+      showToast('Shopper created successfully!', 'success');
   };
 
   const handleSaveContact = (contactData: Omit<Contact, 'id'> | Contact) => {
@@ -668,6 +691,14 @@ function App() {
       }
   };
 
+  const handleUpdateShopper = (updatedShopper: Shopper) => {
+      setShoppers(prev => prev.map(s => s.id === updatedShopper.id ? updatedShopper : s));
+      showToast('Shopper updated successfully!', 'success');
+      if (selectedShopper?.id === updatedShopper.id) {
+          setSelectedShopper(updatedShopper);
+      }
+  };
+
     const handleUpdateTask = (updatedTask: Task) => {
         const taskInAll = allTasks.find(t => t.id === updatedTask.id);
         if (!taskInAll) return;
@@ -766,6 +797,17 @@ function App() {
       setMeetings(prev => prev.filter(m => m.id !== meetingId));
       showToast('Meeting note deleted successfully!', 'success');
       setSelectedMeeting(null);
+  };
+
+  const handleDeleteShopper = (shopperId: string) => {
+    if (window.confirm('Are you sure you want to delete this shopper?')) {
+        setShoppers(prev => prev.filter(s => s.id !== shopperId));
+        // Remove shopper from linked tickets and dealerships
+        setTickets(prev => prev.map(t => ({ ...t, shopperIds: (t.shopperIds || []).filter(id => id !== shopperId) })));
+        setDealerships(prev => prev.map(d => ({ ...d, shopperIds: (d.shopperIds || []).filter(id => id !== shopperId) })));
+        showToast('Shopper deleted successfully!', 'success');
+        setSelectedShopper(null);
+    }
   };
   
     const handleDeleteTask = (taskId: string) => {
@@ -1264,6 +1306,7 @@ function App() {
           case 'feature': return setFeatures;
           case 'contact': return setContacts;
           case 'knowledge': return setKnowledgeArticles;
+          case 'shopper': return setShoppers;
       }
     };
     
@@ -1414,6 +1457,19 @@ function App() {
             return matchesSearch && matchesPlatform && matchesCategory;
         });
     }, [features, featureFilters]);
+
+    const filteredShoppers = useMemo(() => {
+        return shoppers.filter(s => {
+            const searchLower = shopperFilters.searchTerm.toLowerCase();
+            return (
+                s.customerName.toLowerCase().includes(searchLower) ||
+                s.curatorId.toLowerCase().includes(searchLower) ||
+                (s.email || '').toLowerCase().includes(searchLower) ||
+                (s.cdpId || '').toLowerCase().includes(searchLower) ||
+                (s.dmsId || '').toLowerCase().includes(searchLower)
+            );
+        }).sort((a, b) => a.customerName.localeCompare(b.customerName));
+    }, [shoppers, shopperFilters]);
 
     const performanceInsights = useMemo(() => {
         const completedLast30Days = tickets.filter(t => {
@@ -1794,6 +1850,7 @@ function App() {
             case 'features': return 'Add Feature Announcement';
             case 'meetings': return 'Add New Meeting Note';
             case 'contacts': return 'Create New Contact';
+            case 'shoppers': return 'Create New Shopper';
             default: return 'Create New Item';
         }
     }
@@ -1806,6 +1863,7 @@ function App() {
             case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
             case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
             case 'contacts': return <ContactForm onSave={handleSaveContact} onClose={() => setIsContactFormOpen(false)} contactToEdit={null} allGroups={contactGroups} />;
+            case 'shoppers': return <ShopperForm onSubmit={data => { handleShopperSubmit(data); setIsFormOpen(false); }} onUpdate={handleUpdateShopper} onClose={() => setIsFormOpen(false)} allDealerships={dealerships} />;
             default: return null;
         }
     }
@@ -1852,6 +1910,7 @@ function App() {
             case 'features': return 'New Feature';
             case 'meetings': return 'New Note';
             case 'contacts': return 'New Contact';
+            case 'shoppers': return 'New Shopper';
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
             case 'knowledge': return '';
@@ -1865,6 +1924,7 @@ function App() {
         setSelectedDealership(null);
         setSelectedMeeting(null);
         setSelectedFeature(null);
+        setSelectedShopper(null);
     };
 
     const handleSwitchToDetailView = (type: EntityType, id: string) => {
@@ -1896,6 +1956,10 @@ function App() {
                     const task = allTasks.find(t => t.id === id);
                     if (task) setEditingTask(task);
                     break;
+                case 'shopper':
+                    const shopper = shoppers.find(s => s.id === id);
+                    if (shopper) setSelectedShopper(shopper);
+                    break;
                 default:
                     break;
             }
@@ -1919,6 +1983,7 @@ function App() {
       { title: 'Standalone Tasks', data: tasks },
       { title: 'Features', data: features },
       { title: 'Meetings', data: meetings },
+      { title: 'Shoppers', data: shoppers },
     ];
 
     // Data for Dashboard
@@ -2012,6 +2077,7 @@ function App() {
         allMeetings: meetings,
         allDealerships: dealerships,
         allFeatures: features,
+        allShoppers: shoppers,
     };
     
     // Knowledge Base Handlers
@@ -2059,6 +2125,8 @@ function App() {
         setTicketFilters={setTicketFilters}
         dealershipFilters={dealershipFilters}
         setDealershipFilters={setDealershipFilters}
+        shopperFilters={shopperFilters}
+        setShopperFilters={setShopperFilters}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         currentView={currentView}
@@ -2153,6 +2221,14 @@ function App() {
                 />
               </>
           )}
+           {currentView === 'shoppers' && (
+            <ShopperList 
+                shoppers={filteredShoppers} 
+                onShopperClick={setSelectedShopper} 
+                allDealerships={dealerships} 
+                showToast={showToast} 
+            />
+          )}
           {currentView === 'tasks' && (
             <>
               <TaskInsights {...taskInsights} />
@@ -2222,6 +2298,10 @@ function App() {
                       <UsersIcon className="w-8 h-8 text-blue-600 mb-2" />
                       <span className="font-semibold text-gray-800">Contact</span>
                   </button>
+                  <button onClick={() => handleCreateChoice('shoppers')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <PersonIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Shopper</span>
+                  </button>
                   <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <SparklesIcon className="w-8 h-8 text-blue-600 mb-2" />
                       <span className="font-semibold text-gray-800">Feature</span>
@@ -2243,6 +2323,7 @@ function App() {
                 allMeetings={meetings}
                 allDealerships={dealerships}
                 allFeatures={features}
+                allShoppers={shoppers}
                 onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
                 onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
                 onSwitchView={handleSwitchFromTaskModal}
@@ -2288,8 +2369,8 @@ function App() {
 
 
       <SideView 
-        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || ''}
-        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature)}
+        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || selectedShopper?.customerName || ''}
+        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature || selectedShopper)}
         onClose={closeAllSideViews}
       >
         {selectedTicket && (
@@ -2351,6 +2432,16 @@ function App() {
             {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+        {selectedShopper && <ShopperDetailView
+            shopper={selectedShopper}
+            onUpdate={handleUpdateShopper}
+            onDelete={handleDeleteShopper}
+            showToast={showToast}
+            {...allDataForLinking}
+            onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
+            onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
+        />}
       </SideView>
     </div>
   );

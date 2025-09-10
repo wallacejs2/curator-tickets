@@ -5,7 +5,7 @@ import LinkingModal from './LinkingModal.tsx';
 import { LinkIcon } from '../icons/LinkIcon.tsx';
 
 // A helper to get the display name from an item which could have 'name' or 'title'
-const getItemName = (item: any): string => item.name || item.title || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
+const getItemName = (item: any): string => item.name || item.title || item.customerName || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
 const tagColorStyles: Record<string, string> = {
   // Statuses from types.ts Status enum

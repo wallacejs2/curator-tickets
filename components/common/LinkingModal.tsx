@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';
@@ -50,6 +49,7 @@ interface LinkableItem {
   id: string;
   name?: string;
   title?: string;
+  customerName?: string;
   description?: string;
   status?: Status | ProjectStatus | TaskStatus | DealershipStatus | FeatureStatus;
   priority?: Priority;
@@ -67,6 +67,8 @@ interface LinkableItem {
   dueDate?: string;
   // Dealership specific
   accountNumber?: string;
+  // Shopper specific
+  curatorId?: string;
 }
 
 interface LinkingModalProps<T extends LinkableItem> {
@@ -77,7 +79,7 @@ interface LinkingModalProps<T extends LinkableItem> {
   itemTypeLabel: string;
 }
 
-const getItemName = (item: any): string => item.name || item.title || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
+const getItemName = (item: any): string => item.name || item.title || item.customerName || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
 const LinkingModal = <T extends LinkableItem>({
   isOpen,
@@ -190,6 +192,9 @@ const LinkingModal = <T extends LinkableItem>({
                       </div>
                       )}
                       {item.dueDate && <div>Due: <span className="font-medium text-gray-700">{new Date(item.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></div>}
+                      
+                      {/* Shopper Details */}
+                      {item.curatorId && <div>Curator ID: <span className="font-medium text-gray-700">{item.curatorId}</span></div>}
                   </div>
 
                   <div className="flex items-center gap-2 mt-2 flex-wrap">

@@ -1,5 +1,4 @@
 
-
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -120,6 +119,7 @@ interface BaseTicket {
   taskIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
+  shopperIds?: string[];
 }
 
 export interface IssueTicket extends BaseTicket {
@@ -156,6 +156,11 @@ export interface DealershipFilterState {
 export interface MeetingFilterState {
   searchTerm: string;
 }
+
+export interface ShopperFilterState {
+  searchTerm: string;
+}
+
 
 export interface FeatureAnnouncementFilterState {
   searchTerm: string;
@@ -217,6 +222,7 @@ export interface Task {
   meetingIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
+  shopperIds?: string[];
 }
 
 export interface EnrichedTask extends Task {
@@ -266,7 +272,7 @@ export interface Meeting {
 }
 
 // Type for main application view
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers';
 
 // New types for Dealerships
 export enum DealershipStatus {
@@ -310,6 +316,7 @@ export interface Dealership {
   taskIds?: string[];
   linkedDealershipIds?: string[];
   featureIds?: string[];
+  shopperIds?: string[];
 }
 
 export interface DealershipGroup {
@@ -378,4 +385,30 @@ export type WidgetType = 'performance' | 'deadlines' | 'updates' | 'favorites' |
 export interface WidgetConfig {
     id: string;
     type: WidgetType;
+}
+
+// New types for Shoppers
+export interface RecentActivity {
+  id: string;
+  date: string;
+  time: string;
+  activity: string;
+  action: string;
+}
+
+export interface Shopper {
+  id: string;
+  customerName: string;
+  curatorId: string;
+  curatorLink?: string;
+  email?: string;
+  phone?: string;
+  cdpId?: string;
+  dmsId?: string;
+  uniqueIssue: string;
+  recentActivity?: RecentActivity[];
+  // Linking fields
+  dealershipIds?: string[];
+  ticketIds?: string[];
+  taskIds?: string[];
 }

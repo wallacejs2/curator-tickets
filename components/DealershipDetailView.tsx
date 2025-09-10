@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup } from '../types.ts';
+import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -7,7 +7,7 @@ import DealershipForm from './DealershipForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
 
 interface DealershipDetailViewProps {
   dealership: Dealership;
@@ -27,6 +27,7 @@ interface DealershipDetailViewProps {
   allDealerships: Dealership[];
   allFeatures: FeatureAnnouncement[];
   allGroups: DealershipGroup[];
+  allShoppers: Shopper[];
 
   // Linking handlers
   onLink: (toType: EntityType, toId: string) => void;
@@ -63,7 +64,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
     dealership, onUpdate, onDelete, onExport, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate,
-    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups,
+    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups, allShoppers,
     onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -84,6 +85,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const linkedMeetings = allMeetings.filter(item => (dealership.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => item.id !== dealership.id && (dealership.linkedDealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (dealership.featureIds || []).includes(item.id));
+    const linkedShoppers = allShoppers.filter(item => (dealership.shopperIds || []).includes(item.id));
 
     // Enhanced Task Linking Logic: Include tasks from linked tickets and projects
     const directlyLinkedTaskIds = dealership.taskIds || [];
@@ -102,6 +104,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const availableMeetings = allMeetings.filter(item => !(dealership.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => item.id !== dealership.id && !(dealership.linkedDealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => !(dealership.featureIds || []).includes(item.id));
+    const availableShoppers = allShoppers.filter(item => !(dealership.shopperIds || []).includes(item.id));
     
     const handleUpdateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -287,6 +290,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
                     <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
                     <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => onSwitchView('feature', id)} />
+                    <LinkingSection title="Linked Shoppers" itemTypeLabel="shopper" linkedItems={linkedShoppers} availableItems={availableShoppers} onLink={(id) => onLink('shopper', id)} onUnlink={(id) => onUnlink('shopper', id)} onItemClick={(id) => onSwitchView('shopper', id)} />
                   </>
                 )}
             </div>

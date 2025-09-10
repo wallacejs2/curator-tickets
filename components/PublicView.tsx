@@ -1,11 +1,13 @@
 
+
 import React from 'react';
 import TicketDetailView from './TicketDetailView.tsx';
 import ProjectDetailView from './ProjectDetailView.tsx';
 import DealershipDetailView from './DealershipDetailView.tsx';
 import MeetingDetailView from './MeetingDetailView.tsx';
 import FeatureDetailView from './FeatureDetailView.tsx';
-import { Ticket, Project, Dealership, Meeting, FeatureAnnouncement, Task, DealershipGroup } from '../types.ts';
+// FIX: Import Shopper type.
+import { Ticket, Project, Dealership, Meeting, FeatureAnnouncement, Task, DealershipGroup, Shopper } from '../types.ts';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
@@ -20,6 +22,8 @@ interface PublicViewProps {
     allDealerships: Dealership[];
     allFeatures: FeatureAnnouncement[];
     allGroups: DealershipGroup[];
+    // FIX: Add allShoppers to the allData type to pass it down to child components.
+    allShoppers: Shopper[];
   };
 }
 

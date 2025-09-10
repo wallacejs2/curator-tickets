@@ -1,5 +1,5 @@
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -45,6 +45,7 @@ export const initialTickets: Ticket[] = [
     taskIds: [],
     dealershipIds: [],
     featureIds: [],
+    shopperIds: ['shopper-1'],
   },
   {
     id: '2',
@@ -261,6 +262,7 @@ export const initialTasks: Task[] = [
     meetingIds: [],
     dealershipIds: [],
     featureIds: [],
+    shopperIds: ['shopper-2'],
   },
   {
     id: 'task-2',
@@ -321,6 +323,7 @@ export const initialDealerships: Dealership[] = [
     taskIds: [],
     linkedDealershipIds: [],
     featureIds: [],
+    shopperIds: ['shopper-1'],
   },
   {
     id: 'dealership-2',
@@ -347,6 +350,7 @@ export const initialDealerships: Dealership[] = [
     taskIds: [],
     linkedDealershipIds: [],
     featureIds: [],
+    shopperIds: ['shopper-2'],
   },
   {
     id: 'dealership-3',
@@ -652,4 +656,46 @@ export const initialKnowledgeArticles: KnowledgeArticle[] = [
         createdDate: new Date('2024-07-15T14:30:00Z').toISOString(),
         lastModifiedDate: new Date('2024-07-15T14:30:00Z').toISOString(),
     }
+];
+
+export const initialShoppers: Shopper[] = [
+  {
+    id: 'shopper-1',
+    customerName: 'Jane Smith',
+    curatorId: 'CUR-98765',
+    curatorLink: 'https://example.com/curator/98765',
+    email: 'jane.smith@example.com',
+    phone: '555-111-2222',
+    cdpId: 'CDP-JSMITH',
+    dmsId: 'DMS-456',
+    uniqueIssue: 'User is unable to see vehicle pricing on VDPs. Console shows a 403 error on the pricing API endpoint.',
+    recentActivity: [
+      {
+        id: 'act-1-1',
+        date: '2024-07-28',
+        time: '10:30 AM',
+        activity: 'Visited VDP for 2024 Ford F-150',
+        action: 'Clicked on "Get E-Price", no price displayed',
+      },
+      {
+        id: 'act-1-2',
+        date: '2024-07-28',
+        time: '10:32 AM',
+        activity: 'Navigated to inventory search',
+        action: 'Performed search for "Ford"',
+      }
+    ],
+    dealershipIds: ['dealership-1'],
+    ticketIds: ['1'],
+  },
+  {
+    id: 'shopper-2',
+    customerName: 'John Appleseed',
+    curatorId: 'CUR-12345',
+    email: 'john.a@example.com',
+    uniqueIssue: 'Trade-in value form is not accepting VIN.',
+    dealershipIds: ['dealership-2'],
+    ticketIds: [],
+    taskIds: ['task-1'],
+  }
 ];

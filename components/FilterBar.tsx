@@ -1,7 +1,6 @@
 
-
 import React, { useState } from 'react';
-import { FilterState, View, DealershipFilterState } from '../types.ts';
+import { FilterState, View, DealershipFilterState, ShopperFilterState } from '../types.ts';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 import { SearchIcon } from './icons/SearchIcon.tsx';
 import { XIcon } from './icons/XIcon.tsx';
@@ -19,12 +18,15 @@ import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { AccountCircleIcon } from './icons/AccountCircleIcon.tsx';
 import { SunIcon } from './icons/SunIcon.tsx';
 import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
+import { PersonIcon } from './icons/PersonIcon.tsx';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
   setTicketFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   dealershipFilters: DealershipFilterState;
   setDealershipFilters: React.Dispatch<React.SetStateAction<DealershipFilterState>>;
+  shopperFilters: ShopperFilterState;
+  setShopperFilters: React.Dispatch<React.SetStateAction<ShopperFilterState>>;
   isOpen: boolean;
   onClose: () => void;
   currentView: View;
@@ -53,6 +55,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   setTicketFilters, 
   dealershipFilters,
   setDealershipFilters,
+  shopperFilters,
+  setShopperFilters,
   isOpen, 
   onClose, 
   currentView, 
@@ -68,6 +72,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       setTicketFilters(prev => ({ ...prev, [name]: value }));
     } else if (currentView === 'dealerships') {
       setDealershipFilters(prev => ({ ...prev, [name]: value }));
+    } else if (currentView === 'shoppers') {
+      setShopperFilters(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -85,6 +91,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         searchTerm: '',
         status: 'all',
       });
+    } else if (currentView === 'shoppers') {
+        setShopperFilters({ searchTerm: '' });
     }
   };
 
@@ -133,6 +141,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
               <div className="pt-2 mt-2 border-t border-gray-700/50">
                 <NavItem icon={<ReceiptLongIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
                 <NavItem icon={<WorkspaceIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
+                <NavItem icon={<PersonIcon className="w-6 h-6"/>} label="Shoppers" isActive={currentView === 'shoppers'} onClick={() => onViewChange('shoppers')} />
                 <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />
                 <NavItem icon={<DocumentTextIcon className="w-6 h-6"/>} label="Meeting Notes" isActive={currentView === 'meetings'} onClick={() => onViewChange('meetings')} />
                 <NavItem icon={<AccountBalanceIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
@@ -142,7 +151,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </div>
           </nav>
           
-          {(currentView === 'tickets' || currentView === 'dealerships') && (
+          {(currentView === 'tickets' || currentView === 'dealerships' || currentView === 'shoppers') && (
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-base font-semibold text-gray-300">Filters</h2>
@@ -220,6 +229,22 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           <option key={status} value={status}>{status}</option>
                         ))}
                       </select>
+                    </div>
+                  </>
+                )}
+                {currentView === 'shoppers' && (
+                  <>
+                    <div>
+                      <label htmlFor="searchTerm" className={labelClasses}>Search</label>
+                      <input
+                        type="text"
+                        id="searchTerm"
+                        name="searchTerm"
+                        value={shopperFilters.searchTerm}
+                        onChange={handleInputChange}
+                        placeholder="Search shoppers..."
+                        className={inputClasses}
+                      />
                     </div>
                   </>
                 )}
