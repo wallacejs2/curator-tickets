@@ -1,5 +1,4 @@
 
-
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -195,6 +194,7 @@ export interface Project {
 }
 
 export enum DealershipStatus {
+    Prospect = 'Prospect',
     PendingFocus = 'Pending FOCUS',
     PendingDmt = 'Pending DMT',
     PendingSetup = 'Pending Setup',

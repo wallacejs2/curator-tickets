@@ -1,6 +1,5 @@
 
 
-
 import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket } from './types.ts';
 
 export const initialTickets: Ticket[] = [
@@ -450,6 +449,23 @@ export const initialDealerships: Dealership[] = [
     enterprise: 'NextGen Auto',
     address: '4 Config Ct, Tech City, USA 54321',
     assignedSpecialist: 'Susan Storm',
+    updates: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'dealership-8',
+    name: 'Future Horizons Automotive',
+    accountNumber: 'CIF-1008',
+    status: DealershipStatus.Prospect,
+    enterprise: 'Visionary Motors',
+    sales: 'Sarah Conner',
+    pocName: 'John Anderton',
+    pocEmail: 'j.anderton@futurehorizons.com',
     updates: [],
     ticketIds: [],
     projectIds: [],

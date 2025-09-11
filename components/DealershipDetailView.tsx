@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -43,6 +44,7 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 );
 
 const statusColors: Record<DealershipStatus, string> = {
+  [DealershipStatus.Prospect]: 'bg-indigo-200 text-indigo-800',
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
   [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',

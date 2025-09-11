@@ -30,6 +30,7 @@ const tagColorStyles: Record<string, string> = {
   [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
   // Statuses from types.ts DealershipStatus enum
+  [DealershipStatus.Prospect]: 'bg-indigo-200 text-indigo-800',
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
   [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',

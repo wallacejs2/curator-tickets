@@ -1512,7 +1512,7 @@ function App() {
     const dealershipInsights = useMemo(() => {
         const pendingStatuses = [DealershipStatus.PendingFocus, DealershipStatus.PendingDmt, DealershipStatus.PendingSetup];
         return {
-            totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled).length,
+            totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled && d.status !== DealershipStatus.Prospect).length,
             liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
             pendingAccounts: dealerships.filter(d => pendingStatuses.includes(d.status)).length,
         }
