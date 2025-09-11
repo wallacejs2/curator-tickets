@@ -81,6 +81,7 @@ const DealershipCard: React.FC<{
         appendField('POC Name', dealership.pocName);
         appendField('POC Email', dealership.pocEmail);
         appendField('POC Phone', dealership.pocPhone);
+        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
     
         appendSection('Order & Dates');
         appendField('Order Number', dealership.orderNumber);

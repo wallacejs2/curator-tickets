@@ -185,6 +185,18 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
 
                 <div className="border-t border-gray-200 pt-6">
                     <DetailField label="Address" value={dealership.address} />
+                    {(dealership.websiteLinks && dealership.websiteLinks.length > 0) && (
+                        <div className="mt-6">
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Website Links</h4>
+                            <ul className="mt-1 space-y-1 list-disc list-inside">
+                                {dealership.websiteLinks.map((link, index) => (
+                                    <li key={index}>
+                                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{link}</a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-gray-200">

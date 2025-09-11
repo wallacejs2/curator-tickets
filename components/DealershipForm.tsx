@@ -1,7 +1,9 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
+import { XIcon } from './icons/XIcon.tsx';
 
 type FormSubmitCallback = (dealership: Omit<Dealership, 'id'>) => void;
 type FormUpdateCallback = (dealership: Dealership) => void;
@@ -34,6 +36,7 @@ const initialFormData: Omit<Dealership, 'id'> = {
   pocName: '',
   pocEmail: '',
   pocPhone: '',
+  websiteLinks: [],
   groupIds: [],
 };
 
@@ -50,6 +53,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
 
 const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dealershipToEdit, onClose, allGroups }) => {
   const [formData, setFormData] = useState(initialFormData);
+  const [newLink, setNewLink] = useState('');
   const isEditing = !!dealershipToEdit;
 
   // This function safely converts a UTC ISO string to a YYYY-MM-DD string for date inputs.
@@ -68,6 +72,7 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
       setFormData({
         ...initialFormData,
         ...dealershipToEdit,
+        websiteLinks: dealershipToEdit.websiteLinks || [],
         orderReceivedDate: toInputDate(dealershipToEdit.orderReceivedDate),
         goLiveDate: toInputDate(dealershipToEdit.goLiveDate),
         termDate: toInputDate(dealershipToEdit.termDate),
@@ -90,6 +95,31 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
         : [...currentGroupIds, groupId];
       return { ...prev, groupIds: newGroupIds };
     });
+  };
+
+  const handleAddLink = () => {
+    if (newLink.trim()) {
+        try {
+            // Basic validation: check if it can be parsed as a URL.
+            new URL(newLink.trim());
+            if (!(formData.websiteLinks || []).includes(newLink.trim())) {
+                setFormData(prev => ({
+                    ...prev,
+                    websiteLinks: [...(prev.websiteLinks || []), newLink.trim()]
+                }));
+                setNewLink('');
+            }
+        } catch (_) {
+            alert('Please enter a valid URL (e.g., https://example.com)');
+        }
+    }
+  };
+
+  const handleRemoveLink = (linkToRemove: string) => {
+    setFormData(prev => ({
+        ...prev,
+        websiteLinks: (prev.websiteLinks || []).filter(link => link !== linkToRemove)
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -186,6 +216,47 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
         </div>
       </FormSection>
       
+      <FormSection title="Website Links" gridCols={1}>
+        <div>
+            <label className={labelClasses}>Add a Website URL</label>
+            <div className="mt-1 flex gap-2">
+                <input
+                    type="url"
+                    value={newLink}
+                    onChange={(e) => setNewLink(e.target.value)}
+                    onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); handleAddLink(); } }}
+                    placeholder="https://example.com"
+                    className={formElementClasses + " flex-grow !mt-0"}
+                />
+                <button
+                    type="button"
+                    onClick={handleAddLink}
+                    className="bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-sm shadow-sm hover:bg-gray-300 text-sm flex-shrink-0"
+                >
+                    Add
+                </button>
+            </div>
+            <div className="mt-3 space-y-2">
+                {(formData.websiteLinks || []).map((link, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded border">
+                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate">{link}</a>
+                        <button
+                            type="button"
+                            onClick={() => handleRemoveLink(link)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            aria-label={`Remove ${link}`}
+                        >
+                            <XIcon className="w-4 h-4" />
+                        </button>
+                    </div>
+                ))}
+                {(formData.websiteLinks || []).length === 0 && (
+                    <p className="text-sm text-gray-500 italic text-center py-2">No website links added yet.</p>
+                )}
+            </div>
+        </div>
+      </FormSection>
+
       <FormSection title="Order & Dates" gridCols={3}>
         <div>
             <label className={labelClasses}>Order Number</label>

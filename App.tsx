@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, HistoryEntry, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -1217,6 +1218,7 @@ function App() {
         appendField('POC Name', dealership.pocName);
         appendField('POC Email', dealership.pocEmail);
         appendField('POC Phone', dealership.pocPhone);
+        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
 
         appendSection('Order & Dates');
         appendField('Order Number', dealership.orderNumber);
@@ -1538,7 +1540,7 @@ function App() {
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
-              return ['id', 'name', 'accountNumber', 'status', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+              return ['id', 'name', 'accountNumber', 'status', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
           case 'Standalone Tasks':
               return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
           case 'Features':
@@ -1625,7 +1627,7 @@ function App() {
                 break;
             case 'Dealerships':
                 dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
-                arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
+                arrayFields.push('websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
                 enumFields['status'] = DEALERSHIP_STATUS_OPTIONS;
                 break;
             case 'Standalone Tasks':

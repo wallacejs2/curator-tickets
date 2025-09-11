@@ -1,5 +1,6 @@
 
 
+
 import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket } from './types.ts';
 
 export const initialTickets: Ticket[] = [
@@ -303,6 +304,7 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Mike Miller',
     pocEmail: 'mike.miller@prestigemotors.com',
     pocPhone: '555-123-4567',
+    websiteLinks: ['https://www.prestigemotors.com', 'https://inventory.prestigemotors.com'],
     updates: [
       {
         id: 'update-deal-1-1',
@@ -343,6 +345,7 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Anna Williams',
     pocEmail: 'anna.w@citycars.com',
     pocPhone: '555-987-6543',
+    websiteLinks: ['https://www.citycars.com'],
     updates: [],
     groupIds: ['d-group-2'],
     ticketIds: [],

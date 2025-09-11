@@ -1,4 +1,5 @@
 
+
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -224,6 +225,7 @@ export interface Dealership {
     pocName?: string;
     pocEmail?: string;
     pocPhone?: string;
+    websiteLinks?: string[];
     updates?: Update[];
     groupIds?: string[];
     ticketIds?: string[];
