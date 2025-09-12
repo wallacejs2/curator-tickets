@@ -197,8 +197,8 @@ const TicketDetailView = ({
   const handleCopyInfo = (e: React.MouseEvent) => {
     e.stopPropagation();
     let content = `TICKET DETAILS: ${ticket.title}\n`;
-    content += `==================================================\n\n`;
-    
+    content += `==================================================\n`;
+
     const appendField = (label: string, value: any) => {
         if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
             content += `${label}: ${value}\n`;
@@ -206,7 +206,7 @@ const TicketDetailView = ({
     };
     const appendDateField = (label: string, value: any) => {
         if (value) {
-            content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            content += `${label}: ${new Date(value).toLocaleDateString('en-US', { timeZone: 'UTC' })}\n`;
         }
     };
     const appendSection = (title: string) => {
@@ -214,20 +214,19 @@ const TicketDetailView = ({
     };
     const appendTextArea = (label: string, value: any) => {
          if (value) {
-            content += `${label}:\n${value}\n\n`;
+            content += `${label}:\n${value}\n`;
         }
     };
-
-    appendField('ID', ticket.id);
-    appendField('Type', ticket.type);
-    appendField('Status', ticket.status);
-    appendField('Priority', ticket.priority);
-
-    appendSection('Core Information');
+   
     appendField('Product Area', ticket.productArea);
     appendField('Platform', ticket.platform);
     appendField('Location', ticket.location);
-    appendTextArea('On Hold Reason', ticket.onHoldReason);
+    appendField('Type', ticket.type);
+    appendField('Status', ticket.status);
+    appendField('Priority', ticket.priority);
+    appendDateField('Start Date', ticket.startDate);
+    appendField('On Hold Reason', ticket.onHoldReason);
+    appendDateField('Completion Date', ticket.completionDate);
     appendTextArea('Completion Notes', ticket.completionNotes);
     
     appendSection('Tracking & Ownership');
@@ -237,12 +236,6 @@ const TicketDetailView = ({
     appendField('PMR Link', ticket.pmrLink);
     appendField('FP Ticket Number', ticket.fpTicketNumber);
     appendField('Ticket Thread ID', ticket.ticketThreadId);
-
-    appendSection('Dates');
-    appendDateField('Submission Date', ticket.submissionDate);
-    appendDateField('Start Date', ticket.startDate);
-    appendDateField('Est. Completion Date', ticket.estimatedCompletionDate);
-    appendDateField('Completion Date', ticket.completionDate);
 
     if (ticket.type === TicketType.Issue) {
         const issue = ticket as IssueTicket;
@@ -259,32 +252,40 @@ const TicketDetailView = ({
         appendTextArea('Suggested Solution', feature.suggestedSolution);
         appendTextArea('Benefits', feature.benefits);
     }
-    
-    if (ticket.tasks && ticket.tasks.length > 0) {
-        appendSection(`Tasks (${ticket.tasks.length})`);
-        ticket.tasks.forEach(task => {
-            content += `- ${task.description} (Assigned: ${task.assignedUser}, Status: ${task.status}, Priority: ${task.priority})\n`;
-        });
-        content += '\n';
-    }
 
     if (ticket.updates && ticket.updates.length > 0) {
         appendSection(`Updates (${ticket.updates.length})`);
-        [...ticket.updates].reverse().forEach(update => {
-            const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
-            content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+        ticket.updates.forEach(update => {
+            const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n').trim();
+            content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
         });
+        content = content.trimEnd() + '\n';
     }
 
     appendSection('Linked Item IDs');
-    appendField('Project IDs', (ticket.projectIds || []).join(', '));
-    appendField('Linked Ticket IDs', (ticket.linkedTicketIds || []).join(', '));
-    appendField('Meeting IDs', (ticket.meetingIds || []).join(', '));
-    appendField('Task IDs', (ticket.taskIds || []).join(', '));
-    appendField('Dealership IDs', (ticket.dealershipIds || []).join(', '));
-    appendField('Feature IDs', (ticket.featureIds || []).join(', '));
+    const linkedItemsContent = [
+        { label: 'Project IDs', ids: ticket.projectIds },
+        { label: 'Linked Ticket IDs', ids: ticket.linkedTicketIds },
+        { label: 'Meeting IDs', ids: ticket.meetingIds },
+        { label: 'Task IDs', ids: ticket.taskIds },
+        { label: 'Dealership IDs', ids: ticket.dealershipIds },
+        { label: 'Feature IDs', ids: ticket.featureIds },
+        { label: 'Shopper IDs', ids: ticket.shopperIds },
+    ]
+    .map(({ label, ids }) => {
+        if (ids && ids.length > 0) {
+            return `${label}: ${(ids || []).join(', ')}`;
+        }
+        return null;
+    })
+    .filter(Boolean)
+    .join('\n');
     
-    navigator.clipboard.writeText(content);
+    if(linkedItemsContent) {
+        content += linkedItemsContent;
+    }
+    
+    navigator.clipboard.writeText(content.trim());
     showToast('Ticket info copied!', 'success');
   };
   

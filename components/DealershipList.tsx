@@ -54,67 +54,51 @@ const DealershipCard: React.FC<{
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
         let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
-        content += `==================================================\n\n`;
+        content += `==================================================\n`;
         
         const appendField = (label: string, value: any) => {
             if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
                 content += `${label}: ${value}\n`;
             }
         };
+        
         const appendDateField = (label: string, value: any) => {
             if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+                content += `${label}: ${new Date(value).toLocaleDateString('en-US', { timeZone: 'UTC' })}\n`;
             }
         };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
 
-        appendSection('Account Information');
-        appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
         appendField('Enterprise (Group)', dealership.enterprise);
-        appendField('Address', dealership.address);
-    
-        appendSection('Key Contacts');
-        appendField('Assigned Specialist', dealership.assignedSpecialist);
-        appendField('Sales', dealership.sales);
-        appendField('POC Name', dealership.pocName);
-        appendField('POC Email', dealership.pocEmail);
-        appendField('POC Phone', dealership.pocPhone);
-        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
-    
-        appendSection('Order & Dates');
-        appendField('Order Number', dealership.orderNumber);
-        appendDateField('Order Received Date', dealership.orderReceivedDate);
-        appendDateField('Go-Live Date', dealership.goLiveDate);
-        appendDateField('Term Date', dealership.termDate);
-        
-        appendSection('Identifiers');
         appendField('Store Number', dealership.storeNumber);
         appendField('Branch Number', dealership.branchNumber);
         appendField('ERA System ID', dealership.eraSystemId);
         appendField('PPSysID', dealership.ppSysId);
         appendField('BU-ID', dealership.buId);
-    
+        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
+        
+        content += '\n--- ORDER & DATES ---\n';
+        appendField('Order Number', dealership.orderNumber);
+        appendDateField('Order Received Date', dealership.orderReceivedDate);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        
+        content += '\n--- KEY CONTACTS ---\n';
+        appendField('Assigned Specialist', dealership.assignedSpecialist);
+        appendField('Sales', dealership.sales);
+        appendField('POC Name', dealership.pocName);
+        appendField('POC Email', dealership.pocEmail);
+        appendField('POC Phone', dealership.pocPhone);
+
         if (dealership.updates && dealership.updates.length > 0) {
-            appendSection(`Updates (${dealership.updates.length})`);
+            content += `\n--- UPDATES (${dealership.updates.length}) ---\n`;
             [...dealership.updates].reverse().forEach(update => {
-                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
-                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n').trim();
+                content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n`;
             });
         }
-        
-        appendSection('Linked Item IDs');
-        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
-        appendField('Project IDs', (dealership.projectIds || []).join(', '));
-        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
-        appendField('Task IDs', (dealership.taskIds || []).join(', '));
-        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
-        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
-    
-        navigator.clipboard.writeText(content);
+
+        navigator.clipboard.writeText(content.trim());
         showToast('Dealership info copied!', 'success');
     };
 

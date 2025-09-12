@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -7,6 +8,7 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import DealershipForm from './DealershipForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
+import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
 
@@ -19,6 +21,7 @@ interface DealershipDetailViewProps {
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
   isReadOnly?: boolean;
+  showToast: (message: string, type: 'success' | 'error') => void;
   
   // All entities for linking
   allTickets: Ticket[];
@@ -65,7 +68,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
     dealership, onUpdate, onDelete, onExport, isReadOnly = false,
-    onAddUpdate, onEditUpdate, onDeleteUpdate,
+    onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups, allShoppers,
     onLink, onUnlink, onSwitchView
 }) => {
@@ -118,6 +121,56 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         }
     };
 
+    const handleCopyInfo = () => {
+        let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
+        content += `==================================================\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString('en-US', { timeZone: 'UTC' })}\n`;
+            }
+        };
+
+        appendField('Account Number (CIF)', dealership.accountNumber);
+        appendField('Status', dealership.status);
+        appendField('Enterprise (Group)', dealership.enterprise);
+        appendField('Store Number', dealership.storeNumber);
+        appendField('Branch Number', dealership.branchNumber);
+        appendField('ERA System ID', dealership.eraSystemId);
+        appendField('PPSysID', dealership.ppSysId);
+        appendField('BU-ID', dealership.buId);
+        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
+        
+        content += '\n--- ORDER & DATES ---\n';
+        appendField('Order Number', dealership.orderNumber);
+        appendDateField('Order Received Date', dealership.orderReceivedDate);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        
+        content += '\n--- KEY CONTACTS ---\n';
+        appendField('Assigned Specialist', dealership.assignedSpecialist);
+        appendField('Sales', dealership.sales);
+        appendField('POC Name', dealership.pocName);
+        appendField('POC Email', dealership.pocEmail);
+        appendField('POC Phone', dealership.pocPhone);
+
+        if (dealership.updates && dealership.updates.length > 0) {
+            content += `\n--- UPDATES (${dealership.updates.length}) ---\n`;
+            [...dealership.updates].reverse().forEach(update => {
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n').trim();
+                content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n`;
+            });
+        }
+
+        navigator.clipboard.writeText(content.trim());
+        showToast('Dealership info copied!', 'success');
+    };
+
     return (
         <div>
             {isDeleteModalOpen && (
@@ -144,6 +197,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
 
             {!isReadOnly && (
               <div className="flex justify-end items-center gap-3 mb-6">
+                  <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm"><ContentCopyIcon className="w-4 h-4"/><span>Copy Info</span></button>
                   <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
                       <DownloadIcon className="w-4 h-4"/>
                       <span>Export</span>

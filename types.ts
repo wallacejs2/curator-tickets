@@ -44,13 +44,6 @@ export enum FeatureStatus {
   Launched = 'Launched',
 }
 
-export interface HistoryEntry {
-  id: string;
-  author: string;
-  date: string;
-  comment: string;
-}
-
 export interface FeatureAnnouncement {
   id: string;
   title: string;
@@ -64,7 +57,7 @@ export interface FeatureAnnouncement {
   successMetrics?: string;
   targetAudience?: string;
   supportUrl?: string;
-  history?: HistoryEntry[];
+  updates?: Update[];
   ticketIds?: string[];
   projectIds?: string[];
   meetingIds?: string[];

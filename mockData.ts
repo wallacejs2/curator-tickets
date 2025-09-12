@@ -1,6 +1,6 @@
 
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -490,6 +490,14 @@ export const initialFeatures: FeatureAnnouncement[] = [
     successMetrics: '50% user adoption within 3 months. Reduction in user-reported eye strain complaints.',
     targetAudience: 'All users, especially those working in low-light conditions or with visual sensitivities.',
     supportUrl: 'https://example.com/support/dark-mode',
+    updates: [
+        {
+            id: 'update-feat-1-1',
+            author: 'UX Team',
+            date: new Date('2024-07-20T10:00:00Z').toISOString(),
+            comment: 'Final design patterns approved.'
+        }
+    ],
     ticketIds: [],
     projectIds: [],
     meetingIds: [],

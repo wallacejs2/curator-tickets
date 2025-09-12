@@ -31,25 +31,46 @@ const ShopperCard: React.FC<{
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
-        let content = `SHOPPER DETAILS\n================================\n`;
-        content += `Customer Name: ${shopper.customerName}\n`;
-        content += `Curator ID: ${shopper.curatorId}\n`;
-        if (shopper.curatorLink) content += `Curator Link: ${shopper.curatorLink}\n`;
-        if (shopper.email) content += `Email: ${shopper.email}\n`;
-        if (shopper.phone) content += `Phone: ${shopper.phone}\n`;
-        if (shopper.cdpId) content += `CDP-ID: ${shopper.cdpId}\n`;
-        if (shopper.dmsId) content += `DMS-ID: ${shopper.dmsId}\n`;
-        if (dealershipName) content += `Dealership: ${dealershipName}\n`;
-        content += `\nUNIQUE ISSUE:\n${shopper.uniqueIssue}\n`;
-    
-        if (shopper.recentActivity && shopper.recentActivity.length > 0) {
-          content += `\nRECENT ACTIVITY:\n`;
-          shopper.recentActivity.forEach(act => {
-            content += `- ${act.date} ${act.time}: ${act.activity} -> ${act.action}\n`;
-          });
-        }
+        let content = `SHOPPER DETAILS\n`;
+        content += `================================\n`;
         
-        navigator.clipboard.writeText(content);
+        const appendField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+
+        // Section 1
+        appendField('Dealership', dealershipName);
+        appendField('Customer Name', shopper.customerName);
+        appendField('Email', shopper.email);
+        appendField('Phone', shopper.phone);
+        appendField('Curator ID', shopper.curatorId);
+        appendField('Curator Link', shopper.curatorLink);
+
+        content += '\n'; // Blank line
+
+        // Section 2
+        appendField('CDP-ID', shopper.cdpId);
+        appendField('DMS-ID', shopper.dmsId);
+
+        content += `\n\nUNIQUE ISSUE:\n${shopper.uniqueIssue}\n`;
+
+        if (shopper.recentActivity && shopper.recentActivity.length > 0) {
+            content += `\n\n--- RECENT ACTIVITY (${shopper.recentActivity.length}) ---\n`;
+            shopper.recentActivity.forEach((act, index) => {
+                const activityDate = new Date(act.date).toLocaleDateString('en-US', { timeZone: 'UTC' });
+                content += `[${activityDate}] ${act.time}: ${act.activity}\n`;
+                if (act.action) {
+                    content += `Action: ${act.action}\n`;
+                }
+                if (index < shopper.recentActivity.length - 1) {
+                    content += '\n';
+                }
+            });
+        }
+
+        navigator.clipboard.writeText(content.trim());
         showToast('Shopper info copied!', 'success');
     };
 

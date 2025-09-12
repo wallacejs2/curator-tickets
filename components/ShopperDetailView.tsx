@@ -54,31 +54,47 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
   const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !(shopper.taskIds || []).includes(item.id));
 
   const handleCopyInfo = () => {
-    let content = `SHOPPER DETAILS\n================================\n`;
-    content += `\n--- SHOPPER INFORMATION ---\n`;
-    content += `Customer Name: ${shopper.customerName}\n`;
-    if (shopper.email) content += `Email: ${shopper.email}\n`;
-    if (shopper.phone) content += `Phone: ${shopper.phone}\n`;
+    let content = `SHOPPER DETAILS\n`;
+    content += `================================\n`;
+    const dealershipName = linkedDealerships.length > 0 ? linkedDealerships[0].name : undefined;
 
-    content += `\n--- IDENTIFICATIONS ---\n`;
-    content += `Curator ID: ${shopper.curatorId}\n`;
-    if (shopper.curatorLink) content += `Curator Link: ${shopper.curatorLink}\n`;
-    if (shopper.cdpId) content += `CDP-ID: ${shopper.cdpId}\n`;
-    if (shopper.dmsId) content += `DMS-ID: ${shopper.dmsId}\n`;
+    const appendField = (label: string, value: any) => {
+        if (value) {
+            content += `${label}: ${value}\n`;
+        }
+    };
 
-    content += `\n--- UNIQUE ISSUE ---\n${shopper.uniqueIssue}\n`;
+    // Section 1
+    appendField('Dealership', dealershipName);
+    appendField('Customer Name', shopper.customerName);
+    appendField('Email', shopper.email);
+    appendField('Phone', shopper.phone);
+    appendField('Curator ID', shopper.curatorId);
+    appendField('Curator Link', shopper.curatorLink);
+    
+    content += '\n'; // Blank line
+
+    // Section 2
+    appendField('CDP-ID', shopper.cdpId);
+    appendField('DMS-ID', shopper.dmsId);
+
+    content += `\n\nUNIQUE ISSUE:\n${shopper.uniqueIssue}\n`;
 
     if (shopper.recentActivity && shopper.recentActivity.length > 0) {
-      content += `\n--- RECENT ACTIVITY ---\n`;
-      shopper.recentActivity.forEach(act => {
-        content += `- ${act.date} ${act.time}: ${act.activity}${act.action ? ' -> ' + act.action : ''}\n`;
-      });
+        content += `\n\n--- RECENT ACTIVITY (${shopper.recentActivity.length}) ---\n`;
+        shopper.recentActivity.forEach((act, index) => {
+            const activityDate = new Date(act.date).toLocaleDateString('en-US', { timeZone: 'UTC' });
+            content += `[${activityDate}] ${act.time}: ${act.activity}\n`;
+            if (act.action) {
+                content += `Action: ${act.action}\n`;
+            }
+            if (index < shopper.recentActivity.length - 1) {
+                content += '\n';
+            }
+        });
     }
 
-    content += `\n--- ASSOCIATED DEALERSHIP ---\n`;
-    content += `${linkedDealerships.length > 0 ? linkedDealerships.map(d => d.name).join(', ') : 'N/A'}\n`;
-    
-    navigator.clipboard.writeText(content);
+    navigator.clipboard.writeText(content.trim());
     showToast('Shopper info copied!', 'success');
   };
   

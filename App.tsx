@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, HistoryEntry, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -423,6 +423,7 @@ function App() {
       const newFeature: FeatureAnnouncement = {
           id: crypto.randomUUID(),
           ...newFeatureData,
+          updates: [],
       };
       setFeatures(prev => [...prev, newFeature]);
       showToast('Feature announcement added!', 'success');
@@ -860,6 +861,10 @@ function App() {
         const updatedDealership = { ...selectedDealership, updates: [...(selectedDealership.updates || []), newUpdate] };
         setSelectedDealership(updatedDealership);
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
+    } else if (currentView === 'features' && selectedFeature && selectedFeature.id === id) {
+        const updatedFeature = { ...selectedFeature, updates: [...(selectedFeature.updates || []), newUpdate] };
+        setSelectedFeature(updatedFeature);
+        setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
     }
     showToast('Update added!', 'success');
   };
@@ -886,6 +891,13 @@ function App() {
         };
         setSelectedDealership(updatedDealership);
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
+    } else if (currentView === 'features' && selectedFeature && selectedFeature.id === id) {
+        const updatedFeature = { 
+            ...selectedFeature, 
+            updates: (selectedFeature.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        setSelectedFeature(updatedFeature);
+        setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
     }
     showToast('Update modified!', 'success');
   };
@@ -912,6 +924,13 @@ function App() {
         };
         setSelectedDealership(updatedDealership);
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
+    } else if (currentView === 'features' && selectedFeature && selectedFeature.id === id) {
+        const updatedFeature = { 
+            ...selectedFeature, 
+            updates: (selectedFeature.updates || []).filter(u => u.id !== updateId)
+        };
+        setSelectedFeature(updatedFeature);
+        setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
     }
     showToast('Update deleted!', 'success');
   };
@@ -2443,7 +2462,9 @@ function App() {
             {...allDataForLinking}
             allGroups={dealershipGroups}
             onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
+            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView}
+            showToast={showToast}
+            />}
         {selectedMeeting && <MeetingDetailView 
             meeting={selectedMeeting} 
             onUpdate={handleUpdateMeeting} 
@@ -2457,6 +2478,10 @@ function App() {
             onUpdate={handleUpdateFeature} 
             onDelete={handleDeleteFeature} 
             onExport={() => handleExportFeature(selectedFeature)}
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedFeature.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedFeature.id, updateId)}
+            showToast={showToast}
             {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
