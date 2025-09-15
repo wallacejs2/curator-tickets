@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useEffect } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { XIcon } from './icons/XIcon.tsx';
@@ -20,6 +19,7 @@ const initialFormData: Omit<Dealership, 'id'> = {
   name: '',
   accountNumber: '',
   status: DealershipStatus.Onboarding,
+  hasManagedSolution: false,
   orderNumber: '',
   orderReceivedDate: '',
   goLiveDate: '',
@@ -72,6 +72,7 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
       setFormData({
         ...initialFormData,
         ...dealershipToEdit,
+        hasManagedSolution: dealershipToEdit.hasManagedSolution || false,
         websiteLinks: dealershipToEdit.websiteLinks || [],
         orderReceivedDate: toInputDate(dealershipToEdit.orderReceivedDate),
         goLiveDate: toInputDate(dealershipToEdit.goLiveDate),
@@ -82,9 +83,14 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
     }
   }, [dealershipToEdit]);
   
+  // FIX: Destructuring `checked` was causing a TypeScript error because it doesn't exist on all element types.
+  // This has been updated to safely handle both checkbox and other input types.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData(prev => ({ 
+        ...prev, 
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value 
+    }));
   };
 
   const handleGroupToggle = (groupId: string) => {
@@ -170,6 +176,19 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
          <div>
           <label className={labelClasses}>Enterprise (Group Name)</label>
           <input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div className="col-span-2 flex items-center mt-2">
+            <input
+                type="checkbox"
+                id="hasManagedSolution"
+                name="hasManagedSolution"
+                checked={formData.hasManagedSolution || false}
+                onChange={handleChange}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="hasManagedSolution" className="ml-2 block text-sm text-gray-900">
+                This dealership has a Managed Solution.
+            </label>
         </div>
       </FormSection>
 

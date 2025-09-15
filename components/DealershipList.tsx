@@ -127,7 +127,12 @@ const DealershipCard: React.FC<{
           <div className="p-5">
             <div className="flex justify-between items-start gap-3">
               <div className="flex-1 cursor-pointer" onClick={onClick}>
-                <h3 className="text-xl font-semibold text-gray-900">{dealership.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-semibold text-gray-900">{dealership.name}</h3>
+                    {dealership.hasManagedSolution && (
+                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-200 text-purple-800">Managed</span>
+                    )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={handleCopyInfo} className="p-2 text-gray-500 hover:text-blue-600 rounded-full flex-shrink-0" title="Copy Info">

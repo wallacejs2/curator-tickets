@@ -202,6 +202,7 @@ export interface Dealership {
     name: string;
     accountNumber: string;
     status: DealershipStatus;
+    hasManagedSolution?: boolean;
     orderNumber?: string;
     orderReceivedDate?: string;
     goLiveDate?: string;
