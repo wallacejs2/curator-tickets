@@ -12,6 +12,8 @@ import { FormatClearIcon } from './icons/FormatClearIcon.tsx';
 import { HighlighterIcon } from './icons/HighlighterIcon.tsx';
 import { TextColorIcon } from './icons/TextColorIcon.tsx';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
+import { FontSizeIcon } from './icons/FontSizeIcon.tsx';
+import SideView from './common/SideView.tsx';
 
 interface KnowledgeBaseViewProps {
   articles: KnowledgeArticle[];
@@ -23,29 +25,22 @@ interface KnowledgeBaseViewProps {
 const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => void, placeholder?: string }> = ({ value, onChange, placeholder }) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isPlaceholderVisible, setIsPlaceholderVisible] = useState(true);
+    
     const [isHeadingDropdownOpen, setIsHeadingDropdownOpen] = useState(false);
     const headingDropdownRef = useRef<HTMLDivElement>(null);
     const [currentBlockType, setCurrentBlockType] = useState('Body');
+    
+    const [isFontSizeDropdownOpen, setIsFontSizeDropdownOpen] = useState(false);
+    const fontSizeDropdownRef = useRef<HTMLDivElement>(null);
+    const [currentFontSize, setCurrentFontSize] = useState('3');
 
-    const headingOptions: { [key: string]: string } = {
-        'h1': 'Title',
-        'h2': 'Subtitle',
-        'h3': 'Heading',
-        'h4': 'Subheading',
-        'h5': 'Section',
-        'h6': 'Subsection',
-        'p': 'Body',
-        'div': 'Body'
-    };
-    const headingTags: { [key: string]: string } = {
-        'Title': '<h1>',
-        'Subtitle': '<h2>',
-        'Heading': '<h3>',
-        'Subheading': '<h4>',
-        'Section': '<h5>',
-        'Subsection': '<h6>',
-        'Body': '<p>',
-    };
+    const headingOptions: { [key: string]: string } = { 'h1': 'Title', 'h2': 'Subtitle', 'h3': 'Heading', 'h4': 'Subheading', 'h5': 'Section', 'h6': 'Subsection', 'p': 'Body', 'div': 'Body' };
+    const headingTags: { [key: string]: string } = { 'Title': '<h1>', 'Subtitle': '<h2>', 'Heading': '<h3>', 'Subheading': '<h4>', 'Section': '<h5>', 'Subsection': '<h6>', 'Body': '<p>' };
+    
+    const sizeMap: { [key: string]: string } = { '2': 'Small', '3': 'Normal', '5': 'Large', '6': 'Huge' };
+    const sizeOptions = ['Small', 'Normal', 'Large', 'Huge'];
+    const reverseSizeMap: { [key: string]: string } = { 'Small': '2', 'Normal': '3', 'Large': '5', 'Huge': '6' };
+    const displaySize = sizeMap[currentFontSize] || 'Normal';
 
     const handleInput = () => {
         if (editorRef.current) {
@@ -77,16 +72,18 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
         }
     };
     
-    const updateCurrentBlockType = () => {
+    const updateCurrentStyles = () => {
         const blockType = document.queryCommandValue('formatBlock');
         setCurrentBlockType(headingOptions[blockType] || 'Body');
+        const size = document.queryCommandValue('fontSize');
+        setCurrentFontSize(size || '3');
     };
 
     useEffect(() => {
         const editor = editorRef.current;
         if (editor) {
             const handleSelectionChange = () => {
-                setTimeout(updateCurrentBlockType, 10);
+                setTimeout(updateCurrentStyles, 10);
             };
             document.addEventListener('selectionchange', handleSelectionChange);
             return () => {
@@ -107,10 +104,32 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
             if (headingDropdownRef.current && !headingDropdownRef.current.contains(event.target as Node)) {
                 setIsHeadingDropdownOpen(false);
             }
+             if (fontSizeDropdownRef.current && !fontSizeDropdownRef.current.contains(event.target as Node)) {
+                setIsFontSizeDropdownOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const handlePaste = (event: ClipboardEvent) => {
+            event.preventDefault();
+            const text = event.clipboardData?.getData('text/plain');
+            if (text) {
+                document.execCommand('insertText', false, text);
+            }
+        };
+
+        editor.addEventListener('paste', handlePaste);
+
+        return () => {
+            editor.removeEventListener('paste', handlePaste);
         };
     }, []);
 
@@ -128,6 +147,21 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
                         <div className="absolute top-full left-0 bg-white border shadow-lg rounded-md z-10 w-48">
                             {Object.entries(headingTags).map(([name, tag]) => (
                                 <div key={name} onMouseDown={(e) => { e.preventDefault(); handleFormatBlock(tag); }} className="px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 cursor-pointer" style={{fontSize: name === 'Title' ? '1.5rem' : name === 'Subtitle' ? '1.25rem' : '1rem'}}>
+                                    {name}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <div className="relative" ref={fontSizeDropdownRef}>
+                    <button type="button" onClick={() => setIsFontSizeDropdownOpen(!isFontSizeDropdownOpen)} className="p-1.5 rounded hover:bg-gray-200 text-gray-700 text-sm h-8 flex items-center justify-between min-w-[120px] px-2">
+                        <span>{displaySize}</span>
+                        <ChevronDownIcon className="w-4 h-4 ml-2" />
+                    </button>
+                    {isFontSizeDropdownOpen && (
+                        <div className="absolute top-full left-0 bg-white border shadow-lg rounded-md z-10 w-32">
+                            {sizeOptions.map((name) => (
+                                <div key={name} onMouseDown={(e) => { e.preventDefault(); handleFormat('fontSize', reverseSizeMap[name]); setIsFontSizeDropdownOpen(false); }} className="px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 cursor-pointer">
                                     {name}
                                 </div>
                             ))}
@@ -158,8 +192,9 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
                 className="w-full text-sm p-3 min-h-[250px] focus:outline-none rich-text-content text-gray-900"
                 role="textbox"
                 aria-multiline="true"
-                onFocus={updateCurrentBlockType}
-                onClick={updateCurrentBlockType}
+                onFocus={updateCurrentStyles}
+                onClick={updateCurrentStyles}
+                onKeyUp={updateCurrentStyles}
             />
             {isPlaceholderVisible && (
                 <div className="absolute top-[49px] left-3 text-sm text-gray-500 pointer-events-none select-none">
@@ -286,11 +321,28 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ articles, onSave,
 
     return (
         <div className="flex h-full">
-             {isFormOpen && (
-                <Modal title={editingArticle ? 'Edit Article' : 'Create New Article'} onClose={() => { setIsFormOpen(false); setEditingArticle(null); }}>
-                    <ArticleForm onSave={handleSave} onClose={() => { setIsFormOpen(false); setEditingArticle(null); }} articleToEdit={editingArticle} />
+            {/* Modal for creating a new article */}
+            {isFormOpen && !editingArticle && (
+                <Modal title="Create New Article" onClose={() => { setIsFormOpen(false); setEditingArticle(null); }}>
+                    <ArticleForm onSave={handleSave} onClose={() => { setIsFormOpen(false); setEditingArticle(null); }} articleToEdit={null} />
                 </Modal>
             )}
+
+            {/* Side view for editing an existing article */}
+            <SideView
+                isOpen={isFormOpen && !!editingArticle}
+                onClose={() => { setIsFormOpen(false); setEditingArticle(null); }}
+                title="Edit Article"
+            >
+                {editingArticle && (
+                    <ArticleForm
+                        onSave={handleSave}
+                        onClose={() => { setIsFormOpen(false); setEditingArticle(null); }}
+                        articleToEdit={editingArticle}
+                    />
+                )}
+            </SideView>
+
             {/* Sidebar */}
             <aside className="w-1/3 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col p-4">
                 <div className="relative mb-4">
