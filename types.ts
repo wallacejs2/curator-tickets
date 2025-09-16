@@ -1,3 +1,4 @@
+
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -123,8 +124,12 @@ export interface Ticket {
   pmrLink?: string;
   fpTicketNumber?: string;
   ticketThreadId?: string;
+  // FIX: Added missing submissionDate property.
+  submissionDate: string;
   lastUpdatedDate: string;
   startDate?: string;
+  // FIX: Added missing estimatedCompletionDate property.
+  estimatedCompletionDate?: string;
   completionDate?: string;
   status: Status;
   priority: Priority;

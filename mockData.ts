@@ -12,6 +12,8 @@ export const initialTickets: Ticket[] = [
     pmrLink: 'https://example.com/pmr/12345',
     fpTicketNumber: 'FP-001',
     ticketThreadId: 'THREAD-ABC-123',
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-21T09:00:00Z').toISOString(),
     lastUpdatedDate: new Date('2024-07-23T15:30:00Z').toISOString(),
     startDate: new Date('2024-07-21T09:00:00Z').toISOString(),
     status: Status.InProgress,
@@ -55,6 +57,8 @@ export const initialTickets: Ticket[] = [
     pmrNumber: 'PMR-67890',
     fpTicketNumber: 'FP-002',
     ticketThreadId: 'THREAD-DEF-456',
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-15T09:00:00Z').toISOString(),
     lastUpdatedDate: new Date('2024-07-18T09:00:00Z').toISOString(),
     startDate: new Date('2024-07-18T09:00:00Z').toISOString(),
     status: Status.InReview,
@@ -91,8 +95,9 @@ export const initialTickets: Ticket[] = [
     client: 'Community Cars',
     fpTicketNumber: 'FP-003',
     ticketThreadId: 'THREAD-GHI-789',
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-22T09:00:00Z').toISOString(),
     lastUpdatedDate: new Date('2024-07-22T09:00:00Z').toISOString(),
-    startDate: new Date('2024-07-22T09:00:00Z').toISOString(),
     status: Status.NotStarted,
     priority: Priority.P2,
     submitterName: 'Charlie Brown',
@@ -120,7 +125,8 @@ export const initialTickets: Ticket[] = [
     pmrNumber: 'PMR-55555',
     fpTicketNumber: 'FP-004',
     ticketThreadId: 'THREAD-JKL-101',
-    startDate: new Date('2024-07-10T09:00:00Z').toISOString(),
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-10T09:00:00Z').toISOString(),
     lastUpdatedDate: new Date('2024-07-25T16:00:00Z').toISOString(),
     completionDate: new Date('2024-07-25T16:00:00Z').toISOString(),
     status: Status.Completed,
@@ -152,7 +158,8 @@ export const initialTickets: Ticket[] = [
     platform: Platform.UCP,
     title: 'API endpoint timing out',
     client: 'Global Auto',
-    startDate: new Date('2024-07-28T09:00:00Z').toISOString(),
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-28T09:00:00Z').toISOString(),
     lastUpdatedDate: new Date('2024-07-28T10:00:00Z').toISOString(),
     status: Status.OnHold,
     onHoldReason: 'Waiting for dependency on external API to be resolved by their team. ETA: 2 weeks.',

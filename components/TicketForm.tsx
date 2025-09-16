@@ -3,7 +3,7 @@ import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 
 // FIX: Update FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
-type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate'>) => void;
+type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
@@ -127,7 +127,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         ...issueData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate'> = { type, ...issueData };
+      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...issueData };
       onSubmit(finalTicket);
     } else {
       const {
@@ -138,7 +138,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         ...featureData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate'> = { type, ...featureData };
+      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...featureData };
       onSubmit(finalTicket);
     }
   };

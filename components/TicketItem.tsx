@@ -36,8 +36,10 @@ const ticketTypeBadgeStyles: Record<TicketType, string> = {
 const TicketItem: React.FC<TicketItemProps> = ({ ticket, onEdit }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const daysSinceStart = ticket.startDate ? Math.floor((new Date().getTime() - new Date(ticket.startDate).getTime()) / (1000 * 3600 * 24)) : null;
+  const daysSinceSubmission = Math.floor((new Date().getTime() - new Date(ticket.submissionDate).getTime()) / (1000 * 3600 * 24));
   
+  const formattedSubmissionDate = new Date(ticket.submissionDate).toLocaleDateString();
+  const formattedCompletionDate = ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString() : 'N/A';
   const formattedStartDate = ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : 'N/A';
 
   const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -64,12 +66,8 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onEdit }) => {
             {ticket.type === TicketType.Issue ? 'Reported by' : 'Requested by'}{' '}
             <span className="font-medium text-gray-700">{ticket.submitterName}</span>
           </span>
-          {daysSinceStart !== null && (
-            <>
-              <span className="mx-2 text-gray-300">•</span>
-              <span>{daysSinceStart} days ago</span>
-            </>
-          )}
+          <span className="mx-2 text-gray-300">•</span>
+          <span>{daysSinceSubmission} days ago</span>
         </div>
 
         {/* Bottom section: Type and Status */}
@@ -87,7 +85,9 @@ const TicketItem: React.FC<TicketItemProps> = ({ ticket, onEdit }) => {
         <div className="px-4 sm:px-5 pb-5">
             <div className="pt-4 border-t border-gray-100">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-5 mb-6">
+                    <DetailField label="Submitted On" value={formattedSubmissionDate} />
                     <DetailField label="Start Date" value={formattedStartDate} />
+                    <DetailField label="Est. Completion" value={formattedCompletionDate} />
                     <DetailField label="PMR Number" value={ticket.pmrNumber || 'N/A'} />
                     <DetailField label="FP Ticket #" value={ticket.fpTicketNumber || 'N/A'} />
                      <DetailField label="Location" value={ticket.location} />
