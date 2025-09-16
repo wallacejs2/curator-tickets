@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Meeting, Project, Ticket, Task, Dealership, FeatureAnnouncement, Status, ProjectStatus, TaskStatus } from '../types.ts';
+import { Meeting, Project, Ticket, Task, Dealership, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -14,6 +14,10 @@ interface MeetingDetailViewProps {
     onUpdate: (meeting: Meeting) => void;
     onDelete: (meetingId: string) => void;
     onExport: () => void;
+    onAddUpdate: (meetingId: string, comment: string, author: string, date: string) => void;
+    onEditUpdate: (updatedUpdate: Update) => void;
+    onDeleteUpdate: (updateId: string) => void;
+    showToast: (message: string, type: 'success' | 'error') => void;
     isReadOnly?: boolean;
     
     // All entities for linking
@@ -42,6 +46,9 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     onUpdate, 
     onDelete,
     onExport,
+    onAddUpdate,
+    onEditUpdate,
+    onDeleteUpdate,
     isReadOnly = false,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
@@ -49,6 +56,13 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editableMeeting, setEditableMeeting] = useState(meeting);
+    const [newUpdate, setNewUpdate] = useState('');
+    const [authorName, setAuthorName] = useState('');
+    const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
+    const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
+    const [editedComment, setEditedComment] = useState('');
+    
+    const MAX_COMMENT_LENGTH = 2000;
 
     useEffect(() => {
         setEditableMeeting(meeting);
@@ -81,6 +95,16 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     const handleSave = () => {
         onUpdate(editableMeeting);
         setIsEditing(false);
+    };
+
+    const handleUpdateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newUpdate.trim() && authorName.trim() && updateDate) {
+          const commentAsHtml = newUpdate.replace(/\n/g, '<br />');
+          onAddUpdate(meeting.id, commentAsHtml, authorName.trim(), updateDate);
+          setNewUpdate('');
+          setAuthorName('');
+        }
     };
 
     const labelClasses = "block text-sm font-medium text-gray-700";
@@ -155,6 +179,99 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
                 
                 {!isReadOnly && (
                   <>
+                     <div className="pt-6 mt-6 border-t border-gray-200">
+                        <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({meeting.updates?.length || 0})</h3>
+                        <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
+                            <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
+                            <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
+                            <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
+                            <textarea 
+                                value={newUpdate} 
+                                onChange={e => setNewUpdate(e.target.value)}
+                                placeholder="Type your comment here..."
+                                required
+                                rows={4}
+                                className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                maxLength={MAX_COMMENT_LENGTH}
+                            />
+                            <div className="flex justify-between items-center">
+                                <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
+                                <button 
+                                    type="submit" 
+                                    disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
+                                    className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
+                                    Add Update
+                                </button>
+                            </div>
+                        </form>
+                        <div className="space-y-4">
+                            {[...(meeting.updates || [])].reverse().map((update) => (
+                                <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+                                    {editingUpdateId === update.id && !isReadOnly ? (
+                                        <div>
+                                            <textarea
+                                            value={editedComment}
+                                            onChange={(e) => setEditedComment(e.target.value)}
+                                            rows={4}
+                                            className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
+                                            />
+                                            <div className="flex justify-end gap-2 mt-2">
+                                                <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
+                                                <button
+                                                    onClick={() => {
+                                                        const commentAsHtml = editedComment.replace(/\n/g, '<br />');
+                                                        onEditUpdate({ ...update, comment: commentAsHtml });
+                                                        setEditingUpdateId(null);
+                                                    }}
+                                                    className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
+                                                >
+                                                    Save
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="group">
+                                            <div className="flex justify-between items-start">
+                                                <p className="text-xs text-gray-500 font-medium">
+                                                    <span className="font-semibold text-gray-700">{update.author}</span>
+                                                    <span className="mx-1.5">•</span>
+                                                    <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
+                                                </p>
+                                                {!isReadOnly && (
+                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingUpdateId(update.id);
+                                                            const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
+                                                            setEditedComment(commentForEditing);
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-blue-600"
+                                                        aria-label="Edit update"
+                                                    >
+                                                        <PencilIcon className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (window.confirm('Are you sure you want to delete this update?')) {
+                                                            onDeleteUpdate(update.id);
+                                                            }
+                                                        }}
+                                                        className="p-1 text-gray-400 hover:text-red-600"
+                                                        aria-label="Delete update"
+                                                    >
+                                                        <TrashIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                )}
+                                            </div>
+                                            <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
                     <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
                     <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />

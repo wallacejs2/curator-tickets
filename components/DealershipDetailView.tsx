@@ -138,6 +138,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         };
 
         appendField('Account Number (CIF)', dealership.accountNumber);
+        appendField('Client_ID', dealership.clientId);
         appendField('Status', dealership.status);
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Store Number', dealership.storeNumber);
@@ -238,6 +239,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="ERA System ID" value={dealership.eraSystemId} />
                     <DetailField label="PPSysID" value={dealership.ppSysId} />
                     <DetailField label="BU-ID" value={dealership.buId} />
+                    <DetailField label="Client_ID" value={dealership.clientId} />
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
@@ -350,7 +352,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                         ))}
                     </div>
                 </div>
-                
+
                 {!isReadOnly && (
                   <>
                     <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
@@ -364,7 +366,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 )}
             </div>
         </div>
-    )
-}
-
+    );
+};
 export default DealershipDetailView;

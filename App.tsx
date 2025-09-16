@@ -849,88 +849,124 @@ function App() {
   const handleAddUpdate = (id: string, comment: string, author: string, date: string) => {
     const newUpdate: Update = { id: crypto.randomUUID(), author, date: new Date(`${date}T00:00:00`).toISOString(), comment };
     
-    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+    if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate] };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
-    } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
+    } else if (selectedProject && selectedProject.id === id) {
         const updatedProject = { ...selectedProject, updates: [...(selectedProject.updates || []), newUpdate] };
         setSelectedProject(updatedProject);
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
-    } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
+    } else if (selectedDealership && selectedDealership.id === id) {
         const updatedDealership = { ...selectedDealership, updates: [...(selectedDealership.updates || []), newUpdate] };
         setSelectedDealership(updatedDealership);
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
-    } else if (currentView === 'features' && selectedFeature && selectedFeature.id === id) {
+    } else if (selectedFeature && selectedFeature.id === id) {
         const updatedFeature = { ...selectedFeature, updates: [...(selectedFeature.updates || []), newUpdate] };
         setSelectedFeature(updatedFeature);
         setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
+    } else if (selectedMeeting && selectedMeeting.id === id) {
+        const updatedMeeting = { ...selectedMeeting, updates: [...(selectedMeeting.updates || []), newUpdate] };
+        setSelectedMeeting(updatedMeeting);
+        setMeetings(prevMeetings => prevMeetings.map(m => m.id === id ? updatedMeeting : m));
+    } else if (selectedShopper && selectedShopper.id === id) {
+        const updatedShopper = { ...selectedShopper, updates: [...(selectedShopper.updates || []), newUpdate] };
+        setSelectedShopper(updatedShopper);
+        setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
     }
     showToast('Update added!', 'success');
   };
 
   const handleEditUpdate = (id: string, updatedUpdate: Update) => {
-    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+    if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { 
             ...selectedTicket, 
             updates: (selectedTicket.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
         };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
-    } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
+    } else if (selectedProject && selectedProject.id === id) {
         const updatedProject = { 
             ...selectedProject, 
             updates: (selectedProject.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
         };
         setSelectedProject(updatedProject);
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
-    } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
+    } else if (selectedDealership && selectedDealership.id === id) {
         const updatedDealership = { 
             ...selectedDealership, 
             updates: (selectedDealership.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
         };
         setSelectedDealership(updatedDealership);
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
-    } else if (currentView === 'features' && selectedFeature && selectedFeature.id === id) {
+    } else if (selectedFeature && selectedFeature.id === id) {
         const updatedFeature = { 
             ...selectedFeature, 
             updates: (selectedFeature.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
         };
         setSelectedFeature(updatedFeature);
         setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
+    } else if (selectedMeeting && selectedMeeting.id === id) {
+        const updatedMeeting = { 
+            ...selectedMeeting, 
+            updates: (selectedMeeting.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        setSelectedMeeting(updatedMeeting);
+        setMeetings(prevMeetings => prevMeetings.map(m => m.id === id ? updatedMeeting : m));
+    } else if (selectedShopper && selectedShopper.id === id) {
+        const updatedShopper = { 
+            ...selectedShopper, 
+            updates: (selectedShopper.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        setSelectedShopper(updatedShopper);
+        setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
     }
     showToast('Update modified!', 'success');
   };
 
   const handleDeleteUpdate = (id: string, updateId: string) => {
-    if (currentView === 'tickets' && selectedTicket && selectedTicket.id === id) {
+    if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { 
             ...selectedTicket, 
             updates: (selectedTicket.updates || []).filter(u => u.id !== updateId)
         };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
-    } else if (currentView === 'projects' && selectedProject && selectedProject.id === id) {
+    } else if (selectedProject && selectedProject.id === id) {
         const updatedProject = { 
             ...selectedProject, 
             updates: (selectedProject.updates || []).filter(u => u.id !== updateId)
         };
         setSelectedProject(updatedProject);
         setProjects(prevProjects => prevProjects.map(p => p.id === id ? updatedProject : p));
-    } else if (currentView === 'dealerships' && selectedDealership && selectedDealership.id === id) {
+    } else if (selectedDealership && selectedDealership.id === id) {
         const updatedDealership = { 
             ...selectedDealership, 
             updates: (selectedDealership.updates || []).filter(u => u.id !== updateId)
         };
         setSelectedDealership(updatedDealership);
         setDealerships(prevDealerships => prevDealerships.map(d => d.id === id ? updatedDealership : d));
-    } else if (currentView === 'features' && selectedFeature && selectedFeature.id === id) {
+    } else if (selectedFeature && selectedFeature.id === id) {
         const updatedFeature = { 
             ...selectedFeature, 
             updates: (selectedFeature.updates || []).filter(u => u.id !== updateId)
         };
         setSelectedFeature(updatedFeature);
         setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
+    } else if (selectedMeeting && selectedMeeting.id === id) {
+        const updatedMeeting = { 
+            ...selectedMeeting, 
+            updates: (selectedMeeting.updates || []).filter(u => u.id !== updateId)
+        };
+        setSelectedMeeting(updatedMeeting);
+        setMeetings(prevMeetings => prevMeetings.map(m => m.id === id ? updatedMeeting : m));
+    } else if (selectedShopper && selectedShopper.id === id) {
+        const updatedShopper = { 
+            ...selectedShopper, 
+            updates: (selectedShopper.updates || []).filter(u => u.id !== updateId)
+        };
+        setSelectedShopper(updatedShopper);
+        setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
     }
     showToast('Update deleted!', 'success');
   };
@@ -1227,6 +1263,7 @@ function App() {
         appendSection('Account Information');
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
+        appendField('Client_ID', dealership.clientId);
         appendField('Status', dealership.status);
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
@@ -1559,7 +1596,7 @@ function App() {
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
-              return ['id', 'name', 'accountNumber', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+              return ['id', 'name', 'accountNumber', 'clientId', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
           case 'Standalone Tasks':
               return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
           case 'Features':
@@ -2471,6 +2508,10 @@ function App() {
             onUpdate={handleUpdateMeeting} 
             onDelete={handleDeleteMeeting} 
             onExport={() => handleExportMeeting(selectedMeeting)} 
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedMeeting.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedMeeting.id, updateId)}
+            showToast={showToast}
             {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
@@ -2491,6 +2532,9 @@ function App() {
             onUpdate={handleUpdateShopper}
             onDelete={handleDeleteShopper}
             showToast={showToast}
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedShopper.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedShopper.id, updateId)}
             {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}

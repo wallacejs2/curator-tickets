@@ -1,4 +1,5 @@
 
+
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -201,6 +202,7 @@ export interface Dealership {
     id: string;
     name: string;
     accountNumber: string;
+    clientId?: string;
     status: DealershipStatus;
     hasManagedSolution?: boolean;
     orderNumber?: string;
@@ -250,6 +252,7 @@ export interface Meeting {
     taskIds?: string[];
     dealershipIds?: string[];
     featureIds?: string[];
+    updates?: Update[];
 }
 
 export enum ContactType {
@@ -310,6 +313,7 @@ export interface Shopper {
   dealershipIds?: string[];
   ticketIds?: string[];
   taskIds?: string[];
+  updates?: Update[];
 }
 
 export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers';

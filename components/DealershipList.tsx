@@ -69,6 +69,7 @@ const DealershipCard: React.FC<{
         };
 
         appendField('Account Number (CIF)', dealership.accountNumber);
+        appendField('Client_ID', dealership.clientId);
         appendField('Status', dealership.status);
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Store Number', dealership.storeNumber);
@@ -118,6 +119,7 @@ const DealershipCard: React.FC<{
               <DetailItem label="ERA ID" value={dealership.eraSystemId} />
               <DetailItem label="PPSysID" value={dealership.ppSysId} />
               <DetailItem label="BU-ID" value={dealership.buId} />
+              <DetailItem label="Client_ID" value={dealership.clientId} />
           </div>
       </div>
     );

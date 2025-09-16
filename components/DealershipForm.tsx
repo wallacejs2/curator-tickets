@@ -18,6 +18,7 @@ interface DealershipFormProps {
 const initialFormData: Omit<Dealership, 'id'> = {
   name: '',
   accountNumber: '',
+  clientId: '',
   status: DealershipStatus.Onboarding,
   hasManagedSolution: false,
   orderNumber: '',
@@ -315,6 +316,10 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
         <div>
           <label className={labelClasses}>BU-ID</label>
           <input type="text" name="buId" value={formData.buId || ''} onChange={handleChange} className={formElementClasses} />
+        </div>
+        <div>
+          <label className={labelClasses}>Client_ID</label>
+          <input type="text" name="clientId" value={formData.clientId || ''} onChange={handleChange} className={formElementClasses} />
         </div>
       </FormSection>
       
