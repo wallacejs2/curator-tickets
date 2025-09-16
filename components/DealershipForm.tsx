@@ -1,7 +1,6 @@
 
-
 import React, { useState, useEffect } from 'react';
-import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
+import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink } from '../types.ts';
 import { XIcon } from './icons/XIcon.tsx';
 
 type FormSubmitCallback = (dealership: Omit<Dealership, 'id'>) => void;
@@ -18,7 +17,6 @@ interface DealershipFormProps {
 const initialFormData: Omit<Dealership, 'id'> = {
   name: '',
   accountNumber: '',
-  clientId: '',
   status: DealershipStatus.Onboarding,
   hasManagedSolution: false,
   orderNumber: '',
@@ -54,7 +52,8 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
 
 const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dealershipToEdit, onClose, allGroups }) => {
   const [formData, setFormData] = useState(initialFormData);
-  const [newLink, setNewLink] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkClientId, setNewLinkClientId] = useState('');
   const isEditing = !!dealershipToEdit;
 
   // This function safely converts a UTC ISO string to a YYYY-MM-DD string for date inputs.
@@ -105,16 +104,20 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
   };
 
   const handleAddLink = () => {
-    if (newLink.trim()) {
+    if (newLinkUrl.trim()) {
         try {
-            // Basic validation: check if it can be parsed as a URL.
-            new URL(newLink.trim());
-            if (!(formData.websiteLinks || []).includes(newLink.trim())) {
+            new URL(newLinkUrl.trim());
+            const newLink: WebsiteLink = {
+                url: newLinkUrl.trim(),
+                clientId: newLinkClientId.trim() || undefined
+            };
+            if (!(formData.websiteLinks || []).some(link => link.url === newLink.url)) {
                 setFormData(prev => ({
                     ...prev,
-                    websiteLinks: [...(prev.websiteLinks || []), newLink.trim()]
+                    websiteLinks: [...(prev.websiteLinks || []), newLink]
                 }));
-                setNewLink('');
+                setNewLinkUrl('');
+                setNewLinkClientId('');
             }
         } catch (_) {
             alert('Please enter a valid URL (e.g., https://example.com)');
@@ -122,10 +125,10 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
     }
   };
 
-  const handleRemoveLink = (linkToRemove: string) => {
+  const handleRemoveLink = (indexToRemove: number) => {
     setFormData(prev => ({
         ...prev,
-        websiteLinks: (prev.websiteLinks || []).filter(link => link !== linkToRemove)
+        websiteLinks: (prev.websiteLinks || []).filter((_, index) => index !== indexToRemove)
     }));
   };
 
@@ -238,14 +241,21 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
       
       <FormSection title="Website Links" gridCols={1}>
         <div>
-            <label className={labelClasses}>Add a Website URL</label>
-            <div className="mt-1 flex gap-2">
+            <div className="mt-1 grid grid-cols-[2fr,1fr,auto] gap-2">
                 <input
                     type="url"
-                    value={newLink}
-                    onChange={(e) => setNewLink(e.target.value)}
+                    value={newLinkUrl}
+                    onChange={(e) => setNewLinkUrl(e.target.value)}
                     onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); handleAddLink(); } }}
                     placeholder="https://example.com"
+                    className={formElementClasses + " flex-grow !mt-0"}
+                />
+                <input
+                    type="text"
+                    value={newLinkClientId}
+                    onChange={(e) => setNewLinkClientId(e.target.value)}
+                    onKeyDown={(e) => { if(e.key === 'Enter') { e.preventDefault(); handleAddLink(); } }}
+                    placeholder="Client ID (optional)"
                     className={formElementClasses + " flex-grow !mt-0"}
                 />
                 <button
@@ -259,12 +269,15 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
             <div className="mt-3 space-y-2">
                 {(formData.websiteLinks || []).map((link, index) => (
                     <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded border">
-                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate">{link}</a>
+                        <div className="truncate">
+                            <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate">{link.url}</a>
+                            {link.clientId && <p className="text-xs text-gray-500">Client ID: {link.clientId}</p>}
+                        </div>
                         <button
                             type="button"
-                            onClick={() => handleRemoveLink(link)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                            aria-label={`Remove ${link}`}
+                            onClick={() => handleRemoveLink(index)}
+                            className="text-red-500 hover:text-red-700 p-1 flex-shrink-0 ml-2"
+                            aria-label={`Remove ${link.url}`}
                         >
                             <XIcon className="w-4 h-4" />
                         </button>
@@ -316,10 +329,6 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
         <div>
           <label className={labelClasses}>BU-ID</label>
           <input type="text" name="buId" value={formData.buId || ''} onChange={handleChange} className={formElementClasses} />
-        </div>
-        <div>
-          <label className={labelClasses}>Client_ID</label>
-          <input type="text" name="clientId" value={formData.clientId || ''} onChange={handleChange} className={formElementClasses} />
         </div>
       </FormSection>
       

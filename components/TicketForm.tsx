@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 
-type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => void;
+// FIX: Update FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
+type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
@@ -19,7 +20,6 @@ interface FormData {
   fpTicketNumber: string;
   ticketThreadId: string;
   startDate: string;
-  estimatedCompletionDate: string;
   status: Status;
   priority: Priority;
   submitterName: string;
@@ -39,9 +39,6 @@ interface FormData {
 }
 
 const getInitialState = (): FormData => {
-  const nextWeek = new Date();
-  nextWeek.setDate(nextWeek.getDate() + 7);
-  
   return {
     type: TicketType.Issue,
     productArea: ProductArea.Reynolds,
@@ -52,7 +49,6 @@ const getInitialState = (): FormData => {
     fpTicketNumber: '',
     ticketThreadId: '',
     startDate: '',
-    estimatedCompletionDate: nextWeek.toISOString().split('T')[0],
     status: Status.NotStarted,
     priority: Priority.P3,
     submitterName: '',
@@ -109,7 +105,6 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
 
     const dataToSubmit: any = {
       ...rest,
-      estimatedCompletionDate: rest.estimatedCompletionDate ? new Date(`${rest.estimatedCompletionDate}T00:00:00`).toISOString() : undefined,
       startDate: rest.startDate ? new Date(`${rest.startDate}T00:00:00`).toISOString() : undefined,
       projectIds: selectedProjectId ? [selectedProjectId] : [],
     };
@@ -131,7 +126,8 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         benefits,
         ...issueData
       } = dataToSubmit;
-      const finalTicket: Omit<IssueTicket, 'id' | 'submissionDate'> = { type, ...issueData };
+      // FIX: Update type to match the new FormSubmitCallback.
+      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...issueData };
       onSubmit(finalTicket);
     } else {
       const {
@@ -141,7 +137,8 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         frequency,
         ...featureData
       } = dataToSubmit;
-      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'submissionDate'> = { type, ...featureData };
+      // FIX: Update type to match the new FormSubmitCallback.
+      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...featureData };
       onSubmit(finalTicket);
     }
   };
@@ -271,14 +268,10 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         )}
       </FormSection>
       
-      <FormSection title="Dates">
+      <FormSection title="Dates" gridCols={1}>
         <div>
           <label className={labelClasses}>Start Date</label>
           <input type="date" name="startDate" value={formData.startDate?.split('T')[0] || ''} onChange={handleChange} className={formElementClasses} />
-        </div>
-        <div>
-          <label className={labelClasses}>Est. Time of Completion</label>
-          <input type="date" name="estimatedCompletionDate" value={formData.estimatedCompletionDate ? formData.estimatedCompletionDate.split('T')[0] : ''} onChange={handleChange} className={formElementClasses} />
         </div>
       </FormSection>
 

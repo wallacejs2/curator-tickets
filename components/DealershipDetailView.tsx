@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -138,7 +137,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         };
 
         appendField('Account Number (CIF)', dealership.accountNumber);
-        appendField('Client_ID', dealership.clientId);
         appendField('Status', dealership.status);
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Store Number', dealership.storeNumber);
@@ -146,7 +144,17 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('ERA System ID', dealership.eraSystemId);
         appendField('PPSysID', dealership.ppSysId);
         appendField('BU-ID', dealership.buId);
-        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
+        
+        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
+            content += 'Website Links:\n';
+            dealership.websiteLinks.forEach(link => {
+                content += `- ${link.url}`;
+                if (link.clientId) {
+                    content += ` (Client ID: ${link.clientId})`;
+                }
+                content += '\n';
+            });
+        }
         
         content += '\n--- ORDER & DATES ---\n';
         appendField('Order Number', dealership.orderNumber);
@@ -239,7 +247,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="ERA System ID" value={dealership.eraSystemId} />
                     <DetailField label="PPSysID" value={dealership.ppSysId} />
                     <DetailField label="BU-ID" value={dealership.buId} />
-                    <DetailField label="Client_ID" value={dealership.clientId} />
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
@@ -247,10 +254,11 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     {(dealership.websiteLinks && dealership.websiteLinks.length > 0) && (
                         <div className="mt-6">
                             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Website Links</h4>
-                            <ul className="mt-1 space-y-1 list-disc list-inside">
+                            <ul className="mt-1 space-y-2">
                                 {dealership.websiteLinks.map((link, index) => (
-                                    <li key={index}>
-                                        <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{link}</a>
+                                    <li key={index} className="p-2 bg-gray-50 rounded-md border">
+                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{link.url}</a>
+                                        {link.clientId && <p className="text-xs text-gray-600 mt-1">Client ID: <span className="font-medium">{link.clientId}</span></p>}
                                     </li>
                                 ))}
                             </ul>

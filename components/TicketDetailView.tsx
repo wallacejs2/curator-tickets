@@ -292,10 +292,6 @@ const TicketDetailView = ({
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditableTicket(prev => {
-      // submissionDate is a required field, prevent it from being cleared by reverting to previous state if empty.
-      if (name === 'submissionDate') {
-        return { ...prev, submissionDate: value ? new Date(`${value}T00:00:00`).toISOString() : prev.submissionDate }
-      }
       return {
         ...prev,
         [name]: value ? new Date(`${value}T00:00:00`).toISOString() : undefined,
@@ -433,9 +429,8 @@ const TicketDetailView = ({
       </FormSection>
 
       <FormSection title="Dates" gridCols={3}>
-        <DetailField label="Submission Date" value={new Date(ticket.submissionDate).toLocaleDateString(undefined, { timeZone: 'UTC' })} />
         <DetailField label="Start Date" value={ticket.startDate ? new Date(ticket.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />
-        <DetailField label="Est. Completion Date" value={ticket.estimatedCompletionDate ? new Date(ticket.estimatedCompletionDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />
+        <DetailField label="Last Updated" value={new Date(ticket.lastUpdatedDate).toLocaleString(undefined, { timeZone: 'UTC' })} />
         {ticket.status === Status.Completed && <DetailField label="Completion Date" value={ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />}
       </FormSection>
       
@@ -509,9 +504,7 @@ const TicketDetailView = ({
         </FormSection>
         
         <FormSection title="Dates" gridCols={3}>
-            <div><label className={labelClasses}>Submission Date</label><input type="date" name="submissionDate" value={editableTicket.submissionDate.split('T')[0] || ''} onChange={handleDateChange} required className={formElementClasses} /></div>
             <div><label className={labelClasses}>Start Date</label><input type="date" name="startDate" value={editableTicket.startDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
-            <div><label className={labelClasses}>Est. Completion Date</label><input type="date" name="estimatedCompletionDate" value={editableTicket.estimatedCompletionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>
             {editableTicket.status === Status.Completed && (<div><label className={labelClasses}>Completion Date</label><input type="date" name="completionDate" value={editableTicket.completionDate?.split('T')[0] || ''} onChange={handleDateChange} className={formElementClasses} /></div>)}
         </FormSection>
         

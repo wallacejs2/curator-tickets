@@ -1,5 +1,4 @@
 
-
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -125,8 +124,11 @@ export interface Ticket {
   pmrLink?: string;
   fpTicketNumber?: string;
   ticketThreadId?: string;
+  // FIX: Added missing submissionDate property.
   submissionDate: string;
+  lastUpdatedDate: string;
   startDate?: string;
+  // FIX: Added missing estimatedCompletionDate property.
   estimatedCompletionDate?: string;
   completionDate?: string;
   status: Status;
@@ -198,11 +200,15 @@ export enum DealershipStatus {
     Cancelled = 'Cancelled',
 }
 
+export interface WebsiteLink {
+    url: string;
+    clientId?: string;
+}
+
 export interface Dealership {
     id: string;
     name: string;
     accountNumber: string;
-    clientId?: string;
     status: DealershipStatus;
     hasManagedSolution?: boolean;
     orderNumber?: string;
@@ -221,7 +227,7 @@ export interface Dealership {
     pocName?: string;
     pocEmail?: string;
     pocPhone?: string;
-    websiteLinks?: string[];
+    websiteLinks?: WebsiteLink[];
     updates?: Update[];
     groupIds?: string[];
     ticketIds?: string[];

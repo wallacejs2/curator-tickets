@@ -371,11 +371,14 @@ function App() {
     return [...projectTasks, ...ticketTasks, ...standaloneTasks];
   }, [projects, tickets, tasks]);
   
-  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate'>) => {
+  // FIX: Updated handleTicketSubmit signature and logic to correctly set submissionDate and lastUpdatedDate.
+  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => {
+    const submissionDate = new Date().toISOString();
     const newTicket = {
       ...newTicketData,
       id: crypto.randomUUID(),
-      submissionDate: new Date().toISOString(),
+      submissionDate: submissionDate,
+      lastUpdatedDate: submissionDate,
       updates: [],
       tasks: [],
     } as Ticket;
@@ -1263,7 +1266,6 @@ function App() {
         appendSection('Account Information');
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
-        appendField('Client_ID', dealership.clientId);
         appendField('Status', dealership.status);
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
@@ -1274,7 +1276,17 @@ function App() {
         appendField('POC Name', dealership.pocName);
         appendField('POC Email', dealership.pocEmail);
         appendField('POC Phone', dealership.pocPhone);
-        appendField('Website Links', (dealership.websiteLinks || []).join(', '));
+        
+        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
+            content += 'Website Links:\n';
+            dealership.websiteLinks.forEach(link => {
+                content += `- ${link.url}`;
+                if (link.clientId) {
+                    content += ` (Client ID: ${link.clientId})`;
+                }
+                content += '\n';
+            });
+        }
 
         appendSection('Order & Dates');
         appendField('Order Number', dealership.orderNumber);
@@ -1596,7 +1608,7 @@ function App() {
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
-              return ['id', 'name', 'accountNumber', 'clientId', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+              return ['id', 'name', 'accountNumber', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
           case 'Standalone Tasks':
               return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
           case 'Features':
@@ -1683,7 +1695,8 @@ function App() {
                 break;
             case 'Dealerships':
                 dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
-                arrayFields.push('websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
+                arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
+                jsonFields.push('websiteLinks');
                 enumFields['status'] = DEALERSHIP_STATUS_OPTIONS;
                 booleanFields.push('hasManagedSolution');
                 break;
@@ -1735,7 +1748,7 @@ function App() {
                         formattedRow[key] = JSON.parse(value);
                     } catch (e) {
                         console.warn(`Could not parse JSON for field '${key}'`, { value });
-                        formattedRow[key] = (key === 'tasks') ? [] : undefined;
+                        formattedRow[key] = (key === 'tasks' || key === 'websiteLinks') ? [] : undefined;
                     }
                 }
             }

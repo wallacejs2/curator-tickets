@@ -9,6 +9,7 @@ import { StarIcon } from './icons/StarIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
+import { PersonIcon } from './icons/PersonIcon.tsx';
 
 
 interface TicketTableProps {
@@ -148,20 +149,19 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
 
 
   const calculateDaysActive = (ticket: Ticket): string => {
-    const startDate = ticket.startDate ? new Date(ticket.startDate) : null;
-
-    if (ticket.status === Status.Completed && ticket.completionDate) {
+    if (ticket.status === Status.Completed && ticket.completionDate && ticket.startDate) {
       const completionDate = new Date(ticket.completionDate);
-      const start = startDate || new Date(ticket.submissionDate); // Fallback to submission date for completed tickets if no start date
+      const start = new Date(ticket.startDate);
       const diffTime = Math.abs(completionDate.getTime() - start.getTime());
       const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       return `Completed in ${diffDays} day${diffDays !== 1 ? 's' : ''}`;
     }
     
-    if (!startDate) {
+    if (!ticket.startDate) {
         return 'Not started';
     }
 
+    const startDate = new Date(ticket.startDate);
     const endDate = new Date();
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
     const diffDays = Math.floor(diffTime / (1000 * 3600 * 24)) + 1;
@@ -293,6 +293,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                         {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
                         {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
                         {(ticket.featureIds?.length || 0) > 0 && <span title={`${ticket.featureIds?.length} linked feature(s)`} className="flex items-center gap-1 text-pink-600"><SparklesIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.featureIds?.length}</span></span>}
+                        {(ticket.shopperIds?.length || 0) > 0 && <span title={`${ticket.shopperIds?.length} linked shopper(s)`} className="flex items-center gap-1 text-indigo-600"><PersonIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.shopperIds?.length}</span></span>}
                     </div>
                     
                     <div className="text-sm text-gray-500 mt-2">
@@ -306,7 +307,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                         <span>{ticket.submitterName}</span>
                     </div>
                     <div className="mt-1">
-                        <span>Start Date: {ticket.startDate ? new Date(ticket.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'}</span>
+                        <span>Updated: {new Date(ticket.lastUpdatedDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
                         <span className="mx-2 text-gray-300">•</span>
                         <span>{calculateDaysActive(ticket)}</span>
                     </div>

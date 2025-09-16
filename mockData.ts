@@ -1,5 +1,3 @@
-
-
 import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
 
 export const initialTickets: Ticket[] = [
@@ -14,9 +12,10 @@ export const initialTickets: Ticket[] = [
     pmrLink: 'https://example.com/pmr/12345',
     fpTicketNumber: 'FP-001',
     ticketThreadId: 'THREAD-ABC-123',
-    submissionDate: new Date('2024-07-20T10:00:00Z').toISOString(),
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-21T09:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-23T15:30:00Z').toISOString(),
     startDate: new Date('2024-07-21T09:00:00Z').toISOString(),
-    estimatedCompletionDate: new Date('2024-07-30T17:00:00Z').toISOString(),
     status: Status.InProgress,
     priority: Priority.P1,
     submitterName: 'Alice Johnson',
@@ -58,9 +57,10 @@ export const initialTickets: Ticket[] = [
     pmrNumber: 'PMR-67890',
     fpTicketNumber: 'FP-002',
     ticketThreadId: 'THREAD-DEF-456',
-    submissionDate: new Date('2024-07-15T14:30:00Z').toISOString(),
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-15T09:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-18T09:00:00Z').toISOString(),
     startDate: new Date('2024-07-18T09:00:00Z').toISOString(),
-    estimatedCompletionDate: new Date().toISOString(), // Due today for "My Day" view
     status: Status.InReview,
     priority: Priority.P5,
     submitterName: 'Bob Williams',
@@ -95,8 +95,9 @@ export const initialTickets: Ticket[] = [
     client: 'Community Cars',
     fpTicketNumber: 'FP-003',
     ticketThreadId: 'THREAD-GHI-789',
+    // FIX: Added submissionDate to match the updated Ticket type.
     submissionDate: new Date('2024-07-22T09:00:00Z').toISOString(),
-    estimatedCompletionDate: new Date('2024-08-01T17:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-22T09:00:00Z').toISOString(),
     status: Status.NotStarted,
     priority: Priority.P2,
     submitterName: 'Charlie Brown',
@@ -124,7 +125,9 @@ export const initialTickets: Ticket[] = [
     pmrNumber: 'PMR-55555',
     fpTicketNumber: 'FP-004',
     ticketThreadId: 'THREAD-JKL-101',
-    submissionDate: new Date('2024-07-10T11:00:00Z').toISOString(),
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-10T09:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-25T16:00:00Z').toISOString(),
     completionDate: new Date('2024-07-25T16:00:00Z').toISOString(),
     status: Status.Completed,
     priority: Priority.P2,
@@ -155,7 +158,9 @@ export const initialTickets: Ticket[] = [
     platform: Platform.UCP,
     title: 'API endpoint timing out',
     client: 'Global Auto',
-    submissionDate: new Date('2024-07-28T10:00:00Z').toISOString(),
+    // FIX: Added submissionDate to match the updated Ticket type.
+    submissionDate: new Date('2024-07-28T09:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-28T10:00:00Z').toISOString(),
     status: Status.OnHold,
     onHoldReason: 'Waiting for dependency on external API to be resolved by their team. ETA: 2 weeks.',
     priority: Priority.P2,
@@ -287,7 +292,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-1',
     name: 'Prestige Motors',
     accountNumber: 'CIF-1001',
-    clientId: 'CL-PM-01',
     status: DealershipStatus.Live,
     hasManagedSolution: true,
     orderNumber: 'ORD-2024-001',
@@ -305,7 +309,10 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Mike Miller',
     pocEmail: 'mike.miller@prestigemotors.com',
     pocPhone: '555-123-4567',
-    websiteLinks: ['https://www.prestigemotors.com', 'https://inventory.prestigemotors.com'],
+    websiteLinks: [
+      { url: 'https://www.prestigemotors.com', clientId: 'PM-WEB-01' },
+      { url: 'https://inventory.prestigemotors.com', clientId: 'PM-INV-01' }
+    ],
     updates: [
       {
         id: 'update-deal-1-1',
@@ -333,7 +340,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-2',
     name: 'City Cars',
     accountNumber: 'CIF-1002',
-    clientId: 'CL-CC-02',
     status: DealershipStatus.Onboarding,
     hasManagedSolution: true,
     orderNumber: 'ORD-2024-002',
@@ -348,7 +354,7 @@ export const initialDealerships: Dealership[] = [
     pocName: 'Anna Williams',
     pocEmail: 'anna.w@citycars.com',
     pocPhone: '555-987-6543',
-    websiteLinks: ['https://www.citycars.com'],
+    websiteLinks: [{ url: 'https://www.citycars.com', clientId: 'CC-MAIN-34' }],
     updates: [],
     groupIds: ['d-group-2'],
     ticketIds: [],
@@ -363,7 +369,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-3',
     name: 'Reliable Rides',
     accountNumber: 'CIF-1003',
-    clientId: 'CL-RR-03',
     status: DealershipStatus.Cancelled,
     hasManagedSolution: false,
     orderNumber: 'ORD-2023-050',
@@ -389,7 +394,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-4',
     name: 'Future Fleet',
     accountNumber: 'CIF-1004',
-    clientId: 'CL-FF-04',
     status: DealershipStatus.Pilot,
     orderNumber: 'ORD-2024-004',
     orderReceivedDate: new Date('2024-07-15T00:00:00Z').toISOString(),
@@ -413,7 +417,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-5',
     name: 'Focus Forward',
     accountNumber: 'CIF-1005',
-    clientId: 'CL-FFWD-05',
     status: DealershipStatus.PendingFocus,
     orderNumber: 'ORD-2024-005',
     orderReceivedDate: new Date('2024-07-20T00:00:00Z').toISOString(),
@@ -433,7 +436,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-6',
     name: 'DMT Dynamics',
     accountNumber: 'CIF-1006',
-    clientId: 'CL-DMT-06',
     status: DealershipStatus.PendingDmt,
     orderNumber: 'ORD-2024-006',
     orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString(),
@@ -452,7 +454,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-7',
     name: 'Setup Solutions',
     accountNumber: 'CIF-1007',
-    clientId: 'CL-SS-07',
     status: DealershipStatus.PendingSetup,
     orderNumber: 'ORD-2024-007',
     orderReceivedDate: new Date('2024-07-25T00:00:00Z').toISOString(),
@@ -471,7 +472,6 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-8',
     name: 'Future Horizons Automotive',
     accountNumber: 'CIF-1008',
-    clientId: 'CL-FHA-08',
     status: DealershipStatus.Prospect,
     enterprise: 'Visionary Motors',
     sales: 'Sarah Conner',
