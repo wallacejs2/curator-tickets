@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import Modal from './common/Modal.tsx';
@@ -200,6 +201,8 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
                     value = value.map(update => 
                         `${new Date(update.date).toISOString().split('T')[0]} by ${update.author}: ${update.comment.replace(/<br\s*\/?>/gi, '\n')}`
                     ).join('\n\n');
+                } else if (title === 'Dealerships' && field === 'websiteLinks' && Array.isArray(value)) {
+                    value = value.map(link => `URL: ${link.url}${link.clientId ? `, Client ID: ${link.clientId}` : ''}`).join(';\n');
                 } else if (isISODateString(value)) {
                     value = value.split('T')[0];
                 } else if (typeof value === 'object' && value !== null) {

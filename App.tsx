@@ -1267,6 +1267,7 @@ function App() {
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
+        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
 
@@ -1278,13 +1279,12 @@ function App() {
         appendField('POC Phone', dealership.pocPhone);
         
         if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
-            content += 'Website Links:\n';
+            appendSection('Website Links');
             dealership.websiteLinks.forEach(link => {
-                content += `- ${link.url}`;
+                content += `- URL: ${link.url}\n`;
                 if (link.clientId) {
-                    content += ` (Client ID: ${link.clientId})`;
+                    content += `  Client ID: ${link.clientId}\n`;
                 }
-                content += '\n';
             });
         }
 
@@ -1310,12 +1310,14 @@ function App() {
         }
         
         appendSection('Linked Item IDs');
+        appendField('Group IDs', (dealership.groupIds || []).join(', '));
         appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
         appendField('Project IDs', (dealership.projectIds || []).join(', '));
         appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
         appendField('Task IDs', (dealership.taskIds || []).join(', '));
         appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
         appendField('Feature IDs', (dealership.featureIds || []).join(', '));
+        appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
 
         createTxtFileDownloader(content, `Dealership_${dealership.id}_${dealership.name}`);
     };

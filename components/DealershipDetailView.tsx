@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -120,9 +121,10 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         }
     };
 
-    const handleCopyInfo = () => {
+    const handleCopyInfo = (e: React.MouseEvent) => {
+        e.stopPropagation();
         let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
-        content += `==================================================\n`;
+        content += `==================================================\n\n`;
         
         const appendField = (label: string, value: any) => {
             if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
@@ -136,45 +138,65 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
             }
         };
 
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+
+        appendSection('Account Information');
+        appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
+        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
-        appendField('Store Number', dealership.storeNumber);
-        appendField('Branch Number', dealership.branchNumber);
-        appendField('ERA System ID', dealership.eraSystemId);
-        appendField('PPSysID', dealership.ppSysId);
-        appendField('BU-ID', dealership.buId);
+        appendField('Address', dealership.address);
         
-        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
-            content += 'Website Links:\n';
-            dealership.websiteLinks.forEach(link => {
-                content += `- ${link.url}`;
-                if (link.clientId) {
-                    content += ` (Client ID: ${link.clientId})`;
-                }
-                content += '\n';
-            });
-        }
-        
-        content += '\n--- ORDER & DATES ---\n';
-        appendField('Order Number', dealership.orderNumber);
-        appendDateField('Order Received Date', dealership.orderReceivedDate);
-        appendDateField('Go-Live Date', dealership.goLiveDate);
-        
-        content += '\n--- KEY CONTACTS ---\n';
+        appendSection('Key Contacts');
         appendField('Assigned Specialist', dealership.assignedSpecialist);
         appendField('Sales', dealership.sales);
         appendField('POC Name', dealership.pocName);
         appendField('POC Email', dealership.pocEmail);
         appendField('POC Phone', dealership.pocPhone);
 
+        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
+            appendSection('Website Links');
+            dealership.websiteLinks.forEach(link => {
+                content += `- URL: ${link.url}\n`;
+                if (link.clientId) {
+                    content += `  Client ID: ${link.clientId}\n`;
+                }
+            });
+        }
+        
+        appendSection('Order & Dates');
+        appendField('Order Number', dealership.orderNumber);
+        appendDateField('Order Received Date', dealership.orderReceivedDate);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        appendDateField('Term Date', dealership.termDate);
+        
+        appendSection('Identifiers');
+        appendField('Store Number', dealership.storeNumber);
+        appendField('Branch Number', dealership.branchNumber);
+        appendField('ERA System ID', dealership.eraSystemId);
+        appendField('PPSysID', dealership.ppSysId);
+        appendField('BU-ID', dealership.buId);
+
         if (dealership.updates && dealership.updates.length > 0) {
-            content += `\n--- UPDATES (${dealership.updates.length}) ---\n`;
+            appendSection(`Updates (${dealership.updates.length})`);
             [...dealership.updates].reverse().forEach(update => {
                 const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n').trim();
                 content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n`;
             });
         }
+        
+        appendSection('Linked Item IDs');
+        appendField('Group IDs', (dealership.groupIds || []).join(', '));
+        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
+        appendField('Project IDs', (dealership.projectIds || []).join(', '));
+        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
+        appendField('Task IDs', (dealership.taskIds || []).join(', '));
+        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
+        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
+        appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
 
         navigator.clipboard.writeText(content.trim());
         showToast('Dealership info copied!', 'success');
