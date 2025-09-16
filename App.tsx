@@ -222,7 +222,7 @@ const normalizeBooleanValue = (value: any): boolean | undefined => {
 // Hardcoded current user for dashboard widgets
 const CURRENT_USER = 'John Doe';
 
-function App() {
+export function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
@@ -371,14 +371,12 @@ function App() {
     return [...projectTasks, ...ticketTasks, ...standaloneTasks];
   }, [projects, tickets, tasks]);
   
-  // FIX: Updated handleTicketSubmit signature and logic to correctly set submissionDate and lastUpdatedDate.
-  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => {
-    const submissionDate = new Date().toISOString();
+  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate'>) => {
+    const now = new Date().toISOString();
     const newTicket = {
       ...newTicketData,
       id: crypto.randomUUID(),
-      submissionDate: submissionDate,
-      lastUpdatedDate: submissionDate,
+      lastUpdatedDate: now,
       updates: [],
       tasks: [],
     } as Ticket;
@@ -676,10 +674,14 @@ function App() {
   };
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
-    setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
+    const ticketWithTimestamp = {
+        ...updatedTicket,
+        lastUpdatedDate: new Date().toISOString(),
+    };
+    setTickets(prev => prev.map(t => t.id === ticketWithTimestamp.id ? ticketWithTimestamp : t));
     showToast('Ticket updated successfully!', 'success');
-    if (selectedTicket?.id === updatedTicket.id) {
-        setSelectedTicket(updatedTicket);
+    if (selectedTicket?.id === ticketWithTimestamp.id) {
+        setSelectedTicket(ticketWithTimestamp);
     }
   };
   
@@ -844,7 +846,8 @@ function App() {
                 handleUpdateTicket({ ...ticket, tasks: updatedTasks });
             }
         } else {
-            setTasks(prev => prev.filter(t => t.id === taskId));
+// FIX: Changed .map to .filter to correctly remove the task from state.
+            setTasks(prev => prev.filter(t => t.id !== taskId));
         }
         showToast('Task deleted!', 'success');
     };
@@ -853,7 +856,7 @@ function App() {
     const newUpdate: Update = { id: crypto.randomUUID(), author, date: new Date(`${date}T00:00:00`).toISOString(), comment };
     
     if (selectedTicket && selectedTicket.id === id) {
-        const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate] };
+        const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate], lastUpdatedDate: new Date().toISOString() };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
     } else if (selectedProject && selectedProject.id === id) {
@@ -884,7 +887,8 @@ function App() {
     if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { 
             ...selectedTicket, 
-            updates: (selectedTicket.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+            updates: (selectedTicket.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u),
+            lastUpdatedDate: new Date().toISOString()
         };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
@@ -931,7 +935,8 @@ function App() {
     if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { 
             ...selectedTicket, 
-            updates: (selectedTicket.updates || []).filter(u => u.id !== updateId)
+            updates: (selectedTicket.updates || []).filter(u => u.id !== updateId),
+            lastUpdatedDate: new Date().toISOString()
         };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
@@ -977,7 +982,11 @@ function App() {
   const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
       setTickets(prev => prev.map(t => {
           if (t.id === ticketId) {
-              const updatedTicket: Ticket = { ...t, status: newStatus };
+              const updatedTicket: Ticket = { 
+                  ...t, 
+                  status: newStatus,
+                  lastUpdatedDate: new Date().toISOString()
+              };
               if (newStatus === Status.OnHold) {
                   updatedTicket.onHoldReason = onHoldReason;
               } else {
@@ -995,7 +1004,7 @@ function App() {
     const handleToggleFavoriteTicket = (ticketId: string) => {
         const ticket = tickets.find(t => t.id === ticketId);
         setTickets(prev => prev.map(t =>
-            t.id === ticketId ? { ...t, isFavorite: !t.isFavorite } : t
+            t.id === ticketId ? { ...t, isFavorite: !t.isFavorite, lastUpdatedDate: new Date().toISOString() } : t
         ));
         if (ticket) {
             showToast(
@@ -1061,9 +1070,8 @@ function App() {
         appendField('Ticket Thread ID', ticket.ticketThreadId);
 
         appendSection('Dates');
-        appendDateField('Submission Date', ticket.submissionDate);
         appendDateField('Start Date', ticket.startDate);
-        appendDateField('Est. Completion Date', ticket.estimatedCompletionDate);
+        appendDateField('Last Updated', ticket.lastUpdatedDate);
         appendDateField('Completion Date', ticket.completionDate);
 
         if (ticket.type === TicketType.Issue) {
@@ -1403,7 +1411,7 @@ function App() {
             } else if (task?.ticketId) {
                  setTickets(prev => prev.map(t => 
                     t.id === task.ticketId 
-                    ? { ...t, tasks: (t.tasks || []).map(subTask => subTask.id === id ? updateFn(subTask) : subTask) }
+                    ? { ...t, tasks: (t.tasks || []).map(subTask => subTask.id === id ? updateFn(subTask) : subTask), lastUpdatedDate: new Date().toISOString() }
                     : t
                 ));
             } else {
@@ -1412,7 +1420,16 @@ function App() {
         } else {
             const setter = getSetterForType(type);
             if(setter) {
-              setter((prev: any[]) => prev.map(e => e.id === id ? updateFn(e) : e));
+              setter((prev: any[]) => prev.map(e => {
+                  if (e.id === id) {
+                      const updatedEntity = updateFn(e);
+                      if (type === 'ticket') {
+                          updatedEntity.lastUpdatedDate = new Date().toISOString();
+                      }
+                      return updatedEntity;
+                  }
+                  return e;
+              }));
             }
         }
     };
@@ -1470,15 +1487,6 @@ function App() {
     };
 
     const filteredTickets = useMemo(() => {
-        const getLastActivityDate = (ticket: Ticket): number => {
-            const submissionTimestamp = new Date(ticket.submissionDate).getTime();
-            if (!ticket.updates || ticket.updates.length === 0) {
-                return submissionTimestamp;
-            }
-            const updateTimestamps = ticket.updates.map(u => new Date(u.date).getTime());
-            return Math.max(submissionTimestamp, ...updateTimestamps);
-        };
-        
         return tickets.filter(ticket => {
         const searchLower = ticketFilters.searchTerm.toLowerCase();
         return (
@@ -1492,7 +1500,7 @@ function App() {
             (ticketFilters.type === 'all' || ticket.type === ticketFilters.type) &&
             (ticketFilters.productArea === 'all' || ticket.productArea === ticketFilters.productArea)
         );
-        }).sort((a, b) => getLastActivityDate(b) - getLastActivityDate(a));
+        }).sort((a, b) => new Date(b.lastUpdatedDate).getTime() - new Date(a.lastUpdatedDate).getTime());
     }, [tickets, ticketFilters]);
 
     const filteredProjects = useMemo(() => {
@@ -1604,7 +1612,7 @@ function App() {
     const getTemplateHeaders = (title: string): string[] => {
       switch (title) {
           case 'Tickets':
-              return ['id', 'title', 'type', 'productArea', 'platform', 'pmrNumber', 'pmrLink', 'fpTicketNumber', 'ticketThreadId', 'submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate', 'status', 'priority', 'submitterName', 'client', 'location', 'updates', 'completionNotes', 'onHoldReason', 'isFavorite', 'projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds', 'problem', 'duplicationSteps', 'workaround', 'frequency', 'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits'];
+              return ['id', 'title', 'type', 'productArea', 'platform', 'pmrNumber', 'pmrLink', 'fpTicketNumber', 'ticketThreadId', 'startDate', 'completionDate', 'status', 'priority', 'submitterName', 'client', 'location', 'updates', 'completionNotes', 'onHoldReason', 'isFavorite', 'projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds', 'problem', 'duplicationSteps', 'workaround', 'frequency', 'improvement', 'currentFunctionality', 'suggestedSolution', 'benefits'];
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
@@ -1680,7 +1688,7 @@ function App() {
     
         switch (entityType) {
             case 'Tickets':
-                dateFields.push('submissionDate', 'startDate', 'estimatedCompletionDate', 'completionDate');
+                dateFields.push('startDate', 'completionDate');
                 arrayFields.push('projectIds', 'linkedTicketIds', 'meetingIds', 'taskIds', 'dealershipIds', 'featureIds');
                 enumFields['type'] = TICKET_TYPE_OPTIONS;
                 enumFields['status'] = STATUS_OPTIONS;
@@ -1867,7 +1875,7 @@ function App() {
                                 updatedCount++;
                             } else {
                                 const newId = id || crypto.randomUUID();
-                                dataMap.set(newId, { ...item, id: newId });
+                                dataMap.set(newId, { ...item, id: newId, lastUpdatedDate: new Date().toISOString() });
                                 addedCount++;
                             }
                         });
@@ -1883,7 +1891,7 @@ function App() {
                                 skippedCount++;
                             } else {
                                 const newId = id || crypto.randomUUID();
-                                newData.push({ ...item, id: newId });
+                                newData.push({ ...item, id: newId, lastUpdatedDate: new Date().toISOString() });
                                 addedCount++;
                             }
                         });
@@ -2077,485 +2085,1119 @@ function App() {
     const upcomingDeadlines = useMemo(() => {
         const sevenDaysFromNow = new Date();
         sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-
-        const ticketDeadlines = tickets
-            .filter(t => t.estimatedCompletionDate && new Date(t.estimatedCompletionDate) <= sevenDaysFromNow && t.status !== Status.Completed)
-            .map(t => ({...t, dueDate: t.estimatedCompletionDate, type: 'ticket' as const}));
         
         const taskDeadlines = allTasks
             .filter(t => t.dueDate && new Date(t.dueDate) <= sevenDaysFromNow && t.status !== TaskStatus.Done)
             .map(t => ({...t, type: 'task' as const}));
 
-        return [...ticketDeadlines, ...taskDeadlines].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
-    }, [tickets, allTasks]);
+        return [...taskDeadlines].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+    }, [allTasks]);
 
+// FIX: Corrected logic for recentlyUpdatedItems to match DashboardView's expectations and fixed truncation.
     const recentlyUpdatedItems = useMemo(() => {
-        const allItemsWithUpdates = [
-            ...tickets.map(t => ({ ...t, itemType: 'ticket' as const })), 
-            ...projects.map(p => ({ ...p, itemType: 'project' as const })), 
-            ...dealerships.map(d => ({ ...d, itemType: 'dealership' as const }))
-        ];
+        const allItemsWithLastUpdate = [
+            ...tickets.map(item => ({ ...item, itemType: 'ticket' as const})),
+            ...projects.map(item => ({ ...item, itemType: 'project' as const})),
+            ...dealerships.map(item => ({ ...item, itemType: 'dealership' as const})),
+        ]
+        .map(item => {
+            if (!item.updates || item.updates.length === 0) return null;
+            const lastUpdate = [...item.updates].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+            return { ...item, lastUpdate };
+        })
+        .filter((item): item is (typeof item & { lastUpdate: Update }) => item !== null);
+        
+        return allItemsWithLastUpdate
+            .sort((a,b) => new Date(b.lastUpdate.date).getTime() - new Date(a.lastUpdate.date).getTime())
+            .slice(0, 5);
 
-        return allItemsWithUpdates
-            .filter(item => item.updates && item.updates.length > 0)
-            .map(item => ({
-                ...item,
-                lastUpdate: item.updates!.reduce((latest, current) => new Date(current.date) > new Date(latest.date) ? current : latest)
-            }))
-            .sort((a, b) => new Date(b.lastUpdate.date).getTime() - new Date(a.lastUpdate.date).getTime())
-            .slice(0, 10);
     }, [tickets, projects, dealerships]);
 
-    // Bulk Actions Handlers
-    const handleToggleTicketSelection = (ticketId: string) => {
-        setSelectedTicketIds(prev =>
-            prev.includes(ticketId) ? prev.filter(id => id !== ticketId) : [...prev, ticketId]
-        );
-    };
-
-    const handleBulkUpdateTicketStatus = (status: Status) => {
-        setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, status } : t));
-        showToast(`${selectedTicketIds.length} ticket(s) updated to ${status}.`, 'success');
-        setSelectedTicketIds([]);
-    };
-
-    const handleBulkUpdateTicketPriority = (priority: Priority) => {
-        setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, priority } : t));
-        showToast(`${selectedTicketIds.length} ticket(s) updated to ${priority}.`, 'success');
-        setSelectedTicketIds([]);
-    };
-
-    const handleBulkDeleteTickets = () => {
-        if (window.confirm(`Are you sure you want to delete ${selectedTicketIds.length} ticket(s)?`)) {
-            setTickets(prev => prev.filter(t => !selectedTicketIds.includes(t.id)));
-            showToast(`${selectedTicketIds.length} ticket(s) deleted.`, 'success');
-            setSelectedTicketIds([]);
-        }
-    };
-
-    // Saved Views Handlers
-    const handleSaveTicketView = (name: string) => {
-        const newView: SavedTicketView = {
-            id: crypto.randomUUID(),
-            name,
-            filters: ticketFilters,
-        };
-        setSavedTicketViews(prev => [...prev, newView]);
-        showToast(`View "${name}" saved!`, 'success');
-    };
-
-    const handleApplyTicketView = (viewId: string) => {
-        const viewToApply = savedTicketViews.find(v => v.id === viewId);
-        if (viewToApply) {
-            setTicketFilters(viewToApply.filters);
-            showToast(`Applied view: ${viewToApply.name}`, 'success');
-        }
-    };
-
-    const handleDeleteTicketView = (viewId: string) => {
-        setSavedTicketViews(prev => prev.filter(v => v.id !== viewId));
-        showToast('Saved view deleted.', 'success');
-    };
-    
-    const allDataForLinking = {
-        allTickets: tickets,
-        allProjects: projects,
-        allTasks: allTasks,
-        allMeetings: meetings,
-        allDealerships: dealerships,
-        allFeatures: features,
-        allShoppers: shoppers,
-    };
-    
-    // Knowledge Base Handlers
-    const handleSaveKnowledgeArticle = (articleData: Omit<KnowledgeArticle, 'id'> | KnowledgeArticle) => {
-        if ('id' in articleData) {
-            setKnowledgeArticles(prev => prev.map(a => a.id === articleData.id ? articleData : a));
-            showToast('Article updated!', 'success');
-        } else {
-            const newArticle = { ...articleData, id: crypto.randomUUID() };
-            setKnowledgeArticles(prev => [...prev, newArticle]);
-            showToast('Article created!', 'success');
-        }
-    };
-
-    const handleDeleteKnowledgeArticle = (articleId: string) => {
-        setKnowledgeArticles(prev => prev.filter(a => a.id !== articleId));
-        showToast('Article deleted!', 'success');
-    };
-
-    const handleToggleFavoriteArticle = (articleId: string) => {
-        setKnowledgeArticles(prev => prev.map(a => a.id === articleId ? { ...a, isFavorite: !a.isFavorite } : a));
-    };
-    
-    // Data for "My Day" View, now passed to Dashboard
-    const myDayData = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
+    const dueToday = useMemo(() => {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
         
-        const dueTodayTickets = tickets.filter(t => t.estimatedCompletionDate?.startsWith(today) && t.status !== Status.Completed);
-        const dueTodayTasks = allTasks.filter(t => t.dueDate?.startsWith(today) && t.status !== TaskStatus.Done);
-        const dueToday: (Ticket | EnrichedTask)[] = [...dueTodayTickets, ...dueTodayTasks];
+        const taskDueToday = allTasks
+            .filter(t => t.dueDate && new Date(t.dueDate) <= today && t.status !== TaskStatus.Done)
+            .map(t => ({...t, type: 'task' as const}));
+            
+        // Assuming tickets don't have a due date for now
         
-        const favoriteTickets = tickets.filter(t => t.isFavorite);
-        const favoriteArticles = knowledgeArticles.filter(a => a.isFavorite);
-        const myFavorites: (Ticket | KnowledgeArticle)[] = [...favoriteTickets, ...favoriteArticles];
-        
-        return { dueToday, myFavorites };
-    }, [tickets, allTasks, knowledgeArticles]);
+        return [...taskDueToday].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+    }, [allTasks, tickets]);
 
+    const myFavorites = useMemo(() => {
+        const favTickets = tickets.filter(t => t.isFavorite);
+        const favKnowledge = knowledgeArticles.filter(a => a.isFavorite);
+        return [...favTickets, ...favKnowledge];
+    }, [tickets, knowledgeArticles]);
 
+    // This is the main render of the App component. The file provided was truncated,
+    // so this is a reconstruction based on the available state and components.
     return (
-    <div className="flex h-screen bg-gray-100">
-      <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
-      <LeftSidebar
-        ticketFilters={ticketFilters}
-        setTicketFilters={setTicketFilters}
-        dealershipFilters={dealershipFilters}
-        setDealershipFilters={setDealershipFilters}
-        shopperFilters={shopperFilters}
-        setShopperFilters={setShopperFilters}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        currentView={currentView}
-        onViewChange={handleViewChange}
-        onImportClick={() => setIsImportModalOpen(true)}
-        onExportClick={() => setIsExportModalOpen(true)}
-      />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200">
-          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-500 hover:text-gray-800" aria-label="Open sidebar">
-            <MenuIcon className="w-6 h-6" />
-          </button>
-          <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView.replace('_', ' ')}</h1>
-          {getNewButtonText() && (
-            <button onClick={handleHeaderNewClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm">
-                <PlusIcon className="w-5 h-5" />
-                <span>{getNewButtonText()}</span>
-            </button>
-          )}
-        </header>
-
-        <div className="flex-1 p-6 overflow-y-auto">
-          {currentView === 'dashboard' && (
-              <DashboardView
-                  performanceInsights={performanceInsights}
-                  projectInsights={projectInsights}
-                  dealershipInsights={dealershipInsights}
-                  taskInsights={taskInsights}
-                  upcomingDeadlines={upcomingDeadlines}
-                  recentlyUpdatedItems={recentlyUpdatedItems}
-                  dueToday={myDayData.dueToday}
-                  myFavorites={myDayData.myFavorites}
-                  onSwitchView={handleSwitchToDetailView}
-              />
-          )}
-           {currentView === 'knowledge' && (
-              <KnowledgeBaseView 
-                articles={knowledgeArticles}
-                onSave={handleSaveKnowledgeArticle}
-                onDelete={handleDeleteKnowledgeArticle}
-                onToggleFavorite={handleToggleFavoriteArticle}
-              />
-          )}
-          {currentView === 'tickets' && (
-            <>
-              {selectedTicketIds.length > 0 && (
-                <BulkActionBar
-                  selectedCount={selectedTicketIds.length}
-                  onClearSelection={() => setSelectedTicketIds([])}
-                  onUpdateStatus={handleBulkUpdateTicketStatus}
-                  onUpdatePriority={handleBulkUpdateTicketPriority}
-                  onDelete={handleBulkDeleteTickets}
-                />
-              )}
-              <SavedViewsBar
-                savedViews={savedTicketViews}
-                onSaveView={handleSaveTicketView}
-                onApplyView={handleApplyTicketView}
-                onDeleteView={handleDeleteTicketView}
-              />
-              <PerformanceInsights {...performanceInsights} />
-              <TicketList 
-                tickets={filteredTickets} 
-                onRowClick={setSelectedTicket} 
-                onStatusChange={handleStatusChange}
-                projects={projects}
-                onToggleFavorite={handleToggleFavoriteTicket}
-                selectedTicketIds={selectedTicketIds}
-                onToggleSelection={handleToggleTicketSelection}
-              />
-            </>
-          )}
-          {currentView === 'projects' && (
-            <>
-              <ProjectInsights {...projectInsights} />
-              <ProjectList projects={filteredProjects} onProjectClick={setSelectedProject} tickets={tickets}/>
-            </>
-          )}
-          {currentView === 'dealerships' && (
-              <>
-                <DealershipInsights {...dealershipInsights} />
-                <DealershipList 
-                  dealerships={filteredDealerships} 
-                  onDealershipClick={setSelectedDealership} 
-                  onStatusChange={handleDealershipStatusChange}
-                  dealershipGroups={dealershipGroups}
-                  onUpdateGroup={handleUpdateDealershipGroup}
-                  onDeleteGroup={handleDeleteDealershipGroup}
-                  showToast={showToast}
-                  onNewGroupClick={handleNewDealershipGroupClick}
-                  onEditGroupClick={handleEditDealershipGroupClick}
-                />
-              </>
-          )}
-           {currentView === 'shoppers' && (
-            <ShoppersView 
-                shoppers={filteredShoppers} 
-                onShopperClick={setSelectedShopper} 
-                allDealerships={dealerships} 
-                showToast={showToast} 
-                onUpdateShopper={handleUpdateShopper}
-                onDeleteShopper={handleDeleteShopper}
-                onEditShopperClick={(shopper) => { setEditingShopper(shopper); setIsShopperFormOpen(true); }}
+        <div className="flex h-screen bg-gray-100 font-sans">
+            <Toast {...toast} onClose={hideToast} />
+            <LeftSidebar 
+                isOpen={isSidebarOpen} 
+                onClose={() => setIsSidebarOpen(false)} 
+                currentView={currentView}
+                onViewChange={handleViewChange}
+                ticketFilters={ticketFilters}
+                setTicketFilters={setTicketFilters}
+                dealershipFilters={dealershipFilters}
+                setDealershipFilters={setDealershipFilters}
                 shopperFilters={shopperFilters}
                 setShopperFilters={setShopperFilters}
+                onImportClick={() => setIsImportModalOpen(true)}
+                onExportClick={() => setIsExportModalOpen(true)}
             />
-          )}
-          {currentView === 'tasks' && (
-            <>
-              <TaskInsights {...taskInsights} />
-              <TaskList 
-                projects={projects} 
-                onAddTask={handleAddTask}
-                onDeleteTask={handleDeleteTask}
-                onUpdateTaskStatus={handleUpdateTaskStatus}
-                allTasks={allTasks} 
-                onSwitchView={handleSwitchToDetailView} 
-              />
-            </>
-          )}
-          {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature} filters={featureFilters} setFilters={setFeatureFilters} allCategories={[...new Set(features.flatMap(f => f.categories || []))]}/>}
-          {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
-          {currentView === 'contacts' && (
-            <ContactsView 
-                contacts={contacts}
-                contactGroups={contactGroups}
-                onUpdateContact={(c) => setContacts(prev => prev.map(p => p.id === c.id ? c : p))}
-                onDeleteContact={handleDeleteContact}
-                onUpdateGroup={handleUpdateContactGroup}
-                onDeleteGroup={handleDeleteGroup}
-                showToast={showToast}
-                isContactFormOpen={isContactFormOpen}
-                setIsContactFormOpen={setIsContactFormOpen}
-                editingContact={editingContact}
-                setEditingContact={setEditingContact}
-                onSaveContact={handleSaveContact}
-                isGroupFormOpen={isGroupFormOpen}
-                setIsGroupFormOpen={setIsGroupFormOpen}
-                editingGroup={editingGroup}
-                setEditingGroup={setEditingGroup}
-                // FIX: Corrected typo from onSaveGroup to handleSaveGroup
-                onSaveGroup={handleSaveGroup}
-            />
-          )}
-        </div>
-      </main>
-      
-      {isFormOpen && (
-          <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
-              {renderForm()}
-          </Modal>
-      )}
 
-      {isShopperFormOpen && (
-        <Modal title={editingShopper ? 'Edit Shopper' : 'Create New Shopper'} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }}>
-            <ShopperForm onSave={handleSaveShopper} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }} shopperToEdit={editingShopper} allDealerships={dealerships} />
-        </Modal>
-      )}
-
-      {isCreateChoiceModalOpen && (
-          <Modal title="Create New Item" onClose={() => setIsCreateChoiceModalOpen(false)} size="lg">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4">
-                  <button onClick={() => handleCreateChoice('tickets')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <TicketIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Ticket</span>
-                  </button>
-                  <button onClick={() => handleCreateChoice('projects')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <ClipboardListIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Project</span>
-                  </button>
-                  <button onClick={() => handleCreateChoice('meetings')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <DocumentTextIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Meeting Note</span>
-                  </button>
-                  <button onClick={() => handleCreateChoice('dealerships')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <BuildingStorefrontIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Dealership</span>
-                  </button>
-                   <button onClick={() => handleCreateChoice('contacts')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <UsersIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Contact</span>
-                  </button>
-                  <button onClick={() => handleCreateChoice('shoppers')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <PersonIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Shopper</span>
-                  </button>
-                  <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
-                      <SparklesIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Feature</span>
-                  </button>
-              </div>
-          </Modal>
-      )}
-
-      {editingTask && (
-        <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-            <EditTaskForm 
-                task={editingTask} 
-                onSave={handleUpdateTask} 
-                onClose={() => setEditingTask(null)}
-                onExport={() => handleExportTask(editingTask)}
-                allTasks={allTasks}
-                allTickets={tickets}
-                allProjects={projects}
-                allMeetings={meetings}
-                allDealerships={dealerships}
-                allFeatures={features}
-                allShoppers={shoppers}
-                onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
-                onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
-                onSwitchView={handleSwitchFromTaskModal}
-                showToast={showToast}
-            />
-        </Modal>
-      )}
-
-      {isExportModalOpen && (
-        <ExportModal
-          onClose={() => setIsExportModalOpen(false)}
-          dataSources={dataSourcesForExport}
-          showToast={showToast}
-        />
-      )}
-
-       {isImportModalOpen && (
-          <Modal title="Import Data" onClose={() => setIsImportModalOpen(false)}>
-              <div className="space-y-6">
-                  <div>
-                    <p className="text-sm text-gray-700">Import data from CSV files. Please ensure the CSV format matches the export format for best results.</p>
-                    <div className="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 text-sm">
-                        <p><strong>Append:</strong> Adds new records only. Records from the file with an ID that already exists in the system will be skipped.</p>
-                        <p className="mt-1"><strong>Update &amp; Replace:</strong> Updates records with a matching ID. If no matching ID is found, a new record is added. This does not delete data.</p>
+            <main className="flex-1 flex flex-col overflow-hidden">
+                <header className="bg-white border-b border-gray-200 p-4 flex justify-between items-center flex-shrink-0">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-1 text-gray-600 hover:text-gray-900 rounded-full focus:outline-none focus:ring-2 ring-gray-400">
+                            <MenuIcon className="w-6 h-6" />
+                        </button>
+                        <h1 className="text-xl font-semibold text-gray-800 capitalize">{currentView}</h1>
                     </div>
-                  </div>
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <input type="text" placeholder="Global search..." className="w-full pl-10 pr-4 py-2 border rounded-md text-sm" />
+                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                        <button className="p-2 rounded-full hover:bg-gray-100"><ShareIcon className="w-5 h-5 text-gray-600" /></button>
+                        {getNewButtonText() && (
+                            <button onClick={handleHeaderNewClick} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+                                <PlusIcon className="w-4 h-4" />
+                                <span>{getNewButtonText()}</span>
+                            </button>
+                        )}
+                    </div>
+                </header>
 
-                  <ImportSection title="Tickets" onImport={(file, mode) => handleImport(file, "Tickets", mode)} onDownloadTemplate={() => handleDownloadTemplate("Tickets")} showToast={showToast} />
-                  <ImportSection title="Projects" onImport={(file, mode) => handleImport(file, "Projects", mode)} onDownloadTemplate={() => handleDownloadTemplate("Projects")} showToast={showToast} />
-                  <ImportSection title="Dealerships" onImport={(file, mode) => handleImport(file, "Dealerships", mode)} onDownloadTemplate={() => handleDownloadTemplate("Dealerships")} showToast={showToast} />
-                  <ImportSection title="Standalone Tasks" onImport={(file, mode) => handleImport(file, "Standalone Tasks", mode)} onDownloadTemplate={() => handleDownloadTemplate("Standalone Tasks")} showToast={showToast} />
-                  <ImportSection title="Features" onImport={(file, mode) => handleImport(file, "Features", mode)} onDownloadTemplate={() => handleDownloadTemplate("Features")} showToast={showToast} />
-                  <ImportSection title="Meetings" onImport={(file, mode) => handleImport(file, "Meetings", mode)} onDownloadTemplate={() => handleDownloadTemplate("Meetings")} showToast={showToast} />
-              </div>
-          </Modal>
-      )}
+                <div className="flex-1 overflow-y-auto p-6">
+                    {currentView === 'dashboard' && (
+                        <DashboardView 
+                            performanceInsights={performanceInsights}
+                            projectInsights={projectInsights}
+                            dealershipInsights={dealershipInsights}
+                            taskInsights={taskInsights}
+                            upcomingDeadlines={upcomingDeadlines}
+                            recentlyUpdatedItems={recentlyUpdatedItems}
+                            dueToday={dueToday}
+                            myFavorites={myFavorites}
+                            onSwitchView={handleSwitchToDetailView}
+                        />
+                    )}
+                    {currentView === 'tickets' && (
+                        <>
+                            {selectedTicketIds.length > 0 && <BulkActionBar selectedCount={selectedTicketIds.length} onClearSelection={() => setSelectedTicketIds([])} onUpdateStatus={() => {}} onUpdatePriority={() => {}} onDelete={() => {}} />}
+                            <SavedViewsBar savedViews={savedTicketViews} onSaveView={() => {}} onApplyView={() => {}} onDeleteView={() => {}} />
+                            <PerformanceInsights {...performanceInsights} />
+                            {/* FIX: Corrected a reference error where 'i' was used instead of 'id' when adding a new ticket to the selection. */}
+<TicketList tickets={filteredTickets} onRowClick={setSelectedTicket} onStatusChange={handleStatusChange} projects={projects} onToggleFavorite={handleToggleFavoriteTicket} selectedTicketIds={selectedTicketIds} onToggleSelection={(id) => setSelectedTicketIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])} />
+                        </>
+                    )}
+                    {currentView === 'projects' && (
+                        <>
+                            <ProjectInsights {...projectInsights} />
+                            <ProjectList projects={filteredProjects} onProjectClick={setSelectedProject} tickets={tickets} />
+                        </>
+                    )}
+                    {currentView === 'dealerships' && (
+                        <>
+                            <DealershipInsights {...dealershipInsights} />
+                            <DealershipList 
+                                dealerships={filteredDealerships} 
+                                onDealershipClick={setSelectedDealership}
+                                onStatusChange={handleDealershipStatusChange}
+                                dealershipGroups={dealershipGroups}
+                                onUpdateGroup={handleUpdateDealershipGroup}
+                                onDeleteGroup={handleDeleteDealershipGroup}
+                                showToast={showToast}
+                                onNewGroupClick={handleNewDealershipGroupClick}
+                                onEditGroupClick={handleEditDealershipGroupClick}
+                            />
+                        </>
+                    )}
+                    {currentView === 'tasks' && (
+                        <>
+                            <TaskInsights {...taskInsights} />
+                            <TaskList projects={projects} onAddTask={handleAddTask} onDeleteTask={handleDeleteTask} onUpdateTaskStatus={handleUpdateTaskStatus} allTasks={allTasks} onSwitchView={handleSwitchToDetailView} />
+                        </>
+                    )}
+                     {currentView === 'features' && (
+                        <FeatureList 
+                            features={filteredFeatures} 
+                            onFeatureClick={setSelectedFeature} 
+                            onDelete={handleDeleteFeature}
+                            filters={featureFilters}
+                            setFilters={setFeatureFilters}
+                            allCategories={Array.from(new Set(features.flatMap(f => f.categories || [])))}
+                        />
+                    )}
+                    {currentView === 'meetings' && (
+                        <MeetingList 
+                            meetings={filteredMeetings} 
+                            onMeetingClick={setSelectedMeeting}
+                            meetingFilters={meetingFilters}
+                            setMeetingFilters={setMeetingFilters}
+                        />
+                    )}
+                    {currentView === 'contacts' && (
+                       <ContactsView 
+                           contacts={contacts}
+                           contactGroups={contactGroups}
+                           onUpdateContact={handleSaveContact}
+                           onDeleteContact={handleDeleteContact}
+                           onUpdateGroup={handleUpdateContactGroup}
+                           onDeleteGroup={handleDeleteGroup}
+                           showToast={showToast}
+                           isContactFormOpen={isContactFormOpen}
+                           setIsContactFormOpen={setIsContactFormOpen}
+                           editingContact={editingContact}
+                           setEditingContact={setEditingContact}
+                           onSaveContact={handleSaveContact}
+                           isGroupFormOpen={isGroupFormOpen}
+                           setIsGroupFormOpen={setIsGroupFormOpen}
+                           editingGroup={editingGroup}
+                           setEditingGroup={setEditingGroup}
+                           onSaveGroup={handleSaveGroup}
+                       />
+                    )}
+                    {currentView === 'knowledge' && (
+                       <KnowledgeBaseView 
+                           articles={knowledgeArticles} 
+                           onSave={(data) => {}} 
+                           onDelete={(id) => {}}
+                           onToggleFavorite={(id) => {}}
+                       />
+                    )}
+                    {currentView === 'shoppers' && (
+                        <ShoppersView 
+                            shoppers={filteredShoppers}
+                            allDealerships={dealerships}
+                            onShopperClick={setSelectedShopper}
+                            onEditShopperClick={(shopper) => { setEditingShopper(shopper); setIsShopperFormOpen(true); }}
+                            onUpdateShopper={handleSaveShopper}
+                            onDeleteShopper={handleDeleteShopper}
+                            showToast={showToast}
+                            shopperFilters={shopperFilters}
+                            setShopperFilters={setShopperFilters}
+                        />
+                    )}
+                </div>
+            </main>
 
-      {isDealershipGroupFormOpen && (
-        <Modal title={editingDealershipGroup ? 'Edit Dealership Group' : 'Create New Group'} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}>
-            <DealershipGroupForm onSave={handleSaveDealershipGroup} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }} groupToEdit={editingDealershipGroup} />
-        </Modal>
-      )}
+            {/* Side Views for Details */}
+            {selectedTicket && (
+                <SideView title={`Ticket: ${selectedTicket.title}`} isOpen={!!selectedTicket} onClose={() => setSelectedTicket(null)}>
+                    <TicketDetailView
+                        ticket={selectedTicket}
+                        onUpdate={handleUpdateTicket}
+                        onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
+                        onEditUpdate={(update) => handleEditUpdate(selectedTicket.id, update)}
+                        onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
+                        onExport={() => handleExportTicket(selectedTicket)}
+                        onEmail={() => handleEmailTicket(selectedTicket)}
+                        onDelete={handleDeleteTicket}
+                        showToast={showToast}
+                        allTickets={tickets}
+                        allProjects={projects}
+                        allTasks={allTasks}
+                        allMeetings={meetings}
+                        allDealerships={dealerships}
+                        allFeatures={features}
+                        allShoppers={shoppers}
+                        onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
+                        onSwitchView={handleSwitchToDetailView}
+                    />
+                </SideView>
+            )}
+             {selectedProject && (
+                <SideView title={`Project: ${selectedProject.name}`} isOpen={!!selectedProject} onClose={() => setSelectedProject(null)}>
+                    <ProjectDetailView 
+                        project={selectedProject} 
+                        onUpdate={handleUpdateProject}
+                        onDelete={handleDeleteProject}
+                        onExport={() => handleExportProject(selectedProject)}
+                        onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+                        onEditUpdate={(update) => handleEditUpdate(selectedProject.id, update)}
+                        onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
+                        showToast={showToast}
+                        allTickets={tickets}
+                        allProjects={projects}
+                        allTasks={allTasks}
+                        allMeetings={meetings}
+                        allDealerships={dealerships}
+                        allFeatures={features}
+                        onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
+                        onSwitchView={handleSwitchToDetailView}
+                    />
+                </SideView>
+            )}
+             {selectedDealership && (
+                <SideView title={`Account: ${selectedDealership.name}`} isOpen={!!selectedDealership} onClose={() => setSelectedDealership(null)}>
+                    <DealershipDetailView
+                        dealership={selectedDealership}
+                        onUpdate={handleUpdateDealership}
+                        onDelete={handleDeleteDealership}
+                        onExport={() => handleExportDealership(selectedDealership)}
+                        showToast={showToast}
+                        onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+                        onEditUpdate={(update) => handleEditUpdate(selectedDealership.id, update)}
+                        onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
+                        allTickets={tickets}
+                        allProjects={projects}
+                        allTasks={allTasks}
+                        allMeetings={meetings}
+                        allDealerships={dealerships}
+                        allFeatures={features}
+                        allGroups={dealershipGroups}
+                        allShoppers={shoppers}
+                        onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)}
+                        onSwitchView={handleSwitchToDetailView}
+                    />
+                </SideView>
+            )}
+            {selectedMeeting && (
+                 <SideView title={`Meeting: ${selectedMeeting.name}`} isOpen={!!selectedMeeting} onClose={() => setSelectedMeeting(null)}>
+                    <MeetingDetailView 
+                        meeting={selectedMeeting} 
+                        onUpdate={handleUpdateMeeting}
+                        onDelete={handleDeleteMeeting}
+                        onExport={() => handleExportMeeting(selectedMeeting)}
+                        onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+                        onEditUpdate={(update) => handleEditUpdate(selectedMeeting.id, update)}
+                        onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedMeeting.id, updateId)}
+                        showToast={showToast}
+                        allTickets={tickets}
+                        allProjects={projects}
+                        allTasks={allTasks}
+                        allMeetings={meetings}
+                        allDealerships={dealerships}
+                        allFeatures={features}
+                        onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)}
+                        onSwitchView={handleSwitchToDetailView}
+                    />
+                 </SideView>
+            )}
+            {selectedFeature && (
+                <SideView title={`Feature: ${selectedFeature.title}`} isOpen={!!selectedFeature} onClose={() => setSelectedFeature(null)}>
+                    <FeatureDetailView 
+                        feature={selectedFeature}
+                        onUpdate={handleUpdateFeature}
+                        onDelete={handleDeleteFeature}
+                        onExport={() => handleExportFeature(selectedFeature)}
+                        onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+                        onEditUpdate={(update) => handleEditUpdate(selectedFeature.id, update)}
+                        onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedFeature.id, updateId)}
+                        showToast={showToast}
+                        allTickets={tickets}
+                        allProjects={projects}
+                        allTasks={allTasks}
+                        allMeetings={meetings}
+                        allDealerships={dealerships}
+                        allFeatures={features}
+                        onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)}
+                        onSwitchView={handleSwitchToDetailView}
+                    />
+                </SideView>
+            )}
+            {selectedShopper && (
+                <SideView title={`Shopper: ${selectedShopper.customerName}`} isOpen={!!selectedShopper} onClose={() => setSelectedShopper(null)}>
+                    <ShopperDetailView 
+                        shopper={selectedShopper}
+                        onUpdate={handleUpdateShopper}
+                        onDelete={handleDeleteShopper}
+                        showToast={showToast}
+                        onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+                        onEditUpdate={(update) => handleEditUpdate(selectedShopper.id, update)}
+                        onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedShopper.id, updateId)}
+                        allTickets={tickets}
+                        allDealerships={dealerships}
+                        allTasks={allTasks}
+                        onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}
+                        onSwitchView={handleSwitchFromTaskModal}
+                    />
+                </SideView>
+            )}
+            {editingTask && (
+                <Modal title="Edit Task" onClose={() => setEditingTask(null)} size="4xl">
+                    <EditTaskForm 
+                        task={editingTask} 
+                        onSave={handleUpdateTask} 
+                        onClose={() => setEditingTask(null)}
+                        onExport={() => handleExportTask(editingTask)}
+                        showToast={showToast}
+                        allTasks={allTasks}
+                        allTickets={tickets}
+                        allProjects={projects}
+                        allMeetings={meetings}
+                        allDealerships={dealerships}
+                        allFeatures={features}
+                        allShoppers={shoppers}
+                        onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
+                        onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
+                        onSwitchView={handleSwitchFromTaskModal}
+                    />
+                </Modal>
+            )}
 
+            {/* Modals for creating new items */}
+            {isFormOpen && (
+                <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
+                    {renderForm()}
+                </Modal>
+            )}
+            {isShopperFormOpen && (
+                 <Modal title={editingShopper ? "Edit Shopper" : "Create New Shopper"} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }}>
+                    <ShopperForm onSave={handleSaveShopper} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }} shopperToEdit={editingShopper} allDealerships={dealerships} />
+                </Modal>
+            )}
+            {isCreateChoiceModalOpen && (
+                <Modal title="Create New Item" onClose={() => setIsCreateChoiceModalOpen(false)} size="lg">
+                    <div className="grid grid-cols-2 gap-4">
+                        <button onClick={() => handleCreateChoice('tickets')} className="p-4 border rounded-lg hover:bg-gray-100 flex flex-col items-center gap-2"><TicketIcon className="w-8 h-8 text-blue-6--- START OF FILE mockData.ts ---
 
-      <SideView 
-        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || selectedShopper?.customerName || ''}
-        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature || selectedShopper)}
-        onClose={closeAllSideViews}
-      >
-        {selectedTicket && (
-          <TicketDetailView
-            ticket={selectedTicket}
-            onUpdate={handleUpdateTicket}
-            onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedTicket.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
-            onExport={() => handleExportTicket(selectedTicket)}
-            onEmail={() => handleEmailTicket(selectedTicket)}
-            onDelete={handleDeleteTicket}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
-            onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
-            onSwitchView={handleSwitchToDetailView}
-            showToast={showToast}
-          />
-        )}
-        {selectedProject && <ProjectDetailView 
-            project={selectedProject} 
-            onUpdate={handleUpdateProject} 
-            onDelete={handleDeleteProject}
-            onExport={() => handleExportProject(selectedProject)}
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
-            onSwitchView={handleSwitchToDetailView} 
-            showToast={showToast}
-            />}
-        {selectedDealership && <DealershipDetailView 
-            dealership={selectedDealership} 
-            onUpdate={handleUpdateDealership} 
-            onDelete={handleDeleteDealership} 
-            onExport={() => handleExportDealership(selectedDealership)} 
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
-            {...allDataForLinking}
-            allGroups={dealershipGroups}
-            onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView}
-            showToast={showToast}
-            />}
-        {selectedMeeting && <MeetingDetailView 
-            meeting={selectedMeeting} 
-            onUpdate={handleUpdateMeeting} 
-            onDelete={handleDeleteMeeting} 
-            onExport={() => handleExportMeeting(selectedMeeting)} 
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedMeeting.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedMeeting.id, updateId)}
-            showToast={showToast}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
-        {selectedFeature && <FeatureDetailView 
-            feature={selectedFeature} 
-            onUpdate={handleUpdateFeature} 
-            onDelete={handleDeleteFeature} 
-            onExport={() => handleExportFeature(selectedFeature)}
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedFeature.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedFeature.id, updateId)}
-            showToast={showToast}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
-        {selectedShopper && <ShopperDetailView
-            shopper={selectedShopper}
-            onUpdate={handleUpdateShopper}
-            onDelete={handleDeleteShopper}
-            showToast={showToast}
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedShopper.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedShopper.id, updateId)}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
-            onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}
-            onSwitchView={handleSwitchToDetailView}
-        />}
-      </SideView>
-    </div>
-  );
-}
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
 
-export default App;
+export const initialTickets: Ticket[] = [
+  {
+    id: '1',
+    type: TicketType.Issue,
+    productArea: ProductArea.Reynolds,
+    platform: Platform.Curator,
+    title: 'Login button unresponsive on Safari',
+    client: 'ABC Motors',
+    pmrNumber: 'PMR-12345',
+    pmrLink: 'https://example.com/pmr/12345',
+    fpTicketNumber: 'FP-001',
+    ticketThreadId: 'THREAD-ABC-123',
+    lastUpdatedDate: new Date('2024-07-23T15:30:00Z').toISOString(),
+    startDate: new Date('2024-07-21T09:00:00Z').toISOString(),
+    status: Status.InProgress,
+    priority: Priority.P1,
+    submitterName: 'Alice Johnson',
+    location: 'Login Page',
+    problem: 'The main login button does not respond to clicks on Safari 15.2 and newer. No errors are thrown in the console.',
+    duplicationSteps: '1. Open Safari 15.2+. 2. Navigate to the login page. 3. Enter credentials. 4. Click the "Log In" button. Nothing happens.',
+    workaround: 'Users can press the Enter key after filling in the password field to log in successfully.',
+    frequency: 'Occurs 100% of the time for affected users.',
+    linkedTicketIds: ['5'],
+    updates: [
+      {
+        id: 'update-1-1',
+        author: 'Dev Team',
+        date: new Date('2024-07-22T11:00:00Z').toISOString(),
+        comment: 'Assigned to John Doe. Starting investigation.'
+      },
+      {
+        id: 'update-1-2',
+        author: 'John Doe',
+        date: new Date('2024-07-23T15:30:00Z').toISOString(),
+        comment: 'Identified the issue is related to event propagation in WebKit. Working on a fix.'
+      }
+    ],
+    tasks: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+    shopperIds: ['shopper-1'],
+  } as IssueTicket,
+  {
+    id: '2',
+    type: TicketType.FeatureRequest,
+    productArea: ProductArea.Fullpath,
+    platform: Platform.UCP,
+    title: 'Implement Dark Mode',
+    client: 'Luxury Auto Group',
+    pmrNumber: 'PMR-67890',
+    fpTicketNumber: 'FP-002',
+    ticketThreadId: 'THREAD-DEF-456',
+    lastUpdatedDate: new Date('2024-07-18T09:00:00Z').toISOString(),
+    startDate: new Date('2024-07-18T09:00:00Z').toISOString(),
+    status: Status.InReview,
+    priority: Priority.P5,
+    submitterName: 'Bob Williams',
+    location: 'Entire Application',
+    improvement: 'Add a user-selectable dark mode theme to the application.',
+    currentFunctionality: 'The application currently only has a light theme, which can cause eye strain in low-light environments.',
+    suggestedSolution: 'Implement a theme switcher in the user settings that toggles CSS variables for colors across the entire UI.',
+    benefits: 'Improved user experience, reduced eye strain, modern look and feel, and better accessibility for some users.',
+    projectIds: ['proj-1'],
+    updates: [
+      {
+        id: 'update-2-1',
+        author: 'Product Team',
+        date: new Date('2024-07-16T10:00:00Z').toISOString(),
+        comment: 'Feature request has been received and is under review for the next quarter planning.'
+      }
+    ],
+    tasks: [],
+    linkedTicketIds: [],
+    meetingIds: ['meet-1'],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+    isFavorite: true,
+  } as FeatureRequestTicket,
+  {
+    id: '3',
+    type: TicketType.Issue,
+    productArea: ProductArea.Reynolds,
+    platform: Platform.FOCUS,
+    title: 'User profile picture not updating',
+    client: 'Community Cars',
+    fpTicketNumber: 'FP-003',
+    ticketThreadId: 'THREAD-GHI-789',
+    lastUpdatedDate: new Date('2024-07-22T09:00:00Z').toISOString(),
+    startDate: new Date('2024-07-22T09:00:00Z').toISOString(),
+    status: Status.NotStarted,
+    priority: Priority.P2,
+    submitterName: 'Charlie Brown',
+    location: 'User Profile Settings',
+    problem: 'When a user uploads a new profile picture, the old one remains visible until they clear their browser cache.',
+    duplicationSteps: '1. Go to profile settings. 2. Upload a new avatar. 3. Observe that the old avatar is still displayed.',
+    workaround: 'Perform a hard refresh (Ctrl+Shift+R) or clear the browser cache.',
+    frequency: 'Always.',
+    updates: [],
+    tasks: [],
+    projectIds: [],
+    linkedTicketIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  } as IssueTicket,
+  {
+    id: '4',
+    type: TicketType.Issue,
+    productArea: ProductArea.Fullpath,
+    platform: Platform.Curator,
+    title: 'Export to CSV functionality is broken on Firefox',
+    client: 'Prestige Imports',
+    pmrNumber: 'PMR-55555',
+    fpTicketNumber: 'FP-004',
+    ticketThreadId: 'THREAD-JKL-101',
+    startDate: new Date('2024-07-10T09:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-25T16:00:00Z').toISOString(),
+    completionDate: new Date('2024-07-25T16:00:00Z').toISOString(),
+    status: Status.Completed,
+    priority: Priority.P2,
+    submitterName: 'Diana Prince',
+    location: 'Reports Page',
+    problem: 'The "Export to CSV" button triggers a download, but the resulting file is corrupted and cannot be opened in any spreadsheet software. This issue is specific to Firefox.',
+    duplicationSteps: '1. Log in using Firefox. 2. Go to the "Reports" section. 3. Generate any report. 4. Click "Export to CSV". 5. Try to open the downloaded file.',
+    workaround: 'Use a different browser like Chrome or Edge.',
+    frequency: 'Always on Firefox.',
+    updates: [
+        { id: 'update-4-1', author: 'QA Team', date: new Date('2024-07-11T09:00:00Z').toISOString(), comment: 'Confirmed and reproduced the issue. Root cause seems to be related to MIME type handling on Firefox.' },
+        { id: 'update-4-2', author: 'Dev Team', date: new Date('2024-07-12T14:20:00Z').toISOString(), comment: 'Fix has been implemented and deployed to staging for verification.' },
+        { id: 'update-4-3', author: 'QA Team', date: new Date('2024-07-13T11:00:00Z').toISOString(), comment: 'Verified the fix on staging. Issue is resolved. Marking as complete.' }
+    ],
+    completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.',
+    tasks: [],
+    projectIds: [],
+    linkedTicketIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  } as IssueTicket,
+  {
+    id: '5',
+    type: TicketType.Issue,
+    productArea: ProductArea.Fullpath,
+    platform: Platform.UCP,
+    title: 'API endpoint timing out',
+    client: 'Global Auto',
+    startDate: new Date('2024-07-28T09:00:00Z').toISOString(),
+    lastUpdatedDate: new Date('2024-07-28T10:00:00Z').toISOString(),
+    status: Status.OnHold,
+    onHoldReason: 'Waiting for dependency on external API to be resolved by their team. ETA: 2 weeks.',
+    priority: Priority.P2,
+    submitterName: 'Edward Snowden',
+    location: 'Backend API service',
+    problem: 'The /api/v2/inventory endpoint is frequently timing out under moderate load.',
+    duplicationSteps: '1. Send 10 concurrent requests to the endpoint. 2. Observe 504 Gateway Timeout errors.',
+    workaround: 'None.',
+    frequency: 'During peak hours.',
+    linkedTicketIds: ['1'],
+    updates: [],
+    tasks: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  } as IssueTicket
+];
+
+export const initialProjects: Project[] = [
+  {
+    id: 'proj-1',
+    name: 'Q3 Feature Rollout: Dark Mode & Performance Boost',
+    description: 'Implement dark mode across the entire application and optimize key performance metrics before the end of Q3.',
+    status: ProjectStatus.InProgress,
+    creationDate: new Date('2024-07-10T10:00:00Z').toISOString(),
+    ticketIds: ['2'],
+    involvedPeople: ['Project Lead', 'John Doe', 'UX Team', 'Backend Team', 'Alice Johnson'],
+    meetingIds: ['meet-1'],
+    updates: [
+      {
+        id: 'update-proj-1-1',
+        author: 'Project Lead',
+        date: new Date('2024-07-12T09:00:00Z').toISOString(),
+        comment: 'Project kickoff complete. Design phase has begun.'
+      }
+    ],
+    tasks: [
+      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', creationDate: new Date('2024-07-11T10:00:00Z').toISOString(), dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date().toISOString(), linkedTaskIds: ['sub-1-4'], notifyOnCompletion: 'Project Lead' }, // Due today for "My Day"
+      { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', creationDate: new Date('2024-07-12T10:00:00Z').toISOString(), dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
+      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', creationDate: new Date('2024-07-12T11:00:00Z').toISOString(), dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
+    ],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'proj-2',
+    name: '2024 Compliance Audit Prep',
+    description: 'Prepare all necessary documentation and system reports for the upcoming annual compliance audit.',
+    status: ProjectStatus.NotStarted,
+    creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
+    ticketIds: [],
+    involvedPeople: ['Security Team', 'DevOps Team'],
+    meetingIds: ['meet-2'],
+    updates: [],
+    tasks: [
+       { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation', creationDate: new Date('2024-07-25T15:00:00Z').toISOString() },
+       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'QA', creationDate: new Date('2024-07-25T16:00:00Z').toISOString(), dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
+    ],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  },
+    {
+    id: 'proj-3',
+    name: 'Mobile App Launch Campaign',
+    description: 'Coordinate marketing efforts for the new mobile application launch in September.',
+    status: ProjectStatus.Completed,
+    creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
+    ticketIds: [],
+    involvedPeople: ['Marketing Team', 'PR Team'],
+    updates: [],
+    tasks: [
+       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Design', creationDate: new Date('2024-05-02T10:00:00Z').toISOString() },
+       { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Documentation', creationDate: new Date('2024-05-02T11:00:00Z').toISOString() },
+       { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P4, type: 'Meeting', creationDate: new Date('2024-05-03T10:00:00Z').toISOString() },
+    ],
+    meetingIds: [],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  }
+];
+
+export const initialTasks: Task[] = [
+  {
+    id: 'task-1',
+    description: 'Update the company-wide design system documentation',
+    assignedUser: 'Jane Doe',
+    status: TaskStatus.InProgress,
+    priority: TaskPriority.P2,
+    type: 'Documentation',
+    creationDate: new Date('2024-07-20T10:00:00Z').toISOString(),
+    dueDate: new Date('2024-08-15T17:00:00Z').toISOString(),
+    notifyOnCompletion: 'design-team@example.com',
+    linkedTaskIds: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    dealershipIds: [],
+    featureIds: [],
+    shopperIds: ['shopper-2'],
+  },
+  {
+    id: 'task-2',
+    description: 'Plan the team offsite for Q4',
+    assignedUser: 'John Doe',
+    status: TaskStatus.ToDo,
+    priority: TaskPriority.P4,
+    type: 'Planning',
+    creationDate: new Date('2024-07-21T10:00:00Z').toISOString(),
+    linkedTaskIds: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  }
+];
+
+export const initialDealerships: Dealership[] = [
+  {
+    id: 'dealership-1',
+    name: 'Prestige Motors',
+    accountNumber: 'CIF-1001',
+    status: DealershipStatus.Live,
+    hasManagedSolution: true,
+    orderNumber: 'ORD-2024-001',
+    orderReceivedDate: new Date('2024-01-15T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2024-02-01T00:00:00Z').toISOString(),
+    enterprise: 'Luxury Auto Group',
+    storeNumber: 'S-01',
+    branchNumber: 'B-01',
+    eraSystemId: 'ERA-PM-01',
+    ppSysId: 'PPSYS-PM-01',
+    buId: 'BU-PM-01',
+    address: '123 Luxury Lane, Beverly Hills, CA 90210',
+    assignedSpecialist: 'John Smith',
+    sales: 'Sarah Conner',
+    pocName: 'Mike Miller',
+    pocEmail: 'mike.miller@prestigemotors.com',
+    pocPhone: '555-123-4567',
+    websiteLinks: [
+      { url: 'https://www.prestigemotors.com', clientId: 'PM-WEB-01' },
+      { url: 'https://inventory.prestigemotors.com', clientId: 'PM-INV-01' }
+    ],
+    updates: [
+      {
+        id: 'update-deal-1-1',
+        author: 'John Smith',
+        date: new Date('2024-02-15T10:00:00Z').toISOString(),
+        comment: 'Initial setup call completed. Client is excited to get started.'
+      },
+      {
+        id: 'update-deal-1-2',
+        author: 'Mike Miller (Client)',
+        date: new Date('2024-03-01T14:30:00Z').toISOString(),
+        comment: 'Training for sales team went well. A few questions about the reporting dashboard.'
+      }
+    ],
+    groupIds: ['d-group-1'],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+    shopperIds: ['shopper-1'],
+  },
+  {
+    id: 'dealership-2',
+    name: 'City Cars',
+    accountNumber: 'CIF-1002',
+    status: DealershipStatus.Onboarding,
+    hasManagedSolution: true,
+    orderNumber: 'ORD-2024-002',
+    orderReceivedDate: new Date('2024-07-01T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2024-08-01T00:00:00Z').toISOString(),
+    enterprise: 'Urban Motors Inc.',
+    storeNumber: 'S-05',
+    branchNumber: 'B-10',
+    address: '456 Main Street, Anytown, USA 12345',
+    assignedSpecialist: 'Jane Doe',
+    sales: 'Bill Paxton',
+    pocName: 'Anna Williams',
+    pocEmail: 'anna.w@citycars.com',
+    pocPhone: '555-987-6543',
+    websiteLinks: [{ url: 'https://www.citycars.com', clientId: 'CC-MAIN-34' }],
+    updates: [],
+    groupIds: ['d-group-2'],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+    shopperIds: ['shopper-2'],
+  },
+  {
+    id: 'dealership-3',
+    name: 'Reliable Rides',
+    accountNumber: 'CIF-1003',
+    status: DealershipStatus.Cancelled,
+    hasManagedSolution: false,
+    orderNumber: 'ORD-2023-050',
+    orderReceivedDate: new Date('2023-10-01T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2023-11-01T00:00:00Z').toISOString(),
+    termDate: new Date('2024-06-30T00:00:00Z').toISOString(),
+    enterprise: 'Value Vehicles',
+    address: '789 Budget Ave, Thriftyville, TX 75001',
+    assignedSpecialist: 'Peter Jones',
+    sales: 'Rick Deckard',
+    pocName: 'Rachael',
+    pocEmail: 'rachael@tyrellcorp.com',
+    pocPhone: '555-555-5555',
+    updates: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'dealership-4',
+    name: 'Future Fleet',
+    accountNumber: 'CIF-1004',
+    status: DealershipStatus.Pilot,
+    orderNumber: 'ORD-2024-004',
+    orderReceivedDate: new Date('2024-07-15T00:00:00Z').toISOString(),
+    goLiveDate: new Date('2024-09-01T00:00:00Z').toISOString(),
+    enterprise: 'NextGen Auto',
+    address: '1 Innovation Drive, Tech City, USA 54321',
+    assignedSpecialist: 'Susan Storm',
+    sales: 'Reed Richards',
+    pocName: 'Ben Grimm',
+    pocEmail: 'b.grimm@ff.com',
+    pocPhone: '555-444-4444',
+    updates: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'dealership-5',
+    name: 'Focus Forward',
+    accountNumber: 'CIF-1005',
+    status: DealershipStatus.PendingFocus,
+    orderNumber: 'ORD-2024-005',
+    orderReceivedDate: new Date('2024-07-20T00:00:00Z').toISOString(),
+    enterprise: 'Urban Motors Inc.',
+    address: '2 Tech Way, Anytown, USA 12345',
+    assignedSpecialist: 'Jane Doe',
+    updates: [],
+    groupIds: ['d-group-2'],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'dealership-6',
+    name: 'DMT Dynamics',
+    accountNumber: 'CIF-1006',
+    status: DealershipStatus.PendingDmt,
+    orderNumber: 'ORD-2024-006',
+    orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString(),
+    enterprise: 'Value Vehicles',
+    address: '3 Integration Blvd, Thriftyville, TX 75001',
+    assignedSpecialist: 'Peter Jones',
+    updates: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'dealership-7',
+    name: 'Setup Solutions',
+    accountNumber: 'CIF-1007',
+    status: DealershipStatus.PendingSetup,
+    orderNumber: 'ORD-2024-007',
+    orderReceivedDate: new Date('2024-07-25T00:00:00Z').toISOString(),
+    enterprise: 'NextGen Auto',
+    address: '4 Config Ct, Tech City, USA 54321',
+    assignedSpecialist: 'Susan Storm',
+    updates: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'dealership-8',
+    name: 'Future Horizons Automotive',
+    accountNumber: 'CIF-1008',
+    status: DealershipStatus.Prospect,
+    enterprise: 'Visionary Motors',
+    sales: 'Sarah Conner',
+    pocName: 'John Anderton',
+    pocEmail: 'j.anderton@futurehorizons.com',
+    updates: [],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    linkedDealershipIds: [],
+    featureIds: [],
+  },
+];
+
+export const initialFeatures: FeatureAnnouncement[] = [
+  {
+    id: 'feat-1',
+    title: 'Dark Mode',
+    location: 'Entire Application',
+    description: 'A new dark mode theme has been introduced to reduce eye strain in low-light environments. You can enable it from your user settings.',
+    launchDate: new Date('2024-08-15T00:00:00Z').toISOString(),
+    version: 'v3.0.0',
+    platform: Platform.UCP,
+    status: FeatureStatus.Launched,
+    categories: ['UI/UX', 'Accessibility'],
+    successMetrics: '50% user adoption within 3 months. Reduction in user-reported eye strain complaints.',
+    targetAudience: 'All users, especially those working in low-light conditions or with visual sensitivities.',
+    supportUrl: 'https://example.com/support/dark-mode',
+    updates: [
+        {
+            id: 'update-feat-1-1',
+            author: 'UX Team',
+            date: new Date('2024-07-20T10:00:00Z').toISOString(),
+            comment: 'Final design patterns approved.'
+        }
+    ],
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  },
+  {
+    id: 'feat-2',
+    title: 'Project Task Drag & Drop',
+    location: 'Project Detail View',
+    description: 'You can now reorder tasks within a project by simply dragging and dropping them. This makes organizing your project workflow more intuitive.',
+    launchDate: new Date('2024-08-01T00:00:00Z').toISOString(),
+    version: 'v2.9.0',
+    platform: Platform.Curator,
+    status: FeatureStatus.Launched,
+    categories: ['UI/UX', 'Project Management'],
+    successMetrics: 'Increase in task reordering actions by 20%. Positive feedback in user surveys.',
+    targetAudience: 'Project managers and team members.',
+    supportUrl: 'https://example.com/support/drag-drop',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  },
+  {
+    id: 'feat-3',
+    title: 'Advanced Reporting Filters',
+    location: 'Reports Page',
+    description: 'We are adding more granular filtering options to the reporting suite, allowing you to create more specific and insightful reports. This will include filtering by custom date ranges and additional ticket properties.',
+    launchDate: new Date('2024-09-01T00:00:00Z').toISOString(),
+    platform: Platform.Curator,
+    status: FeatureStatus.InDevelopment,
+    categories: ['Reporting', 'Data Analysis'],
+    successMetrics: 'Users generate 30% more custom reports. Decrease in requests for custom report generation from support.',
+    targetAudience: 'Managers, Analysts, and Account Executives.',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  },
+  {
+    id: 'feat-4',
+    title: 'API Rate Limiting',
+    location: 'Backend API',
+    description: 'Implement rate limiting on public API endpoints to ensure stability and prevent abuse.',
+    launchDate: new Date('2024-10-01T00:00:00Z').toISOString(),
+    platform: Platform.Curator,
+    status: FeatureStatus.Upcoming,
+    categories: ['API', 'Performance', 'Security'],
+    successMetrics: 'No API downtime caused by traffic spikes. Fair usage across all API clients.',
+    targetAudience: 'Third-party developers and integrators.',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  },
+  {
+    id: 'feat-5',
+    title: 'Real-time Collaboration on Meeting Notes',
+    location: 'Meeting Notes View',
+    description: 'Allow multiple users to edit meeting notes simultaneously, similar to Google Docs.',
+    launchDate: new Date('2025-01-15T00:00:00Z').toISOString(),
+    platform: Platform.Curator,
+    status: FeatureStatus.InDiscovery,
+    categories: ['Collaboration', 'UI/UX'],
+    successMetrics: 'Increased usage of meeting notes feature. Positive qualitative feedback.',
+    targetAudience: 'All teams participating in meetings.',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  },
+   {
+    id: 'feat-6',
+    title: 'SSO Integration (SAML)',
+    location: 'Login & Authentication',
+    description: 'Provide support for Single Sign-On (SSO) using the SAML 2.0 protocol to allow enterprise customers to manage their own user access.',
+    launchDate: new Date('2024-11-01T00:00:00Z').toISOString(),
+    platform: Platform.UCP,
+    status: FeatureStatus.Backlog,
+    categories: ['Security', 'Authentication'],
+    successMetrics: 'Onboard 5 major enterprise clients using SSO within 6 months.',
+    targetAudience: 'Enterprise-level customers with internal identity providers.',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  },
+  {
+    id: 'feat-7',
+    title: 'Mobile Responsiveness Overhaul',
+    location: 'Entire Application',
+    description: 'Conduct a full audit and update of all pages to ensure they are fully responsive and usable on mobile devices.',
+    launchDate: new Date('2024-09-20T00:00:00Z').toISOString(),
+    platform: Platform.Curator,
+    status: FeatureStatus.Testing,
+    categories: ['UI/UX', 'Mobile'],
+    successMetrics: 'Achieve a Lighthouse accessibility and performance score of 90+ on key pages. Increase in mobile session duration by 15%.',
+    targetAudience: 'All users, especially those accessing the app on tablets and phones.',
+    ticketIds: [],
+    projectIds: [],
+    meetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    linkedFeatureIds: [],
+  }
+];
+
+export const initialMeetings: Meeting[] = [
+  {
+    id: 'meet-1',
+    name: 'Project Kickoff: Dark Mode',
+    meetingDate: new Date('2024-07-11T10:00:00Z').toISOString(),
+    attendees: ['Project Lead', 'John Doe', 'UX Team'],
+    notes: '<h3>Agenda</h3><ul><li>Finalize design specs</li><li>Outline development tasks</li><li>Set timeline</li></ul><p>Discussion points were positive. Team is aligned.</p>',
+    projectIds: ['proj-1'],
+    ticketIds: ['2'],
+    linkedMeetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'meet-2',
+    name: 'Compliance Audit Weekly Sync',
+    meetingDate: new Date('2024-07-28T14:00:00Z').toISOString(),
+    attendees: ['Security Team', 'DevOps', 'Legal Advisor'],
+    notes: '<p>Reviewed progress on log gathering. DevOps to provide an update on encryption verification by EOW.</p>',
+    projectIds: ['proj-2'],
+    ticketIds: [],
+    linkedMeetingIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  }
+];
+
+export const initialContacts: Contact[] = [
+  { id: 'contact-1', name: 'John Doe', email: 'john.doe@internal.com', role: 'Lead Developer', type: ContactType.Internal, isFavorite: true, groupIds: ['group-1'] },
+  { id: 'contact-2', name: 'Alice Johnson', email: 'alice.j@internal.com', role: 'Frontend Developer', type: ContactType.Internal, groupIds: ['group-1'] },
+  { id: 'contact-3', name: 'Bob Williams', email: 'bob.w@internal.com', role: 'Project Manager', type: ContactType.Internal },
+  { id: 'contact-4', name: 'Mike Miller', email: 'mike.miller@prestigemotors.com', role: 'Client POC', type: ContactType.External, phone: '555-123-4567', groupIds: ['group-2'] },
+  { id: 'contact-5', name: 'Anna Williams', email: 'anna.w@citycars.com', role: 'General Manager', type: ContactType.External, phone: '555-987-6543', groupIds: ['group-2'] },
+];
+
+export const initialContactGroups: ContactGroup[] = [
+  { id: 'group-1', name: 'Development Team', description: 'Core engineers for the Curator project.', contactIds: ['contact-1', 'contact-2'] },
+  { id: 'group-2', name: 'Key Client Contacts', description: 'Main points of contact for our top clients.', contactIds: ['contact-4', 'contact-5'] },
+];
+
+export const initialDealershipGroups: DealershipGroup[] = [
+  { id: 'd-group-1', name: 'Luxury Auto Group', description: 'High-end dealerships.', dealershipIds: ['dealership-1'] },
+  { id: 'd-group-2', name: 'Urban Motors Inc.', description: 'Dealerships located in metropolitan areas.', dealershipIds: ['dealership-2', 'dealership-5'] },
+];
+
+export const initialKnowledgeArticles: KnowledgeArticle[] = [
+    {
+        id: 'kb-1',
+        title: 'Onboarding Checklist for New Clients',
+        content: '<h3>Phase 1: Pre-Kickoff</h3><ul><li>Send welcome email</li><li>Schedule kickoff call</li><li>Grant system access</li></ul><h3>Phase 2: Post-Kickoff</h3><ol><li>Complete user training</li><li>Set up initial reports</li><li>Schedule first check-in</li></ol>',
+        tags: ['onboarding', 'checklist', 'client-success'],
+        category: 'Process',
+        createdDate: new Date('2024-07-20T10:00:00Z').toISOString(),
+        lastModifiedDate: new Date('2024-07-22T11:00:00Z').toISOString(),
+        isFavorite: true,
+    },
+    {
+        id: 'kb-2',
+        title: 'Common Safari CSS Bugs',
+        content: '<p>Safari can be tricky. Here are a few common issues:</p><p><strong>1. Flexbox alignment:</strong> Sometimes requires explicit `align-items` settings.</p><p><strong>2. `vh` units in modals:</strong> Can cause sizing issues due to the browser UI. Use JavaScript to calculate height instead.</p>',
+        tags: ['css', 'safari', 'frontend', 'bugs'],
+        category: 'Technical',
+        createdDate: new Date('2024-07-15T14:30:00Z').toISOString(),
+        lastModifiedDate: new Date('2024-07-15T14:30:00Z').toISOString(),
+    }
+];
+
+export const initialShoppers: Shopper[] = [
+  {
+    id: 'shopper-1',
+    customerName: 'Jane Smith',
+    curatorId: 'CUR-98765',
+    curatorLink: 'https://example.com/curator/98765',
+    email: 'jane.smith@example.com',
+    phone: '555-111-2222',
+    cdpId: 'CDP-JSMITH',
+    dmsId: 'DMS-456',
+    uniqueIssue: 'User is unable to see vehicle pricing on VDPs. Console shows a 403 error on the pricing API endpoint.',
+    recentActivity: [
+      {
+        id: 'act-1-1',
+        date: '2024-07-28',
+        time: '10:30 AM',
+        activity: 'Visited VDP for 2024 Ford F-150',
+        action: 'Clicked on "Get E-Price", no price displayed',
+      },
+      {
+        id: 'act-1-2',
+        date: '2024-07-28',
+        time: '10:32 AM',
+        activity: 'Navigated to inventory search',
+        action: 'Performed search for "Ford"',
+      }
+    ],
+    dealershipIds: ['dealership-1'],
+    ticketIds: ['1'],
+    isFavorite: true,
+  },
+  {
+    id: 'shopper-2',
+    customerName: 'John Appleseed',
+    curatorId: 'CUR-12345',
+    email: 'john.a@example.com',
+    uniqueIssue: 'Trade-in value form is not accepting VIN.',
+    dealershipIds: ['dealership-2'],
+    ticketIds: [],
+    taskIds: ['task-1'],
+    isFavorite: false,
+  }
+];

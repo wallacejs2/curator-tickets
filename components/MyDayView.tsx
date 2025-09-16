@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Ticket, EnrichedTask, KnowledgeArticle } from '../types.ts';
 import { StarIcon } from './icons/StarIcon.tsx';
@@ -48,7 +49,10 @@ const MyDayView: React.FC<MyDayViewProps> = ({ dueToday, myFavorites, onSwitchVi
                                 <p className="font-medium text-sm text-gray-800">{'title' in item ? item.title : item.description}</p>
                                 <p className="text-xs text-gray-500 mt-1 capitalize">{'title' in item ? 'Ticket' : 'Task'}</p>
                             </div>
-                            <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">{daysUntil('title' in item ? item.estimatedCompletionDate! : item.dueDate!)}</span>
+                            <span className="text-xs font-semibold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+{/* FIX: Replaced non-existent 'estimatedCompletionDate' with 'completionDate' for Ticket type. */}
+                                {daysUntil('title' in item ? item.completionDate! : item.dueDate!)}
+                            </span>
                         </div>
                     </div>
                 ))}
