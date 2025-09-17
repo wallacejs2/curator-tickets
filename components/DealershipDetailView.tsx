@@ -48,7 +48,7 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 
 const statusColors: Record<DealershipStatus, string> = {
   [DealershipStatus.Prospect]: 'bg-indigo-200 text-indigo-800',
-  [DealershipStatus.PendingDms]: 'bg-purple-200 text-purple-800',
+  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
@@ -245,6 +245,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
                     <DetailTag label="Status" value={dealership.status} />
                     <DetailField label="Managed Solution" value={dealership.hasManagedSolution ? 'Yes' : 'No'} />
+                    <DetailField label="Previously Fullpath Customer" value={dealership.wasFullpathCustomer ? 'Yes' : 'No'} />
                 </div>
 
                 <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">

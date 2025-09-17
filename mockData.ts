@@ -1,3 +1,4 @@
+
 import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
 
 export const initialTickets: Ticket[] = [
@@ -294,6 +295,7 @@ export const initialDealerships: Dealership[] = [
     accountNumber: 'CIF-1001',
     status: DealershipStatus.Live,
     hasManagedSolution: true,
+    wasFullpathCustomer: true,
     orderNumber: 'ORD-2024-001',
     orderReceivedDate: new Date('2024-01-15T00:00:00Z').toISOString(),
     goLiveDate: new Date('2024-02-01T00:00:00Z').toISOString(),
@@ -342,6 +344,7 @@ export const initialDealerships: Dealership[] = [
     accountNumber: 'CIF-1002',
     status: DealershipStatus.Onboarding,
     hasManagedSolution: true,
+    wasFullpathCustomer: false,
     orderNumber: 'ORD-2024-002',
     orderReceivedDate: new Date('2024-07-01T00:00:00Z').toISOString(),
     goLiveDate: new Date('2024-08-01T00:00:00Z').toISOString(),
@@ -371,6 +374,7 @@ export const initialDealerships: Dealership[] = [
     accountNumber: 'CIF-1003',
     status: DealershipStatus.Cancelled,
     hasManagedSolution: false,
+    wasFullpathCustomer: true,
     orderNumber: 'ORD-2023-050',
     orderReceivedDate: new Date('2023-10-01T00:00:00Z').toISOString(),
     goLiveDate: new Date('2023-11-01T00:00:00Z').toISOString(),
@@ -395,6 +399,7 @@ export const initialDealerships: Dealership[] = [
     name: 'Future Fleet',
     accountNumber: 'CIF-1004',
     status: DealershipStatus.Pilot,
+    wasFullpathCustomer: false,
     orderNumber: 'ORD-2024-004',
     orderReceivedDate: new Date('2024-07-15T00:00:00Z').toISOString(),
     goLiveDate: new Date('2024-09-01T00:00:00Z').toISOString(),
@@ -418,6 +423,7 @@ export const initialDealerships: Dealership[] = [
     name: 'Focus Forward',
     accountNumber: 'CIF-1005',
     status: DealershipStatus.PendingFocus,
+    wasFullpathCustomer: false,
     orderNumber: 'ORD-2024-005',
     orderReceivedDate: new Date('2024-07-20T00:00:00Z').toISOString(),
     enterprise: 'Urban Motors Inc.',
@@ -434,9 +440,10 @@ export const initialDealerships: Dealership[] = [
   },
   {
     id: 'dealership-6',
-    name: 'DMS Dynamics',
+    name: 'DMT Dynamics',
     accountNumber: 'CIF-1006',
-    status: DealershipStatus.PendingDms,
+    status: DealershipStatus.PendingDmt,
+    wasFullpathCustomer: true,
     orderNumber: 'ORD-2024-006',
     orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString(),
     enterprise: 'Value Vehicles',
@@ -455,6 +462,7 @@ export const initialDealerships: Dealership[] = [
     name: 'Setup Solutions',
     accountNumber: 'CIF-1007',
     status: DealershipStatus.PendingSetup,
+    wasFullpathCustomer: false,
     orderNumber: 'ORD-2024-007',
     orderReceivedDate: new Date('2024-07-25T00:00:00Z').toISOString(),
     enterprise: 'NextGen Auto',
@@ -473,6 +481,7 @@ export const initialDealerships: Dealership[] = [
     name: 'Future Horizons Automotive',
     accountNumber: 'CIF-1008',
     status: DealershipStatus.Prospect,
+    wasFullpathCustomer: false,
     enterprise: 'Visionary Motors',
     sales: 'Sarah Conner',
     pocName: 'John Anderton',

@@ -29,7 +29,7 @@ interface DealershipListProps {
 
 const statusColors: Record<DealershipStatus, string> = {
   [DealershipStatus.Prospect]: 'bg-indigo-200 text-indigo-800',
-  [DealershipStatus.PendingDms]: 'bg-purple-200 text-purple-800',
+  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',

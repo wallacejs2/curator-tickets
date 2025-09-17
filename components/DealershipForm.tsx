@@ -19,6 +19,7 @@ const initialFormData: Omit<Dealership, 'id'> = {
   accountNumber: '',
   status: DealershipStatus.Onboarding,
   hasManagedSolution: false,
+  wasFullpathCustomer: false,
   orderNumber: '',
   orderReceivedDate: '',
   goLiveDate: '',
@@ -181,18 +182,33 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, dea
           <label className={labelClasses}>Enterprise (Group Name)</label>
           <input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} />
         </div>
-        <div className="col-span-2 flex items-center mt-2">
-            <input
-                type="checkbox"
-                id="hasManagedSolution"
-                name="hasManagedSolution"
-                checked={formData.hasManagedSolution || false}
-                onChange={handleChange}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="hasManagedSolution" className="ml-2 block text-sm text-gray-900">
-                This dealership has a Managed Solution.
-            </label>
+        <div className="col-span-2 flex items-center gap-x-8 gap-y-2 mt-2 flex-wrap">
+            <div className="flex items-center">
+                <input
+                    type="checkbox"
+                    id="hasManagedSolution"
+                    name="hasManagedSolution"
+                    checked={formData.hasManagedSolution || false}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="hasManagedSolution" className="ml-2 block text-sm text-gray-900">
+                    This dealership has a Managed Solution.
+                </label>
+            </div>
+            <div className="flex items-center">
+                <input
+                    type="checkbox"
+                    id="wasFullpathCustomer"
+                    name="wasFullpathCustomer"
+                    checked={formData.wasFullpathCustomer || false}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="wasFullpathCustomer" className="ml-2 block text-sm text-gray-900">
+                    Previously a Fullpath customer.
+                </label>
+            </div>
         </div>
       </FormSection>
 

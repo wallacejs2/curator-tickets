@@ -23,8 +23,7 @@ const tagColorStyles: Record<string, string> = {
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
   // Statuses from types.ts DealershipStatus enum
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
-  // FIX: Corrected typo from `PendingDmt` to `PendingDms` to match the enum definition in types.ts.
-  [DealershipStatus.PendingDms]: 'bg-purple-200 text-purple-800',
+  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
@@ -148,11 +147,15 @@ const LinkingSection = <T extends LinkableItem>({
                 Unlink
                 </button>
             </div>
-            )}) : <p className="text-sm text-gray-500 italic mt-2">No {itemTypeLabel}s linked.</p>}
+            );
+            }) : (
+            <p className="text-sm text-gray-500 italic">No {itemTypeLabel}s linked yet.</p>
+            )}
         </div>
       </div>
     </>
   );
 };
 
+// FIX: Added default export to resolve module import errors.
 export default LinkingSection;

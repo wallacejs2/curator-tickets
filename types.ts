@@ -191,7 +191,7 @@ export interface Project {
 
 export enum DealershipStatus {
     Prospect = 'Prospect',
-    PendingDms = 'Pending DMS',
+    PendingDmt = 'Pending DMT',
     PendingFocus = 'Pending FOCUS',
     PendingSetup = 'Pending Setup',
     Onboarding = 'Onboarding',
@@ -212,6 +212,7 @@ export interface Dealership {
     accountNumber: string;
     status: DealershipStatus;
     hasManagedSolution?: boolean;
+    wasFullpathCustomer?: boolean;
     orderNumber?: string;
     orderReceivedDate?: string;
     goLiveDate?: string;

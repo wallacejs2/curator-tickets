@@ -1581,7 +1581,7 @@ function App() {
     }, [tickets]);
 
     const dealershipInsights = useMemo(() => {
-        const pendingStatuses = [DealershipStatus.PendingDms, DealershipStatus.PendingFocus, DealershipStatus.PendingSetup];
+        const pendingStatuses = [DealershipStatus.PendingDmt, DealershipStatus.PendingFocus, DealershipStatus.PendingSetup];
         return {
             totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled && d.status !== DealershipStatus.Prospect).length,
             liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
@@ -1611,7 +1611,7 @@ function App() {
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
-              return ['id', 'name', 'accountNumber', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLink1', 'clientID1', 'websiteLink2', 'clientID2', 'websiteLink3', 'clientID3', 'websiteLink4', 'clientID4', 'websiteLink5', 'clientID5', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+              return ['id', 'name', 'accountNumber', 'status', 'hasManagedSolution', 'wasFullpathCustomer', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLink1', 'clientID1', 'websiteLink2', 'clientID2', 'websiteLink3', 'clientID3', 'websiteLink4', 'clientID4', 'websiteLink5', 'clientID5', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
           case 'Standalone Tasks':
               return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
           case 'Features':
@@ -1700,7 +1700,7 @@ function App() {
                 dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
                 arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
                 enumFields['status'] = DEALERSHIP_STATUS_OPTIONS;
-                booleanFields.push('hasManagedSolution');
+                booleanFields.push('hasManagedSolution', 'wasFullpathCustomer');
                 break;
             case 'Standalone Tasks':
                 dateFields.push('creationDate', 'dueDate');
