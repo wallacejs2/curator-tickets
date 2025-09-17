@@ -853,7 +853,7 @@ function App() {
     const newUpdate: Update = { id: crypto.randomUUID(), author, date: new Date(`${date}T00:00:00`).toISOString(), comment };
     
     if (selectedTicket && selectedTicket.id === id) {
-        const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate] };
+        const updatedTicket = { ...selectedTicket, updates: [...(selectedTicket.updates || []), newUpdate], lastUpdatedDate: new Date().toISOString() };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
     } else if (selectedProject && selectedProject.id === id) {
@@ -884,7 +884,8 @@ function App() {
     if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { 
             ...selectedTicket, 
-            updates: (selectedTicket.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+            updates: (selectedTicket.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u),
+            lastUpdatedDate: new Date().toISOString()
         };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
@@ -931,7 +932,8 @@ function App() {
     if (selectedTicket && selectedTicket.id === id) {
         const updatedTicket = { 
             ...selectedTicket, 
-            updates: (selectedTicket.updates || []).filter(u => u.id !== updateId)
+            updates: (selectedTicket.updates || []).filter(u => u.id !== updateId),
+            lastUpdatedDate: new Date().toISOString()
         };
         setSelectedTicket(updatedTicket);
         setTickets(prevTickets => prevTickets.map(t => t.id === id ? updatedTicket : t));
