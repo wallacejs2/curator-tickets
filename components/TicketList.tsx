@@ -105,14 +105,15 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
     );
 }
 
-type TicketView = 'active' | 'completed' | 'favorites';
+type TicketView = 'active' | 'onHold' | 'completed' | 'favorites';
 
 const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
-  const { activeTickets, completedTickets, favoriteTickets } = useMemo(() => {
+  const { activeTickets, onHoldTickets, completedTickets, favoriteTickets } = useMemo(() => {
     const active: Ticket[] = [];
+    const onHold: Ticket[] = [];
     const completed: Ticket[] = [];
     const favorites: Ticket[] = [];
 
@@ -122,14 +123,23 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
         }
         if (ticket.status === Status.Completed) {
             completed.push(ticket);
+        } else if (ticket.status === Status.OnHold) {
+            onHold.push(ticket);
         } else {
             active.push(ticket);
         }
     }
-    return { activeTickets: active, completedTickets: completed, favoriteTickets: favorites };
+    return { activeTickets: active, onHoldTickets: onHold, completedTickets: completed, favoriteTickets: favorites };
   }, [tickets]);
 
-  const ticketsToShow = ticketView === 'active' ? activeTickets : ticketView === 'completed' ? completedTickets : favoriteTickets;
+  const ticketsToShow =
+    ticketView === 'active'
+      ? activeTickets
+      : ticketView === 'onHold'
+      ? onHoldTickets
+      : ticketView === 'completed'
+      ? completedTickets
+      : favoriteTickets;
   
   const areAllShownTicketsSelected = useMemo(() => {
     return ticketsToShow.length > 0 && ticketsToShow.every(t => selectedTicketIds.includes(t.id));
@@ -183,6 +193,17 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
             aria-pressed={ticketView === 'active'}
             >
             Active ({activeTickets.length})
+            </button>
+            <button
+            onClick={() => setTicketView('onHold')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'onHold'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'onHold'}
+            >
+            On Hold ({onHoldTickets.length})
             </button>
             <button
             onClick={() => setTicketView('completed')}
