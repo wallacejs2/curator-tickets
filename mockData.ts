@@ -434,9 +434,9 @@ export const initialDealerships: Dealership[] = [
   },
   {
     id: 'dealership-6',
-    name: 'DMT Dynamics',
+    name: 'DMS Dynamics',
     accountNumber: 'CIF-1006',
-    status: DealershipStatus.PendingDmt,
+    status: DealershipStatus.PendingDms,
     orderNumber: 'ORD-2024-006',
     orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString(),
     enterprise: 'Value Vehicles',

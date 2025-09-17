@@ -191,10 +191,11 @@ export interface Project {
 
 export enum DealershipStatus {
     Prospect = 'Prospect',
+    PendingDms = 'Pending DMS',
     PendingFocus = 'Pending FOCUS',
-    PendingDmt = 'Pending DMT',
     PendingSetup = 'Pending Setup',
     Onboarding = 'Onboarding',
+    Enrollment = 'Enrollment',
     Live = 'Live',
     Pilot = 'Pilot',
     Cancelled = 'Cancelled',

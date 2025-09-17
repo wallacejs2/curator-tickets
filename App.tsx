@@ -1582,7 +1582,7 @@ function App() {
     }, [tickets]);
 
     const dealershipInsights = useMemo(() => {
-        const pendingStatuses = [DealershipStatus.PendingFocus, DealershipStatus.PendingDmt, DealershipStatus.PendingSetup];
+        const pendingStatuses = [DealershipStatus.PendingDms, DealershipStatus.PendingFocus, DealershipStatus.PendingSetup];
         return {
             totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled && d.status !== DealershipStatus.Prospect).length,
             liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,

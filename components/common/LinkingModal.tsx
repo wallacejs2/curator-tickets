@@ -31,10 +31,11 @@ const tagColorStyles: Record<string, string> = {
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
   // Statuses from types.ts DealershipStatus enum
   [DealershipStatus.Prospect]: 'bg-indigo-200 text-indigo-800',
+  [DealershipStatus.PendingDms]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
-  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
+  [DealershipStatus.Enrollment]: 'bg-teal-200 text-teal-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
   [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
