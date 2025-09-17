@@ -1,7 +1,6 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -1612,7 +1611,7 @@ function App() {
           case 'Projects':
               return ['id', 'name', 'description', 'status', 'tasks', 'creationDate', 'updates', 'involvedPeople', 'ticketIds', 'meetingIds', 'linkedProjectIds', 'taskIds', 'dealershipIds', 'featureIds'];
           case 'Dealerships':
-              return ['id', 'name', 'accountNumber', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLinks', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
+              return ['id', 'name', 'accountNumber', 'status', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate', 'enterprise', 'storeNumber', 'branchNumber', 'eraSystemId', 'ppSysId', 'buId', 'address', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'websiteLink1', 'clientID1', 'websiteLink2', 'clientID2', 'websiteLink3', 'clientID3', 'websiteLink4', 'clientID4', 'websiteLink5', 'clientID5', 'ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds'];
           case 'Standalone Tasks':
               return ['id', 'description', 'assignedUser', 'status', 'priority', 'type', 'creationDate', 'dueDate', 'notifyOnCompletion', 'linkedTaskIds', 'ticketIds', 'projectIds', 'meetingIds', 'dealershipIds', 'featureIds'];
           case 'Features':
@@ -1700,7 +1699,6 @@ function App() {
             case 'Dealerships':
                 dateFields.push('orderReceivedDate', 'goLiveDate', 'termDate');
                 arrayFields.push('ticketIds', 'projectIds', 'meetingIds', 'taskIds', 'linkedDealershipIds', 'featureIds');
-                jsonFields.push('websiteLinks');
                 enumFields['status'] = DEALERSHIP_STATUS_OPTIONS;
                 booleanFields.push('hasManagedSolution');
                 break;
@@ -1752,12 +1750,32 @@ function App() {
                         formattedRow[key] = JSON.parse(value);
                     } catch (e) {
                         console.warn(`Could not parse JSON for field '${key}'`, { value });
-                        formattedRow[key] = (key === 'tasks' || key === 'websiteLinks') ? [] : undefined;
+                        formattedRow[key] = (key === 'tasks') ? [] : undefined;
                     }
                 }
             }
         });
     
+        if (entityType === 'Dealerships') {
+            const links: WebsiteLink[] = [];
+            const maxLinksToCheck = 20; // Check for up to 20 links on import.
+            for (let i = 1; i <= maxLinksToCheck; i++) {
+                const urlKey = `websiteLink${i}`;
+                const clientIdKey = `clientID${i}`;
+                const url = formattedRow[urlKey];
+                const clientId = formattedRow[clientIdKey];
+        
+                if (url && typeof url === 'string' && url.trim()) {
+                    links.push({ url: url.trim(), clientId: (clientId && typeof clientId === 'string') ? clientId.trim() : undefined });
+                }
+                delete formattedRow[urlKey];
+                delete formattedRow[clientIdKey];
+            }
+            if (links.length > 0) {
+                formattedRow.websiteLinks = links;
+            }
+        }
+        
         return formattedRow;
     };
 

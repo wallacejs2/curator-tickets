@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import Modal from './common/Modal.tsx';
@@ -16,16 +15,38 @@ interface ExportModalProps {
   showToast: (message: string, type: 'success' | 'error') => void;
 }
 
-const getFieldsFromData = (data: any[]) => {
+const getFieldsFromData = (data: any[], title: string) => {
   if (data.length === 0) return [];
   const fieldSet = new Set<string>();
+  let maxWebsiteLinks = 0;
+
   data.forEach(item => {
     if (item) {
-      Object.keys(item).forEach(key => fieldSet.add(key));
+      if (title === 'Dealerships' && item.websiteLinks && Array.isArray(item.websiteLinks)) {
+        maxWebsiteLinks = Math.max(maxWebsiteLinks, item.websiteLinks.length);
+      }
+      Object.keys(item).forEach(key => {
+        if (title === 'Dealerships' && key === 'websiteLinks') {
+          // Skip, will be handled separately
+        } else {
+          fieldSet.add(key);
+        }
+      });
     }
   });
-  return Array.from(fieldSet);
+  
+  const fields = Array.from(fieldSet);
+
+  if (title === 'Dealerships' && maxWebsiteLinks > 0) {
+    for (let i = 1; i <= maxWebsiteLinks; i++) {
+      fields.push(`websiteLink${i}`);
+      fields.push(`clientID${i}`);
+    }
+  }
+
+  return fields;
 };
+
 
 // Helper to get the display name from various entity types
 const getItemName = (item: any): string => 
@@ -62,7 +83,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
   const allFieldsByTitle = useMemo(() => {
     const fieldsMap: Record<string, string[]> = {};
     dataSources.forEach(ds => {
-      fieldsMap[ds.title] = getFieldsFromData(ds.data);
+      fieldsMap[ds.title] = getFieldsFromData(ds.data, ds.title);
     });
     return fieldsMap;
   }, [dataSources]);
@@ -189,24 +210,37 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToa
         const dataToExport = source.data.map(row => {
             const newRow: { [key: string]: any } = {};
             fields.forEach((field, index) => {
-                let value = row[field];
                 const headerField = newHeaders[index];
-
-                if (enrichData && idFieldToEntityTypeMap[field]) {
-                    const entityType = idFieldToEntityTypeMap[field];
-                    const lookupMap = lookupMaps[entityType];
-                    const ids = Array.isArray(value) ? value : (value ? [value] : []);
-                    value = ids.map(id => lookupMap?.get(id) ? getItemName(lookupMap.get(id)) : id).join('; ');
-                } else if (enrichData && field === 'updates' && Array.isArray(value)) {
-                    value = value.map(update => 
-                        `${new Date(update.date).toISOString().split('T')[0]} by ${update.author}: ${update.comment.replace(/<br\s*\/?>/gi, '\n')}`
-                    ).join('\n\n');
-                } else if (title === 'Dealerships' && field === 'websiteLinks' && Array.isArray(value)) {
-                    value = value.map(link => `URL: ${link.url}${link.clientId ? `, Client ID: ${link.clientId}` : ''}`).join(';\n');
-                } else if (isISODateString(value)) {
-                    value = value.split('T')[0];
-                } else if (typeof value === 'object' && value !== null) {
-                    value = JSON.stringify(value);
+                let value;
+        
+                if (title === 'Dealerships' && (field.startsWith('websiteLink') || field.startsWith('clientID'))) {
+                    const linkIndexMatch = field.match(/\d+$/);
+                    if (linkIndexMatch) {
+                        const linkIndex = parseInt(linkIndexMatch[0], 10) - 1;
+                        if (row.websiteLinks && row.websiteLinks[linkIndex]) {
+                            if (field.startsWith('websiteLink')) {
+                                value = row.websiteLinks[linkIndex].url;
+                            } else {
+                                value = row.websiteLinks[linkIndex].clientId;
+                            }
+                        }
+                    }
+                } else {
+                    value = row[field];
+                    if (enrichData && idFieldToEntityTypeMap[field]) {
+                        const entityType = idFieldToEntityTypeMap[field];
+                        const lookupMap = lookupMaps[entityType];
+                        const ids = Array.isArray(value) ? value : (value ? [value] : []);
+                        value = ids.map(id => lookupMap?.get(id) ? getItemName(lookupMap.get(id)) : id).join('; ');
+                    } else if (enrichData && field === 'updates' && Array.isArray(value)) {
+                        value = value.map(update => 
+                            `${new Date(update.date).toISOString().split('T')[0]} by ${update.author}: ${update.comment.replace(/<br\s*\/?>/gi, '\n')}`
+                        ).join('\n\n');
+                    } else if (isISODateString(value)) {
+                        value = value.split('T')[0];
+                    } else if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value);
+                    }
                 }
                 newRow[headerField] = value;
             });
