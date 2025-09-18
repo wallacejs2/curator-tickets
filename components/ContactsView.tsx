@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Contact, ContactGroup, ContactFilterState, ContactType } from '../types.ts';
 import { CONTACT_TYPE_OPTIONS } from '../constants.ts';
@@ -16,6 +12,7 @@ import ContactForm from './ContactForm.tsx';
 import ContactGroupForm from './ContactGroupForm.tsx';
 import { AlternateEmailIcon } from './icons/AlternateEmailIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 interface ContactsViewProps {
   contacts: Contact[];
@@ -69,7 +66,7 @@ const ContactCard: React.FC<{ contact: Contact; allGroups: ContactGroup[]; onEdi
         <div className="flex-grow min-w-0">
             <div className="flex items-center gap-2">
                 <p className="font-bold text-gray-800 truncate">{contact.name}</p>
-                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.type === ContactType.Internal ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{contact.type}</span>
+                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.type === ContactType.Internal ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{formatDisplayName(contact.type)}</span>
             </div>
             <p className="text-sm text-gray-600 truncate">{contact.role}</p>
             {contactMemberOfGroups.length > 0 && (
@@ -285,7 +282,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({
                     {/* FIX: Cast e.target.value to the correct type to resolve setState error. */}
                     <select value={filters.type} onChange={e => setFilters(prev => ({ ...prev, type: e.target.value as 'all' | ContactType }))} className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="all">All Types</option>
-                        {CONTACT_TYPE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        {CONTACT_TYPE_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}
                     </select>
                 </div>
             </div>

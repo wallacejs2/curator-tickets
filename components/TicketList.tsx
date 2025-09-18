@@ -11,6 +11,7 @@ import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 
 interface TicketTableProps {
@@ -56,7 +57,7 @@ const tagColorStyles: Record<string, string> = {
 
 const Tag: React.FC<{ label: string }> = ({ label }) => (
     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[label] || 'bg-gray-200 text-gray-800'}`}>
-        {label}
+        {formatDisplayName(label)}
     </span>
 );
 
@@ -273,7 +274,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                 reasonContainerStyle = "bg-[#ffcd85]/20 border-[#ffcd85] text-stone-800";
             } else if ([...reviewStatuses, Status.Testing].includes(ticket.status)) {
                 reasonText = ticket.onHoldReason;
-                reasonLabel = ticket.status;
+                reasonLabel = formatDisplayName(ticket.status);
                 if(ticket.status === Status.Testing) {
                     reasonContainerStyle = "bg-orange-50 border-orange-200 text-orange-800";
                 } else {
@@ -390,7 +391,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                         aria-label={`Change status for ticket ${ticket.title}`}
                     >
                         {STATUS_OPTIONS.map(status => (
-                            <option key={status} value={status}>{status}</option>
+                            <option key={status} value={status}>{formatDisplayName(status)}</option>
                         ))}
                     </select>
                     </div>

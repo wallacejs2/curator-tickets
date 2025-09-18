@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket, Task } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -10,6 +8,7 @@ import GanttChartView from './GanttChartView.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 
 interface ProjectListProps {
@@ -39,7 +38,7 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tasks</h4>
                 {projectTasks.length > 0 ? (
                     <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                        {projectTasks.slice(0, 3).map(task => (
+                        {projectTasks.filter(Boolean).slice(0, 3).map(task => (
                             <li key={task.id} className={task.status === TaskStatus.Done ? 'line-through text-gray-500' : ''}>{task.description}</li>
                         ))}
                         {projectTasks.length > 3 && <li>...and {projectTasks.length - 3} more.</li>}
@@ -80,7 +79,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
     const countTasksRecursively = (tasks: Task[]): { completed: number; total: number } => {
         let completed = 0;
         let total = 0;
-        for (const task of tasks) {
+        for (const task of (tasks || []).filter(Boolean)) {
             total++;
             if (task.status === TaskStatus.Done) {
                 completed++;
@@ -107,7 +106,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
         <div className="flex justify-between items-start gap-3">
             <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
           <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColor.bg} ${statusColor.text}`}>
-            {project.status}
+            {formatDisplayName(project.status)}
           </span>
         </div>
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description || 'No description provided.'}</p>

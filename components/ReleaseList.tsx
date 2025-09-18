@@ -1,5 +1,6 @@
 import React from 'react';
 import { Release, ReleaseStatus } from '../types.ts';
+import { formatDisplayName } from '../utils.ts';
 
 interface ReleaseListProps {
   releases: Release[];
@@ -25,7 +26,7 @@ const ReleaseCard: React.FC<{ release: Release, onClick: () => void }> = ({ rele
           <h3 className="text-lg font-bold text-gray-900">{release.name}</h3>
         </div>
         <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColors[release.status]}`}>
-          {release.status}
+          {formatDisplayName(release.status)}
         </span>
       </div>
       <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center text-sm">

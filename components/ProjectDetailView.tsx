@@ -9,6 +9,7 @@ import { LinkIcon } from './icons/LinkIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 // FIX: Removed local EntityType definition.
 
@@ -289,7 +290,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                  <div>
                     <label className="block text-sm font-medium text-gray-700">Status</label>
                     <select name="status" value={editableProject.status} onChange={handleFormChange} className="mt-1 block w-full bg-gray-50 text-gray-900 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                        {Object.values(ProjectStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        {Object.values(ProjectStatus).map(s => <option key={s} value={s}>{formatDisplayName(s)}</option>)}
                     </select>
                 </div>
             </div>

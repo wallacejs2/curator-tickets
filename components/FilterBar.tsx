@@ -17,6 +17,7 @@ import { AccountCircleIcon } from './icons/AccountCircleIcon.tsx';
 import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
 import { RocketLaunchIcon } from './icons/RocketLaunchIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
@@ -175,7 +176,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <label htmlFor="type" className={labelClasses}>Type</label>
                       <select id="type" name="type" value={ticketFilters.type} onChange={handleInputChange} className={selectClasses}>
                         <option value="all">All Types</option>
-                        {TICKET_TYPE_OPTIONS.map(type => <option key={type} value={type}>{type}</option>)}
+                        {TICKET_TYPE_OPTIONS.map(type => <option key={type} value={type}>{formatDisplayName(type)}</option>)}
                       </select>
                     </div>
                     <div>
@@ -189,7 +190,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <label htmlFor="status" className={labelClasses}>Status</label>
                       <select id="status" name="status" value={ticketFilters.status} onChange={handleInputChange} className={selectClasses}>
                         <option value="all">All Statuses</option>
-                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{formatDisplayName(status)}</option>)}
                       </select>
                     </div>
                     <div>
@@ -220,7 +221,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <select id="status" name="status" value={dealershipFilters.status} onChange={handleInputChange} className={selectClasses}>
                         <option value="all">All Statuses</option>
                         {DEALERSHIP_STATUS_OPTIONS.map(status => (
-                          <option key={status} value={status}>{status}</option>
+                          <option key={status} value={status}>{formatDisplayName(status)}</option>
                         ))}
                       </select>
                     </div>

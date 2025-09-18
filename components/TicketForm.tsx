@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project, PrioritizationScore } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS, PRIORITIZATION_SCORE_OPTIONS } from '../constants.ts';
+import { formatDisplayName } from '../utils.ts';
 
 // FIX: Update FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
 type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => void;
@@ -177,7 +178,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
 
   const getReasonLabel = (status: Status) => {
       if (status === Status.Completed) return 'Reason for Completion';
-      return `Reason for ${status}`;
+      return `Reason for ${formatDisplayName(status)}`;
   };
 
   return (
@@ -250,7 +251,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         <div>
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
-            {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}
           </select>
         </div>
         <div>
@@ -269,7 +270,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         {currentStatusHasReason && (
           <div className="col-span-2">
             <label htmlFor="reason" className={labelClasses}>{getReasonLabel(formData.status)}</label>
-            <textarea id="reason" name={reasonField} value={reasonValue || ''} onChange={handleChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${formData.status}...`}/>
+            <textarea id="reason" name={reasonField} value={reasonValue || ''} onChange={handleChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${formatDisplayName(formData.status)}...`}/>
           </div>
         )}
       </FormSection>

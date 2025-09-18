@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -17,6 +14,7 @@ import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 interface DealershipListProps {
   dealerships: Dealership[];
@@ -161,7 +159,7 @@ const DealershipCard: React.FC<{
                     aria-label={`Change status for dealership ${dealership.name}`}
                 >
                     {DEALERSHIP_STATUS_OPTIONS.map(status => (
-                        <option key={status} value={status}>{status}</option>
+                        <option key={status} value={status}>{formatDisplayName(status)}</option>
                     ))}
                 </select>
               </div>

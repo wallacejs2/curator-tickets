@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Release, ReleaseStatus } from '../types.ts';
 import { RELEASE_STATUS_OPTIONS } from '../constants.ts';
+import { formatDisplayName } from '../utils.ts';
 
 type FormSaveCallback = (release: Omit<Release, 'id'> | Release) => void;
 
@@ -72,7 +73,7 @@ const ReleaseForm: React.FC<ReleaseFormProps> = ({ onSave, onClose, releaseToEdi
         <div>
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
-            {RELEASE_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            {RELEASE_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}
           </select>
         </div>
       </div>

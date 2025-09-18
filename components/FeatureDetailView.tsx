@@ -8,6 +8,7 @@ import FeatureForm from './FeatureForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 // FIX: Removed local EntityType, will use the one from types.ts.
 
@@ -57,7 +58,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
     <div>
       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h4>
       <span className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${statusColors[value] || 'bg-gray-200 text-gray-800'}`}>
-        {value}
+        {formatDisplayName(value)}
       </span>
     </div>
   );
