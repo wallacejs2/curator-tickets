@@ -83,7 +83,6 @@ interface TicketDetailViewProps {
     onEmail: () => void, 
     onDelete: (ticketId: string) => void, 
     isReadOnly?: boolean;
-    showToast: (message: string, type: 'success' | 'error') => void;
     
     // All entities for linking
     allTickets: Ticket[];
@@ -102,7 +101,6 @@ interface TicketDetailViewProps {
 
 const TicketDetailView = ({ 
     ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete, isReadOnly = false,
-    showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allShoppers,
     onLink, onUnlink, onSwitchView
  }: TicketDetailViewProps) => {
@@ -286,7 +284,7 @@ const TicketDetailView = ({
     }
     
     navigator.clipboard.writeText(content.trim());
-    showToast('Ticket info copied!', 'success');
+    // FIX: Removed deprecated call to showToast as toast notifications are no longer used.
   };
   
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -21,7 +21,6 @@ interface ProjectDetailViewProps {
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
   isReadOnly?: boolean;
-  showToast: (message: string, type: 'success' | 'error') => void;
   
   // All entities for linking
   allTickets: Ticket[];
@@ -38,7 +37,7 @@ interface ProjectDetailViewProps {
 }
 
 const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ 
-    project, onUpdate, onDelete, onExport, onAddUpdate, onEditUpdate, onDeleteUpdate, isReadOnly = false, showToast,
+    project, onUpdate, onDelete, onExport, onAddUpdate, onEditUpdate, onDeleteUpdate, isReadOnly = false,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
 }) => {
@@ -227,7 +226,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         appendField('Feature IDs', (project.featureIds || []).join(', '));
         
         navigator.clipboard.writeText(content);
-        showToast('Project info copied!', 'success');
+        // FIX: Removed call to deprecated showToast function.
     };
     
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {

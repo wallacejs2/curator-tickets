@@ -17,7 +17,6 @@ interface MeetingDetailViewProps {
     onAddUpdate: (meetingId: string, comment: string, author: string, date: string) => void;
     onEditUpdate: (updatedUpdate: Update) => void;
     onDeleteUpdate: (updateId: string) => void;
-    showToast: (message: string, type: 'success' | 'error') => void;
     isReadOnly?: boolean;
     
     // All entities for linking

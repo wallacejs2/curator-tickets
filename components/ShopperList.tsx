@@ -12,7 +12,6 @@ interface ShoppersViewProps {
   allDealerships: Dealership[];
   onUpdateShopper: (shopper: Shopper) => void;
   onDeleteShopper: (shopperId: string) => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
   onEditShopperClick: (shopper: Shopper) => void;
   onShopperClick: (shopper: Shopper) => void;
   shopperFilters: ShopperFilterState;
@@ -26,8 +25,7 @@ const ShopperCard: React.FC<{
     onDelete: () => void;
     onToggleFavorite: () => void;
     onClick: () => void;
-    showToast: (message: string, type: 'success' | 'error') => void;
-}> = ({ shopper, dealershipName, onEdit, onDelete, onToggleFavorite, onClick, showToast }) => {
+}> = ({ shopper, dealershipName, onEdit, onDelete, onToggleFavorite, onClick }) => {
 
     const handleCopyInfo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -71,14 +69,14 @@ const ShopperCard: React.FC<{
         }
 
         navigator.clipboard.writeText(content.trim());
-        showToast('Shopper info copied!', 'success');
+        // FIX: Removed call to deprecated showToast function.
     };
 
     const handleCopyEmail = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (shopper.email) {
             navigator.clipboard.writeText(shopper.email);
-            showToast('Email copied to clipboard!', 'success');
+            // FIX: Removed call to deprecated showToast function.
         }
     };
 
@@ -113,7 +111,7 @@ const ShopperCard: React.FC<{
 };
 
 const ShoppersView: React.FC<ShoppersViewProps> = ({
-  shoppers, allDealerships, onUpdateShopper, onDeleteShopper, showToast, onEditShopperClick, onShopperClick,
+  shoppers, allDealerships, onUpdateShopper, onDeleteShopper, onEditShopperClick, onShopperClick,
   shopperFilters, setShopperFilters,
 }) => {
     const dealershipMap = new Map(allDealerships.map(d => [d.id, d.name]));
@@ -154,7 +152,6 @@ const ShoppersView: React.FC<ShoppersViewProps> = ({
                         onEdit={() => onEditShopperClick(shopper)}
                         onDelete={() => onDeleteShopper(shopper.id)}
                         onToggleFavorite={() => handleToggleFavorite(shopper.id)}
-                        showToast={showToast}
                     />
                 )) : (
                     <div className="text-center py-20 px-6 bg-white rounded-md shadow-sm border border-gray-200">

@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, Release } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -28,8 +22,6 @@ import ProjectForm from './components/ProjectForm.tsx';
 import DealershipList from './components/DealershipList.tsx';
 import DealershipDetailView from './components/DealershipDetailView.tsx';
 import DealershipInsights from './components/DealershipInsights.tsx';
-import { useToast } from './hooks/useToast.ts';
-import Toast from './components/common/Toast.ts';
 import DealershipForm from './components/DealershipForm.tsx';
 import TaskList from './components/TaskList.tsx';
 import FeatureList from './components/FeatureList.tsx';
@@ -57,8 +49,6 @@ import ContactForm from './components/ContactForm.tsx';
 import ContactGroupForm from './components/ContactGroupForm.tsx';
 import DealershipGroupForm from './components/DealershipGroupForm.tsx';
 import { SearchIcon } from './components/icons/SearchIcon.tsx';
-import { ShareIcon } from './components/icons/ShareIcon.tsx';
-import MyDayView from './components/MyDayView.tsx';
 import KnowledgeBaseView from './components/KnowledgeBaseView.tsx';
 import ShoppersView from './components/ShopperList.tsx';
 import ShopperForm from './components/ShopperForm.tsx';
@@ -204,7 +194,6 @@ export default function App() {
   });
   
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  const { toast, showToast, hideToast } = useToast();
 
   const dataMap = useMemo(() => ({
     tickets, projects, dealerships, tasks, features, meetings, shoppers, releases
@@ -307,7 +296,6 @@ export default function App() {
     } as Ticket;
     
     setTickets(prev => [...prev, newTicket]);
-    showToast('Ticket created successfully!', 'success');
     
     if (newTicket.projectIds) {
       setProjects(prevProjects => prevProjects.map(p => 
@@ -330,7 +318,6 @@ export default function App() {
           involvedPeople: [],
       };
       setProjects(prev => [...prev, newProject]);
-      showToast('Project created successfully!', 'success');
   };
 
   const handleAddTask = (newTask: Task, parent: { type: 'project' | 'standalone', id?: string }) => {
@@ -342,7 +329,6 @@ export default function App() {
     } else { // standalone
         setTasks(prev => [...prev, newTask]);
     }
-    showToast('Task added!', 'success');
   };
   
   const handleFeatureSubmit = (newFeatureData: Omit<FeatureAnnouncement, 'id'>) => {
@@ -352,7 +338,6 @@ export default function App() {
           updates: [],
       };
       setFeatures(prev => [...prev, newFeature]);
-      showToast('Feature announcement added!', 'success');
   };
   
   const handleMeetingSubmit = (newMeetingData: Omit<Meeting, 'id'>) => {
@@ -361,20 +346,17 @@ export default function App() {
           ...newMeetingData,
       };
       setMeetings(prev => [...prev, newMeeting]);
-      showToast('Meeting note saved!', 'success');
   };
 
   const handleSaveRelease = (releaseData: Omit<Release, 'id'> | Release) => {
     if ('id' in releaseData) {
         setReleases(prev => prev.map(r => r.id === releaseData.id ? releaseData : r));
-        showToast('Release updated successfully!', 'success');
         if (selectedRelease?.id === releaseData.id) {
             setSelectedRelease(releaseData);
         }
     } else {
         const newRelease = { ...releaseData, id: crypto.randomUUID() };
         setReleases(prev => [...prev, newRelease]);
-        showToast('Release created successfully!', 'success');
     }
     setIsReleaseFormOpen(false);
     setEditingRelease(null);
@@ -384,14 +366,12 @@ export default function App() {
     if ('id' in shopperData) {
         const updatedShopper = shopperData;
         setShoppers(prev => prev.map(s => s.id === updatedShopper.id ? updatedShopper : s));
-        showToast('Shopper updated!', 'success');
         if (selectedShopper?.id === updatedShopper.id) {
             setSelectedShopper(updatedShopper);
         }
     } else {
         const newShopper: Shopper = { ...shopperData, id: crypto.randomUUID(), recentActivity: [], ticketIds: [], taskIds: [] };
         setShoppers(prev => [...prev, newShopper]);
-        showToast('Shopper created!', 'success');
     }
     setIsShopperFormOpen(false);
     setEditingShopper(null);
@@ -404,11 +384,9 @@ export default function App() {
     if ('id' in contactData) {
         updatedContact = contactData;
         setContacts(prev => prev.map(c => c.id === contactData.id ? contactData : c));
-        showToast('Contact updated!', 'success');
     } else {
         updatedContact = { ...contactData, id: crypto.randomUUID() };
         setContacts(prev => [...prev, updatedContact]);
-        showToast('Contact created!', 'success');
     }
 
     const oldGroupIds = new Set(oldContact?.groupIds || []);
@@ -440,18 +418,15 @@ export default function App() {
             ...g,
             contactIds: g.contactIds.filter(id => id !== contactId)
         })));
-        showToast('Contact deleted!', 'success');
     }
   };
   
   const handleSaveGroup = (groupData: Omit<ContactGroup, 'id' | 'contactIds'> | ContactGroup) => {
       if ('id' in groupData) {
           setContactGroups(prev => prev.map(g => g.id === groupData.id ? groupData : g));
-          showToast('Group updated!', 'success');
       } else {
           const newGroup = { ...groupData, id: crypto.randomUUID(), contactIds: [] };
           setContactGroups(prev => [...prev, newGroup]);
-          showToast('Group created!', 'success');
       }
       setIsGroupFormOpen(false);
       setEditingGroup(null);
@@ -464,7 +439,6 @@ export default function App() {
             groupIds: (c.groupIds || []).filter(id => id !== groupId)
         })));
         setContactGroups(prev => prev.filter(g => g.id !== groupId));
-        showToast('Group deleted!', 'success');
     }
   };
 
@@ -493,7 +467,6 @@ export default function App() {
     });
 
     setContactGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
-    showToast('Group members updated!', 'success');
   };
 
   const handleSaveDealership = (dealershipData: Omit<Dealership, 'id'> | Dealership) => {
@@ -503,11 +476,9 @@ export default function App() {
     if ('id' in dealershipData) {
         updatedDealership = dealershipData;
         setDealerships(prev => prev.map(d => d.id === dealershipData.id ? dealershipData : d));
-        showToast('Dealership updated!', 'success');
     } else {
         updatedDealership = { ...dealershipData, id: crypto.randomUUID() };
         setDealerships(prev => [...prev, updatedDealership]);
-        showToast('Dealership created!', 'success');
     }
 
     const oldGroupIds = new Set(oldDealership?.groupIds || []);
@@ -545,7 +516,6 @@ export default function App() {
     setDealerships(prev => prev.map(d => 
         d.id === dealershipId ? { ...d, status: newStatus } : d
     ));
-    showToast('Dealership status updated!', 'success');
   };
 
   const handleDeleteDealership = (dealershipId: string) => {
@@ -555,7 +525,6 @@ export default function App() {
           ...g,
           dealershipIds: g.dealershipIds.filter(id => id !== dealershipId)
       })));
-      showToast('Dealership account deleted successfully!', 'success');
       setSelectedDealership(null);
     }
   };
@@ -563,11 +532,9 @@ export default function App() {
   const handleSaveDealershipGroup = (groupData: Omit<DealershipGroup, 'id' | 'dealershipIds'> | DealershipGroup) => {
       if ('id' in groupData) {
           setDealershipGroups(prev => prev.map(g => g.id === groupData.id ? groupData : g));
-          showToast('Group updated!', 'success');
       } else {
           const newGroup = { ...groupData, id: crypto.randomUUID(), dealershipIds: [] };
           setDealershipGroups(prev => [...prev, newGroup]);
-          showToast('Group created!', 'success');
       }
       setIsDealershipGroupFormOpen(false);
       setEditingDealershipGroup(null);
@@ -580,7 +547,6 @@ export default function App() {
             groupIds: (d.groupIds || []).filter(id => id !== groupId)
         })));
         setDealershipGroups(prev => prev.filter(g => g.id !== groupId));
-        showToast('Group deleted!', 'success');
     }
   };
 
@@ -609,12 +575,10 @@ export default function App() {
     });
 
     setDealershipGroups(prev => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
-    showToast('Group members updated!', 'success');
   };
 
   const handleUpdateTicket = (updatedTicket: Ticket) => {
     setTickets(prev => prev.map(t => t.id === updatedTicket.id ? updatedTicket : t));
-    showToast('Ticket updated successfully!', 'success');
     if (selectedTicket?.id === updatedTicket.id) {
         setSelectedTicket(updatedTicket);
     }
@@ -622,7 +586,6 @@ export default function App() {
   
   const handleUpdateProject = (updatedProject: Project) => {
     setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
-    showToast('Project updated successfully!', 'success');
     if (selectedProject?.id === updatedProject.id) {
       setSelectedProject(updatedProject);
     }
@@ -630,7 +593,6 @@ export default function App() {
   
   const handleUpdateFeature = (updatedFeature: FeatureAnnouncement) => {
       setFeatures(prev => prev.map(f => f.id === updatedFeature.id ? updatedFeature : f));
-      showToast('Feature announcement updated!', 'success');
       if (selectedFeature?.id === updatedFeature.id) {
           setSelectedFeature(updatedFeature);
       }
@@ -638,7 +600,6 @@ export default function App() {
   
   const handleUpdateMeeting = (updatedMeeting: Meeting) => {
       setMeetings(prev => prev.map(m => m.id === updatedMeeting.id ? updatedMeeting : m));
-      showToast('Meeting note updated!', 'success');
       if (selectedMeeting?.id === updatedMeeting.id) {
         setSelectedMeeting(updatedMeeting);
       }
@@ -646,7 +607,6 @@ export default function App() {
 
   const handleUpdateShopper = (updatedShopper: Shopper) => {
       setShoppers(prev => prev.map(s => s.id === updatedShopper.id ? updatedShopper : s));
-      showToast('Shopper updated successfully!', 'success');
       if (selectedShopper?.id === updatedShopper.id) {
           setSelectedShopper(updatedShopper);
       }
@@ -672,7 +632,6 @@ export default function App() {
             setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
         }
         setEditingTask(null);
-        showToast('Task updated!', 'success');
     };
 
     const handleUpdateTaskStatus = (taskId: string, newStatus: TaskStatus) => {
@@ -696,7 +655,6 @@ export default function App() {
         } else {
             setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
         }
-        showToast('Task status updated!', 'success');
     };
 
   const handleDeleteTicket = (ticketId: string) => {
@@ -713,7 +671,6 @@ export default function App() {
             return p;
         }));
     }
-    showToast('Ticket deleted successfully!', 'success');
     setSelectedTicket(null); 
   };
   
@@ -729,14 +686,12 @@ export default function App() {
       }));
 
       setProjects(prev => prev.filter(p => p.id !== projectId));
-      showToast('Project deleted successfully!', 'success');
       setSelectedProject(null);
   };
   
   const handleDeleteFeature = (featureId: string) => {
     if (window.confirm('Are you sure you want to delete this feature announcement?')) {
         setFeatures(prev => prev.filter(f => f.id !== featureId));
-        showToast('Feature announcement deleted!', 'success');
         setSelectedFeature(null);
     }
   };
@@ -748,7 +703,6 @@ export default function App() {
       })));
 
       setMeetings(prev => prev.filter(m => m.id !== meetingId));
-      showToast('Meeting note deleted successfully!', 'success');
       setSelectedMeeting(null);
   };
 
@@ -757,7 +711,6 @@ export default function App() {
       setReleases(prev => prev.filter(r => r.id !== releaseId));
       setFeatures(prev => prev.map(f => ({ ...f, releaseIds: (f.releaseIds || []).filter(id => id !== releaseId) })));
       setTickets(prev => prev.map(t => ({ ...t, releaseIds: (t.releaseIds || []).filter(id => id !== releaseId) })));
-      showToast('Release deleted successfully!', 'success');
       setSelectedRelease(null);
     }
   };
@@ -768,7 +721,6 @@ export default function App() {
         // Remove shopper from linked tickets and dealerships
         setTickets(prev => prev.map(t => ({ ...t, shopperIds: (t.shopperIds || []).filter(id => id !== shopperId) })));
         setDealerships(prev => prev.map(d => ({ ...d, shopperIds: (d.shopperIds || []).filter(id => id !== shopperId) })));
-        showToast('Shopper deleted successfully!', 'success');
         setSelectedShopper(null);
     }
   };
@@ -793,7 +745,6 @@ export default function App() {
         } else {
             setTasks(prev => prev.filter(t => t.id === taskId));
         }
-        showToast('Task deleted!', 'success');
     };
 
   const handleAddUpdate = (id: string, comment: string, author: string, date: string) => {
@@ -824,7 +775,6 @@ export default function App() {
         setSelectedShopper(updatedShopper);
         setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
     }
-    showToast('Update added!', 'success');
   };
 
   const handleEditUpdate = (id: string, updatedUpdate: Update) => {
@@ -872,7 +822,6 @@ export default function App() {
         setSelectedShopper(updatedShopper);
         setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
     }
-    showToast('Update modified!', 'success');
   };
 
   const handleDeleteUpdate = (id: string, updateId: string) => {
@@ -920,7 +869,6 @@ export default function App() {
         setSelectedShopper(updatedShopper);
         setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
     }
-    showToast('Update deleted!', 'success');
   };
   
   const handleStatusChange = (ticketId: string, newStatus: Status, onHoldReason?: string) => {
@@ -946,12 +894,6 @@ export default function App() {
         setTickets(prev => prev.map(t =>
             t.id === ticketId ? { ...t, isFavorite: !t.isFavorite } : t
         ));
-        if (ticket) {
-            showToast(
-                !ticket.isFavorite ? 'Ticket added to favorites!' : 'Ticket removed from favorites.',
-                'success'
-            );
-        }
     };
     
     const createTxtFileDownloader = (content: string, filename: string) => {
@@ -1401,7 +1343,6 @@ export default function App() {
             [reverseKey]: [...new Set([...(entity[reverseKey] || []), fromId])]
         }));
 
-        showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} linked successfully!`, 'success');
     };
     
     const handleUnlinkItem = (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => {
@@ -1417,7 +1358,6 @@ export default function App() {
             [reverseKey]: (entity[reverseKey] || []).filter((id: string) => id !== fromId)
         }));
         
-        showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} unlinked successfully!`, 'success');
     };
 
     const filteredTickets = useMemo(() => {
@@ -1683,7 +1623,6 @@ export default function App() {
         const today = new Date().toISOString().split('T')[0];
         XLSX.writeFile(wb, `dealership_export_${today}.xlsx`);
     
-        showToast('Dealerships exported successfully!', 'success');
     };
 
     const handleExportTickets = (ticketsToExport: Ticket[]) => {
@@ -1744,7 +1683,6 @@ export default function App() {
         const today = new Date().toISOString().split('T')[0];
         XLSX.writeFile(wb, `tickets_export_${today}.xlsx`);
     
-        showToast('Tickets exported successfully!', 'success');
     };
 
     const getNewButtonText = () => {
@@ -1880,20 +1818,17 @@ export default function App() {
 
     const handleBulkUpdateTicketStatus = (status: Status) => {
         setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, status } : t));
-        showToast(`${selectedTicketIds.length} ticket(s) updated to ${status}.`, 'success');
         setSelectedTicketIds([]);
     };
 
     const handleBulkUpdateTicketPriority = (priority: Priority) => {
         setTickets(prev => prev.map(t => selectedTicketIds.includes(t.id) ? { ...t, priority } : t));
-        showToast(`${selectedTicketIds.length} ticket(s) updated to ${priority}.`, 'success');
         setSelectedTicketIds([]);
     };
 
     const handleBulkDeleteTickets = () => {
         if (window.confirm(`Are you sure you want to delete ${selectedTicketIds.length} ticket(s)?`)) {
             setTickets(prev => prev.filter(t => !selectedTicketIds.includes(t.id)));
-            showToast(`${selectedTicketIds.length} ticket(s) deleted.`, 'success');
             setSelectedTicketIds([]);
         }
     };
@@ -1906,20 +1841,17 @@ export default function App() {
             filters: ticketFilters,
         };
         setSavedTicketViews(prev => [...prev, newView]);
-        showToast(`View "${name}" saved!`, 'success');
     };
 
     const handleApplyTicketView = (viewId: string) => {
         const viewToApply = savedTicketViews.find(v => v.id === viewId);
         if (viewToApply) {
             setTicketFilters(viewToApply.filters);
-            showToast(`Applied view: ${viewToApply.name}`, 'success');
         }
     };
 
     const handleDeleteTicketView = (viewId: string) => {
         setSavedTicketViews(prev => prev.filter(v => v.id !== viewId));
-        showToast('Saved view deleted.', 'success');
     };
     
     const allDataForLinking = {
@@ -1937,17 +1869,14 @@ export default function App() {
     const handleSaveKnowledgeArticle = (articleData: Omit<KnowledgeArticle, 'id'> | KnowledgeArticle) => {
         if ('id' in articleData) {
             setKnowledgeArticles(prev => prev.map(a => a.id === articleData.id ? articleData : a));
-            showToast('Article updated!', 'success');
         } else {
             const newArticle = { ...articleData, id: crypto.randomUUID() };
             setKnowledgeArticles(prev => [...prev, newArticle]);
-            showToast('Article created!', 'success');
         }
     };
 
     const handleDeleteKnowledgeArticle = (articleId: string) => {
         setKnowledgeArticles(prev => prev.filter(a => a.id !== articleId));
-        showToast('Article deleted!', 'success');
     };
 
     const handleToggleFavoriteArticle = (articleId: string) => {
@@ -1972,7 +1901,6 @@ export default function App() {
 
     return (
     <div className="flex h-screen bg-gray-100">
-      <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
       <LeftSidebar
         ticketFilters={ticketFilters}
         setTicketFilters={setTicketFilters}
@@ -2068,7 +1996,6 @@ export default function App() {
                   dealershipGroups={dealershipGroups}
                   onUpdateGroup={handleUpdateDealershipGroup}
                   onDeleteGroup={handleDeleteDealershipGroup}
-                  showToast={showToast}
                   onNewGroupClick={handleNewDealershipGroupClick}
                   onEditGroupClick={handleEditDealershipGroupClick}
                   onExport={() => handleExportDealerships(filteredDealerships)}
@@ -2080,7 +2007,6 @@ export default function App() {
                 shoppers={filteredShoppers} 
                 onShopperClick={setSelectedShopper} 
                 allDealerships={dealerships} 
-                showToast={showToast} 
                 onUpdateShopper={handleUpdateShopper}
                 onDeleteShopper={handleDeleteShopper}
                 onEditShopperClick={(shopper) => { setEditingShopper(shopper); setIsShopperFormOpen(true); }}
@@ -2111,7 +2037,6 @@ export default function App() {
                 onDeleteContact={handleDeleteContact}
                 onUpdateGroup={handleUpdateContactGroup}
                 onDeleteGroup={handleDeleteGroup}
-                showToast={showToast}
                 isContactFormOpen={isContactFormOpen}
                 setIsContactFormOpen={setIsContactFormOpen}
                 editingContact={editingContact}
@@ -2203,7 +2128,6 @@ export default function App() {
               onExport={() => handleExportTicket(selectedTicket)}
               onEmail={() => handleEmailTicket(selectedTicket)}
               onDelete={() => handleDeleteTicket(selectedTicket.id)}
-              showToast={showToast}
               onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
               onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
               onSwitchView={handleSwitchToDetailView}
@@ -2222,7 +2146,6 @@ export default function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(update) => handleEditUpdate(selectedProject.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
-            showToast={showToast}
             onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
@@ -2241,7 +2164,6 @@ export default function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(update) => handleEditUpdate(selectedDealership.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
-            showToast={showToast}
             onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
@@ -2261,7 +2183,6 @@ export default function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(update) => handleEditUpdate(selectedMeeting.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedMeeting.id, updateId)}
-            showToast={showToast}
             onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
@@ -2280,7 +2201,6 @@ export default function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(update) => handleEditUpdate(selectedFeature.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedFeature.id, updateId)}
-            showToast={showToast}
             onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
@@ -2298,7 +2218,6 @@ export default function App() {
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(update) => handleEditUpdate(selectedShopper.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedShopper.id, updateId)}
-            showToast={showToast}
             onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
@@ -2328,7 +2247,6 @@ export default function App() {
                 onSave={handleUpdateTask}
                 onClose={() => setEditingTask(null)}
                 onExport={() => handleExportTask(editingTask)}
-                showToast={showToast}
                 onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType, toId)}
                 onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType, toId)}
                 onSwitchView={handleSwitchFromTaskModal}
@@ -2341,7 +2259,6 @@ export default function App() {
         <ExportModal 
             onClose={() => setIsExportModalOpen(false)} 
             dataSources={dataSourcesForExport} 
-            showToast={showToast}
         />
       )}
     </div>

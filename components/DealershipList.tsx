@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -24,7 +25,6 @@ interface DealershipListProps {
   onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
   onUpdateGroup: (group: DealershipGroup) => void;
   onDeleteGroup: (groupId: string) => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
   onNewGroupClick: () => void;
   onEditGroupClick: (group: DealershipGroup) => void;
   onExport: () => void;
@@ -47,8 +47,7 @@ const DealershipCard: React.FC<{
     allGroups: DealershipGroup[];
     onClick: () => void;
     onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
-    showToast: (message: string, type: 'success' | 'error') => void;
-}> = ({ dealership, allGroups, onClick, onStatusChange, showToast }) => {
+}> = ({ dealership, allGroups, onClick, onStatusChange }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     
     const dealershipMemberOfGroups = useMemo(() => allGroups.filter(g => (dealership.groupIds || []).includes(g.id)), [allGroups, dealership.groupIds]);
@@ -112,7 +111,7 @@ const DealershipCard: React.FC<{
         }
 
         navigator.clipboard.writeText(content.trim());
-        showToast('Dealership info copied!', 'success');
+        // FIX: Removed call to deprecated showToast function.
     };
 
     const DetailItem = ({ label, value }: { label: string, value: React.ReactNode }) => (
@@ -206,10 +205,9 @@ const ContactGroupCard: React.FC<{
     onGroupDelete: () => void;
     onDealershipClick: (dealership: Dealership) => void;
     onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
-    showToast: (message: string, type: 'success' | 'error') => void;
     onManageMembers: () => void;
     allGroups: DealershipGroup[];
-}> = ({ group, allDealerships, onGroupEdit, onGroupDelete, onDealershipClick, onStatusChange, showToast, onManageMembers, allGroups }) => {
+}> = ({ group, allDealerships, onGroupEdit, onGroupDelete, onDealershipClick, onStatusChange, onManageMembers, allGroups }) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const memberDealerships = useMemo(() => allDealerships.filter(d => group.dealershipIds.includes(d.id)), [allDealerships, group.dealershipIds]);
 
@@ -236,7 +234,6 @@ const ContactGroupCard: React.FC<{
                             allGroups={allGroups}
                             onClick={() => onDealershipClick(dealership)}
                             onStatusChange={onStatusChange}
-                            showToast={showToast}
                         />
                     )) : (
                         <p className="text-sm text-gray-500 italic text-center py-4">No dealerships in this group.</p>
@@ -286,7 +283,7 @@ const ManageGroupMembersModal: React.FC<{
 type DealershipView = 'active' | 'cancelled';
 type DisplayMode = 'all' | 'groups';
 
-const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick, onExport }) => {
+const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, onNewGroupClick, onEditGroupClick, onExport }) => {
   const [dealershipView, setDealershipView] = useState<DealershipView>('active');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('all');
   const [managingGroup, setManagingGroup] = useState<DealershipGroup | null>(null);
@@ -348,7 +345,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
       ) : displayMode === 'all' ? (
         <div className="space-y-4">
           {dealershipsToShow.map(dealership => (
-            <DealershipCard key={dealership.id} dealership={dealership} allGroups={dealershipGroups} onClick={() => onDealershipClick(dealership)} onStatusChange={onStatusChange} showToast={showToast} />
+            <DealershipCard key={dealership.id} dealership={dealership} allGroups={dealershipGroups} onClick={() => onDealershipClick(dealership)} onStatusChange={onStatusChange} />
           ))}
         </div>
       ) : (
@@ -363,7 +360,6 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
                     onGroupDelete={() => onDeleteGroup(group.id)}
                     onDealershipClick={onDealershipClick}
                     onStatusChange={onStatusChange}
-                    showToast={showToast}
                     onManageMembers={() => setManagingGroup(group)}
                 />
             ))}

@@ -14,7 +14,6 @@ import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { AccountCircleIcon } from './icons/AccountCircleIcon.tsx';
-import { SunIcon } from './icons/SunIcon.tsx';
 import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
 import { RocketLaunchIcon } from './icons/RocketLaunchIcon.tsx';

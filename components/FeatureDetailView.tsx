@@ -19,7 +19,6 @@ interface FeatureDetailViewProps {
   onAddUpdate: (featureId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
   isReadOnly?: boolean;
   
   // All entities for linking
@@ -65,7 +64,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 
 const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({ 
     feature, onUpdate, onDelete, onExport, isReadOnly = false,
-    onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
+    onAddUpdate, onEditUpdate, onDeleteUpdate,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allReleases,
     onLink, onUnlink, onSwitchView
 }) => {
@@ -143,7 +142,7 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
         }
 
         navigator.clipboard.writeText(content.trim());
-        showToast('Feature info copied!', 'success');
+        // FIX: Removed call to deprecated showToast function.
     };
 
     const handleUpdateSubmit = (e: React.FormEvent) => {

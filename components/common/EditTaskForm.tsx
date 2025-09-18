@@ -18,7 +18,6 @@ interface EditTaskFormProps {
   onSave: (task: Task) => void;
   onClose: () => void;
   onExport: () => void;
-  showToast: (message: string, type: 'success' | 'error') => void;
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   // Add all other entities for linking
   allTickets: Ticket[];
@@ -38,7 +37,6 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     onSave, 
     onClose,
     onExport,
-    showToast,
     allTasks,
     allTickets,
     allProjects,
@@ -120,7 +118,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
         appendField('Shopper IDs', (editedTask.shopperIds || []).join(', '));
         
         navigator.clipboard.writeText(content);
-        showToast('Task info copied!', 'success');
+        // FIX: Removed call to deprecated showToast function.
     };
 
     const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";

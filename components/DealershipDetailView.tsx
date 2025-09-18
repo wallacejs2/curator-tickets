@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -21,7 +22,6 @@ interface DealershipDetailViewProps {
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
   isReadOnly?: boolean;
-  showToast: (message: string, type: 'success' | 'error') => void;
   
   // All entities for linking
   allTickets: Ticket[];
@@ -69,7 +69,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
     dealership, onUpdate, onDelete, onExport, isReadOnly = false,
-    onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
+    onAddUpdate, onEditUpdate, onDeleteUpdate,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups, allShoppers,
     onLink, onUnlink, onSwitchView
 }) => {
@@ -200,7 +200,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
 
         navigator.clipboard.writeText(content.trim());
-        showToast('Dealership info copied!', 'success');
+        // FIX: Removed call to deprecated showToast function.
     };
 
     return (
