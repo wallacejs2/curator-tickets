@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
+// FIX: Import EntityType from the centralized types file.
+import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status, EntityType } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -9,8 +10,7 @@ import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
-// Define EntityType for linking
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+// FIX: Removed local EntityType definition.
 
 interface ProjectDetailViewProps {
   project: Project;
@@ -122,7 +122,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const handleUpdateSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (newUpdate.trim() && authorName.trim() && updateDate) {
-          onAddUpdate(project.id, newUpdate.trim(), authorName.trim(), updateDate);
+          const commentAsHtml = newUpdate.replace(/\n/g, '<br />');
+          onAddUpdate(project.id, commentAsHtml, authorName.trim(), updateDate);
           setNewUpdate('');
           setAuthorName('');
         }
@@ -167,6 +168,66 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         const people = involvedPeopleString.split(',').map(p => p.trim()).filter(Boolean);
         onUpdate({ ...editableProject, involvedPeople: people });
         setIsEditing(false);
+    };
+
+    const handleCopyInfo = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        let content = `PROJECT DETAILS: ${project.name}\n`;
+        content += `==================================================\n\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        const appendTextArea = (label: string, value: any) => {
+             if (value) {
+                content += `${label}:\n${value}\n\n`;
+            }
+        };
+
+        appendField('ID', project.id);
+        appendField('Status', project.status);
+        appendDateField('Creation Date', project.creationDate);
+        appendTextArea('Description', project.description);
+        appendField('Involved People', (project.involvedPeople || []).join(', '));
+
+        if (project.tasks && project.tasks.length > 0) {
+            appendSection(`Tasks (${project.tasks.length})`);
+            project.tasks.forEach(task => {
+                content += `- ${task.description}\n`;
+                content += `  (Assigned: ${task.assignedUser}, Status: ${task.status}, Priority: ${task.priority}, Type: ${task.type})\n`;
+                if(task.dueDate) content += `  (Due: ${new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })})\n`;
+            });
+            content += '\n';
+        }
+
+        if (project.updates && project.updates.length > 0) {
+            appendSection(`Updates (${project.updates.length})`);
+            [...project.updates].reverse().forEach(update => {
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
+                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+            });
+        }
+
+        appendSection('Linked Item IDs');
+        appendField('Ticket IDs', (project.ticketIds || []).join(', '));
+        appendField('Linked Project IDs', (project.linkedProjectIds || []).join(', '));
+        appendField('Meeting IDs', (project.meetingIds || []).join(', '));
+        appendField('Task IDs', (project.taskIds || []).join(', '));
+        appendField('Dealership IDs', (project.dealershipIds || []).join(', '));
+        appendField('Feature IDs', (project.featureIds || []).join(', '));
+        
+        navigator.clipboard.writeText(content);
+        showToast('Project info copied!', 'success');
     };
     
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
@@ -236,8 +297,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         )
     }
 
+    // ENHANCEMENT: Create a recursive TaskItem component to render nested tasks.
     const TaskItem: React.FC<{ task: Task, level: number }> = ({ task, level }) => (
-        <div style={{ marginLeft: `${level * 20}px` }}>
+        <div className="space-y-2" style={{ marginLeft: level > 0 ? '20px' : '0' }}>
             <div
                 key={task.id}
                 draggable={!isReadOnly}
@@ -292,6 +354,10 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
             {!isReadOnly && (
               <div className="flex justify-end items-center gap-3 mb-6">
+                  <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm">
+                      <ContentCopyIcon className="w-4 h-4"/>
+                      <span>Copy Info</span>
+                  </button>
                   <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
                       <DownloadIcon className="w-4 h-4"/>
                       <span>Export</span>
@@ -354,11 +420,11 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                     <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({project.updates?.length || 0})</h3>
                     <form onSubmit={handleUpdateSubmit} className="p-3 border border-gray-200 rounded-md mb-4 space-y-3">
                         <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
-                        <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Add a new update..." required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50" rows={3}/>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
                             <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
                             <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50"/>
                         </div>
+                        <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Add a new update..." required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-gray-50" rows={3}/>
                         <button type="submit" disabled={!newUpdate.trim() || !authorName.trim()} className="w-full bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 text-sm">Add Update</button>
                     </form>
                     <div className="space-y-4">
@@ -376,7 +442,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                             <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
                                             <button
                                                 onClick={() => {
-                                                onEditUpdate({ ...update, comment: editedComment.trim() });
+                                                const commentAsHtml = editedComment.replace(/\n/g, '<br />');
+                                                onEditUpdate({ ...update, comment: commentAsHtml });
                                                 setEditingUpdateId(null);
                                                 }}
                                                 className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
@@ -397,7 +464,8 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                                 <button
                                                     onClick={() => {
                                                         setEditingUpdateId(update.id);
-                                                        setEditedComment(update.comment);
+                                                        const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
+                                                        setEditedComment(commentForEditing);
                                                     }}
                                                     className="p-1 text-gray-400 hover:text-blue-600"
                                                     aria-label="Edit update"
@@ -417,7 +485,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">{update.comment}</div>
+                                        <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
                                     </div>
                                 )}
                             </div>

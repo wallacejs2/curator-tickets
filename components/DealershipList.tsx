@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -14,6 +15,7 @@ import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
+import { DownloadIcon } from './icons/DownloadIcon.tsx';
 
 interface DealershipListProps {
   dealerships: Dealership[];
@@ -25,6 +27,7 @@ interface DealershipListProps {
   showToast: (message: string, type: 'success' | 'error') => void;
   onNewGroupClick: () => void;
   onEditGroupClick: (group: DealershipGroup) => void;
+  onExport: () => void;
 }
 
 const statusColors: Record<DealershipStatus, string> = {
@@ -283,7 +286,7 @@ const ManageGroupMembersModal: React.FC<{
 type DealershipView = 'active' | 'cancelled';
 type DisplayMode = 'all' | 'groups';
 
-const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick }) => {
+const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick, onExport }) => {
   const [dealershipView, setDealershipView] = useState<DealershipView>('active');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('all');
   const [managingGroup, setManagingGroup] = useState<DealershipGroup | null>(null);
@@ -331,6 +334,9 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
                 <button onClick={() => setDisplayMode('groups')} className={`px-3 py-1 text-sm rounded ${displayMode === 'groups' ? 'bg-white shadow' : 'text-gray-600'}`}>Groups</button>
             </div>
             <button onClick={onNewGroupClick} className="flex items-center gap-2 bg-gray-100 text-gray-700 font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-gray-200"><PlusIcon className="w-4 h-4" /> New Group</button>
+            <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-green-700">
+                <DownloadIcon className="w-4 h-4" /> Export
+            </button>
         </div>
       </div>
       

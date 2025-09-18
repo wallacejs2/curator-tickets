@@ -10,6 +10,7 @@ import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
+import { DownloadIcon } from './icons/DownloadIcon.tsx';
 
 
 interface TicketTableProps {
@@ -20,6 +21,7 @@ interface TicketTableProps {
   onToggleFavorite: (ticketId: string) => void;
   selectedTicketIds: string[];
   onToggleSelection: (ticketId: string) => void;
+  onExport: () => void;
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -107,7 +109,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 type TicketView = 'active' | 'onHold' | 'completed' | 'favorites';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection, onExport }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -182,50 +184,55 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   return (
     <div>
       <div className="mb-4 flex border-b border-gray-200 justify-between items-center">
-        <div className="flex">
-            <button
-            onClick={() => setTicketView('active')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-                ticketView === 'active'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            aria-pressed={ticketView === 'active'}
-            >
-            Active ({activeTickets.length})
-            </button>
-            <button
-            onClick={() => setTicketView('onHold')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-                ticketView === 'onHold'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            aria-pressed={ticketView === 'onHold'}
-            >
-            On Hold ({onHoldTickets.length})
-            </button>
-            <button
-            onClick={() => setTicketView('completed')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-                ticketView === 'completed'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            aria-pressed={ticketView === 'completed'}
-            >
-            Completed ({completedTickets.length})
-            </button>
-            <button
-            onClick={() => setTicketView('favorites')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-                ticketView === 'favorites'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-            aria-pressed={ticketView === 'favorites'}
-            >
-            Favorites ({favoriteTickets.length})
+        <div className="flex items-center gap-4">
+            <div className="flex">
+                <button
+                onClick={() => setTicketView('active')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    ticketView === 'active'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                aria-pressed={ticketView === 'active'}
+                >
+                Active ({activeTickets.length})
+                </button>
+                <button
+                onClick={() => setTicketView('onHold')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    ticketView === 'onHold'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                aria-pressed={ticketView === 'onHold'}
+                >
+                On Hold ({onHoldTickets.length})
+                </button>
+                <button
+                onClick={() => setTicketView('completed')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    ticketView === 'completed'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                aria-pressed={ticketView === 'completed'}
+                >
+                Completed ({completedTickets.length})
+                </button>
+                <button
+                onClick={() => setTicketView('favorites')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    ticketView === 'favorites'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                aria-pressed={ticketView === 'favorites'}
+                >
+                Favorites ({favoriteTickets.length})
+                </button>
+            </div>
+             <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-green-700">
+                <DownloadIcon className="w-4 h-4" /> Export
             </button>
         </div>
         {ticketsToShow.length > 0 && (

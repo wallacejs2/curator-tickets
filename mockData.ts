@@ -1,5 +1,6 @@
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
+
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, Release, ReleaseStatus } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -748,4 +749,26 @@ export const initialShoppers: Shopper[] = [
     taskIds: ['task-1'],
     isFavorite: false,
   }
+];
+
+export const initialReleases: Release[] = [
+  {
+    id: 'rel-1',
+    name: 'Q3 Feature Drop',
+    version: 'v3.0.0',
+    releaseDate: new Date('2024-09-15T00:00:00Z').toISOString(),
+    status: ReleaseStatus.InProgress,
+    description: 'Major release including Dark Mode and performance improvements.',
+    featureIds: ['feat-1', 'feat-2', 'feat-3'],
+    ticketIds: ['2', '4'],
+  },
+  {
+    id: 'rel-2',
+    name: 'Q4 Security Patch',
+    version: 'v3.1.0',
+    releaseDate: new Date('2024-11-01T00:00:00Z').toISOString(),
+    status: ReleaseStatus.Planned,
+    description: 'Security enhancements including SSO and API rate limiting.',
+    featureIds: ['feat-6', 'feat-4'],
+  },
 ];

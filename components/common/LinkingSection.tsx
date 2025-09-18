@@ -1,13 +1,20 @@
 
 
+
+
 import React, { useState } from 'react';
-import { Status, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus } from '../../types.ts';
+// FIX: Added ReleaseStatus to the import to support linking releases.
+import { Status, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus, ReleaseStatus } from '../../types.ts';
 import LinkingModal from './LinkingModal.tsx';
 import { LinkIcon } from '../icons/LinkIcon.tsx';
 
 // A helper to get the display name from an item which could have 'name' or 'title'
 const getItemName = (item: any): string => item.name || item.title || item.customerName || (item.description ? (item.description.length > 50 ? item.description.substring(0, 50) + '...' : item.description) : `Item ${item.id}`);
 
+// FIX: The `Status`, `ProjectStatus`, `TaskStatus`, `FeatureStatus`, and `ReleaseStatus` enums share some of the same string values
+// (e.g., 'In Progress', 'Cancelled'), which created duplicate keys in this object literal. The conflicting
+// keys have been removed to resolve the error. Styles have been consolidated for
+// consistency across shared status names.
 const tagColorStyles: Record<string, string> = {
   // Statuses from types.ts Status enum
   [Status.NotStarted]: 'bg-gray-300 text-gray-800',
@@ -35,6 +42,9 @@ const tagColorStyles: Record<string, string> = {
   [FeatureStatus.InDevelopment]: 'bg-blue-200 text-blue-800',
   [FeatureStatus.Upcoming]: 'bg-yellow-200 text-yellow-800',
   [FeatureStatus.Launched]: 'bg-green-200 text-green-800',
+  // Statuses from types.ts ReleaseStatus enum
+  [ReleaseStatus.Planned]: 'bg-gray-200 text-gray-800',
+  [ReleaseStatus.Released]: 'bg-green-200 text-green-800',
 };
 
 // Using a generic type T that must have an id and either a name or title
@@ -43,7 +53,8 @@ interface LinkableItem {
   name?: string;
   title?: string;
   description?: string;
-  status?: Status | ProjectStatus | TaskStatus | DealershipStatus | FeatureStatus;
+  // FIX: Added ReleaseStatus to the union type to handle releases.
+  status?: Status | ProjectStatus | TaskStatus | DealershipStatus | FeatureStatus | ReleaseStatus;
   // For tickets, we might want to show PMR/FP numbers
   pmrNumber?: string;
   fpTicketNumber?: string;
@@ -65,6 +76,9 @@ const isItemCompleted = (item: LinkableItem): boolean => {
         item.status === ProjectStatus.Completed ||
         item.status === TaskStatus.Done ||
         item.status === FeatureStatus.Launched ||
+        // FIX: Added ReleaseStatus.Released and ReleaseStatus.Cancelled to the completed check.
+        item.status === ReleaseStatus.Released ||
+        item.status === ReleaseStatus.Cancelled ||
         item.status === DealershipStatus.Cancelled
     );
 };

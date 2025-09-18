@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
-import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership, Status, ProjectStatus, TaskStatus, Update } from '../types.ts';
+// FIX: Import Release and EntityType types.
+import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership, Status, ProjectStatus, TaskStatus, Update, Release, EntityType } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -9,7 +9,7 @@ import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+// FIX: Removed local EntityType, will use the one from types.ts.
 
 interface FeatureDetailViewProps {
   feature: FeatureAnnouncement;
@@ -29,6 +29,8 @@ interface FeatureDetailViewProps {
   allMeetings: Meeting[];
   allDealerships: Dealership[];
   allFeatures: FeatureAnnouncement[];
+  // FIX: Added allReleases prop.
+  allReleases: Release[];
 
   // Linking handlers
   onLink: (toType: EntityType, toId: string) => void;
@@ -64,7 +66,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
 const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({ 
     feature, onUpdate, onDelete, onExport, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
-    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
+    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allReleases,
     onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -82,6 +84,7 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
     const linkedMeetings = allMeetings.filter(item => (feature.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (feature.dealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => item.id !== feature.id && (feature.linkedFeatureIds || []).includes(item.id));
+    const linkedReleases = allReleases.filter(item => (feature.releaseIds || []).includes(item.id));
     
     // Available items for linking (filter out completed items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(feature.ticketIds || []).includes(item.id));
@@ -90,6 +93,7 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
     const availableMeetings = allMeetings.filter(item => !(feature.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(feature.dealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => item.id !== feature.id && !(feature.linkedFeatureIds || []).includes(item.id));
+    const availableReleases = allReleases.filter(item => !(feature.releaseIds || []).includes(item.id));
     
     const handleCopyInfo = () => {
         let content = `NEW FEATURE DETAILS: ${feature.title}\n`;
@@ -310,6 +314,8 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
 
                 {!isReadOnly && (
                   <>
+                    {/* FIX: Corrected EntityType casting for release linking. */}
+                    <LinkingSection title="Linked Releases" itemTypeLabel="release" linkedItems={linkedReleases} availableItems={availableReleases} onLink={(id) => onLink('release', id)} onUnlink={(id) => onUnlink('release', id)} onItemClick={(id) => onSwitchView('release', id)} />
                     <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
                     <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
                     <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />

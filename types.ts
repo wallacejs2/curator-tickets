@@ -1,4 +1,5 @@
 
+
 export enum TicketType {
   Issue = 'Issue',
   FeatureRequest = 'Feature Request',
@@ -44,6 +45,22 @@ export enum FeatureStatus {
   Launched = 'Launched',
 }
 
+export enum PrioritizationScore {
+    XS = 'XS',
+    S = 'S',
+    M = 'M',
+    L = 'L',
+    XL = 'XL',
+    XXL = 'XXL',
+}
+
+// FIX: Add RoadmapLane enum.
+export enum RoadmapLane {
+    Now = 'Now',
+    Next = 'Next',
+    Later = 'Later',
+}
+
 export interface FeatureAnnouncement {
   id: string;
   title: string;
@@ -64,6 +81,8 @@ export interface FeatureAnnouncement {
   taskIds?: string[];
   dealershipIds?: string[];
   linkedFeatureIds?: string[];
+  releaseIds?: string[];
+  roadmapLane?: RoadmapLane;
 }
 
 export interface Update {
@@ -124,11 +143,9 @@ export interface Ticket {
   pmrLink?: string;
   fpTicketNumber?: string;
   ticketThreadId?: string;
-  // FIX: Added missing submissionDate property.
   submissionDate: string;
   lastUpdatedDate: string;
   startDate?: string;
-  // FIX: Added missing estimatedCompletionDate property.
   estimatedCompletionDate?: string;
   completionDate?: string;
   status: Status;
@@ -147,6 +164,9 @@ export interface Ticket {
   dealershipIds?: string[];
   featureIds?: string[];
   shopperIds?: string[];
+  releaseIds?: string[];
+  contactIds?: string[];
+  roadmapLane?: RoadmapLane;
 }
 
 export interface IssueTicket extends Ticket {
@@ -163,6 +183,8 @@ export interface FeatureRequestTicket extends Ticket {
   currentFunctionality: string;
   suggestedSolution: string;
   benefits: string;
+  impact?: PrioritizationScore;
+  effort?: PrioritizationScore;
 }
 
 export enum ProjectStatus {
@@ -187,6 +209,7 @@ export interface Project {
   taskIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
+  roadmapLane?: RoadmapLane;
 }
 
 export enum DealershipStatus {
@@ -324,7 +347,28 @@ export interface Shopper {
   updates?: Update[];
 }
 
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers';
+export enum ReleaseStatus {
+    Planned = 'Planned',
+    InProgress = 'In Progress',
+    Released = 'Released',
+    Cancelled = 'Cancelled',
+}
+
+export interface Release {
+    id: string;
+    name: string;
+    version: string;
+    releaseDate: string;
+    status: ReleaseStatus;
+    description?: string;
+    featureIds?: string[];
+    ticketIds?: string[];
+}
+
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'reports' | 'releases';
+
+// FIX: Centralized EntityType to resolve conflicts across different components.
+export type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'release';
 
 export interface FilterState {
   searchTerm: string;

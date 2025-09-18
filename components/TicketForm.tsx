@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
-import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project, PrioritizationScore } from '../types.ts';
+import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS, PRIORITIZATION_SCORE_OPTIONS } from '../constants.ts';
 
 // FIX: Update FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
-type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'>) => void;
+type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
@@ -36,6 +36,8 @@ interface FormData {
   completionNotes: string;
   onHoldReason: string;
   selectedProjectId: string;
+  impact: PrioritizationScore;
+  effort: PrioritizationScore;
 }
 
 const getInitialState = (): FormData => {
@@ -65,6 +67,8 @@ const getInitialState = (): FormData => {
     completionNotes: '',
     onHoldReason: '',
     selectedProjectId: '',
+    impact: PrioritizationScore.M,
+    effort: PrioritizationScore.M,
   };
 };
 
@@ -124,10 +128,12 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         currentFunctionality,
         suggestedSolution,
         benefits,
+        impact,
+        effort,
         ...issueData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...issueData };
+      const finalTicket: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> = { type, ...issueData };
       onSubmit(finalTicket);
     } else {
       const {
@@ -138,7 +144,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         ...featureData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...featureData };
+      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> = { type, ...featureData };
       onSubmit(finalTicket);
     }
   };
@@ -267,6 +273,23 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
           </div>
         )}
       </FormSection>
+
+      {formData.type === TicketType.FeatureRequest && (
+        <FormSection title="Prioritization Scoring">
+            <div>
+                <label className={labelClasses}>Impact</label>
+                <select name="impact" value={formData.impact} onChange={handleChange} className={formElementClasses}>
+                    {PRIORITIZATION_SCORE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+            </div>
+            <div>
+                <label className={labelClasses}>Effort</label>
+                <select name="effort" value={formData.effort} onChange={handleChange} className={formElementClasses}>
+                    {PRIORITIZATION_SCORE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+            </div>
+        </FormSection>
+      )}
       
       <FormSection title="Dates" gridCols={1}>
         <div>

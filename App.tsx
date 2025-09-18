@@ -1,6 +1,10 @@
 
+
+
+
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, Release } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -16,7 +20,7 @@ import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers, initialReleases } from './mockData.ts';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
 import ProjectForm from './components/ProjectForm.tsx';
@@ -24,7 +28,7 @@ import DealershipList from './components/DealershipList.tsx';
 import DealershipDetailView from './components/DealershipDetailView.tsx';
 import DealershipInsights from './components/DealershipInsights.tsx';
 import { useToast } from './hooks/useToast.ts';
-import Toast from './components/common/Toast.tsx';
+import Toast from './components/common/Toast.ts';
 import DealershipForm from './components/DealershipForm.tsx';
 import TaskList from './components/TaskList.tsx';
 import FeatureList from './components/FeatureList.tsx';
@@ -59,7 +63,12 @@ import ShoppersView from './components/ShopperList.tsx';
 import ShopperForm from './components/ShopperForm.tsx';
 import ShopperDetailView from './components/ShopperDetailView.tsx';
 import { PersonIcon } from './components/icons/PersonIcon.tsx';
-
+import ReportsView from './components/ReportsView.tsx';
+import ReleaseList from './components/ReleaseList.tsx';
+import ReleaseDetailView from './components/ReleaseDetailView.tsx';
+import ReleaseForm from './components/ReleaseForm.tsx';
+import { RocketLaunchIcon } from './components/icons/RocketLaunchIcon.tsx';
+import * as XLSX from 'xlsx';
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div>
@@ -120,12 +129,13 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'release';
 
 // Hardcoded current user for dashboard widgets
 const CURRENT_USER = 'John Doe';
 
-function App() {
+// FIX: Added default export to the function definition.
+export default function App() {
   const [tickets, setTickets] = useLocalStorage<Ticket[]>('tickets', initialTickets);
   const [projects, setProjects] = useLocalStorage<Project[]>('projects', initialProjects);
   const [dealerships, setDealerships] = useLocalStorage<Dealership[]>('dealerships', initialDealerships);
@@ -138,6 +148,7 @@ function App() {
   const [savedTicketViews, setSavedTicketViews] = useLocalStorage<SavedTicketView[]>('savedTicketViews', []);
   const [knowledgeArticles, setKnowledgeArticles] = useLocalStorage<KnowledgeArticle[]>('knowledgeArticles', initialKnowledgeArticles);
   const [shoppers, setShoppers] = useLocalStorage<Shopper[]>('shoppers', initialShoppers);
+  const [releases, setReleases] = useLocalStorage<Release[]>('releases', initialReleases);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -145,6 +156,7 @@ function App() {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
   const [selectedShopper, setSelectedShopper] = useState<Shopper | null>(null);
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string; ticketId: string | null; ticketTitle?: string; }) | null>(null);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   
@@ -158,6 +170,9 @@ function App() {
   
   const [editingShopper, setEditingShopper] = useState<Shopper | null>(null);
   const [isShopperFormOpen, setIsShopperFormOpen] = useState(false);
+
+  const [isReleaseFormOpen, setIsReleaseFormOpen] = useState(false);
+  const [editingRelease, setEditingRelease] = useState<Release | null>(null);
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -192,8 +207,8 @@ function App() {
   const { toast, showToast, hideToast } = useToast();
 
   const dataMap = useMemo(() => ({
-    tickets, projects, dealerships, tasks, features, meetings, shoppers
-  }), [tickets, projects, dealerships, tasks, features, meetings, shoppers]);
+    tickets, projects, dealerships, tasks, features, meetings, shoppers, releases
+  }), [tickets, projects, dealerships, tasks, features, meetings, shoppers, releases]);
 
 
   useEffect(() => {
@@ -237,6 +252,13 @@ function App() {
       setSelectedShopper(freshShopper || null);
     }
   }, [shoppers]);
+  
+  useEffect(() => {
+    if (selectedRelease) {
+      const freshRelease = releases.find(r => r.id === selectedRelease.id);
+      setSelectedRelease(freshRelease || null);
+    }
+  }, [releases]);
 
   // When changing views, clear selections
   useEffect(() => {
@@ -273,7 +295,6 @@ function App() {
     return [...projectTasks, ...ticketTasks, ...standaloneTasks];
   }, [projects, tickets, tasks]);
   
-  // FIX: Updated handleTicketSubmit signature and logic to correctly set submissionDate and lastUpdatedDate.
   const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => {
     const submissionDate = new Date().toISOString();
     const newTicket = {
@@ -341,6 +362,22 @@ function App() {
       };
       setMeetings(prev => [...prev, newMeeting]);
       showToast('Meeting note saved!', 'success');
+  };
+
+  const handleSaveRelease = (releaseData: Omit<Release, 'id'> | Release) => {
+    if ('id' in releaseData) {
+        setReleases(prev => prev.map(r => r.id === releaseData.id ? releaseData : r));
+        showToast('Release updated successfully!', 'success');
+        if (selectedRelease?.id === releaseData.id) {
+            setSelectedRelease(releaseData);
+        }
+    } else {
+        const newRelease = { ...releaseData, id: crypto.randomUUID() };
+        setReleases(prev => [...prev, newRelease]);
+        showToast('Release created successfully!', 'success');
+    }
+    setIsReleaseFormOpen(false);
+    setEditingRelease(null);
   };
   
   const handleSaveShopper = (shopperData: Omit<Shopper, 'id'> | Shopper) => {
@@ -459,7 +496,6 @@ function App() {
     showToast('Group members updated!', 'success');
   };
 
-  // FIX: New robust save handler for dealerships to ensure bidirectional linking.
   const handleSaveDealership = (dealershipData: Omit<Dealership, 'id'> | Dealership) => {
     let updatedDealership: Dealership;
     const oldDealership = 'id' in dealershipData ? dealerships.find(d => d.id === dealershipData.id) : undefined;
@@ -515,7 +551,6 @@ function App() {
   const handleDeleteDealership = (dealershipId: string) => {
     if (window.confirm('Are you sure you want to delete this dealership account?')) {
       setDealerships(prev => prev.filter(d => d.id !== dealershipId));
-      // FIX: Ensure the deleted dealership is removed from its groups.
       setDealershipGroups(prev => prev.map(g => ({
           ...g,
           dealershipIds: g.dealershipIds.filter(id => id !== dealershipId)
@@ -715,6 +750,16 @@ function App() {
       setMeetings(prev => prev.filter(m => m.id !== meetingId));
       showToast('Meeting note deleted successfully!', 'success');
       setSelectedMeeting(null);
+  };
+
+  const handleDeleteRelease = (releaseId: string) => {
+    if (window.confirm('Are you sure you want to delete this release?')) {
+      setReleases(prev => prev.filter(r => r.id !== releaseId));
+      setFeatures(prev => prev.map(f => ({ ...f, releaseIds: (f.releaseIds || []).filter(id => id !== releaseId) })));
+      setTickets(prev => prev.map(t => ({ ...t, releaseIds: (t.releaseIds || []).filter(id => id !== releaseId) })));
+      showToast('Release deleted successfully!', 'success');
+      setSelectedRelease(null);
+    }
   };
 
   const handleDeleteShopper = (shopperId: string) => {
@@ -1282,7 +1327,6 @@ function App() {
         window.location.href = `mailto:?subject=${subject}&body=${body}`;
     };
     
-    // Linking logic
     const getSetterForType = (type: EntityType) => {
       switch (type) {
           case 'ticket': return setTickets;
@@ -1294,6 +1338,7 @@ function App() {
           case 'contact': return setContacts;
           case 'knowledge': return setKnowledgeArticles;
           case 'shopper': return setShoppers;
+          case 'release': return setReleases;
       }
     };
     
@@ -1515,6 +1560,7 @@ function App() {
             case 'features': return 'Add Feature Announcement';
             case 'meetings': return 'Add New Meeting Note';
             case 'contacts': return 'Create New Contact';
+            case 'releases': return 'Create New Release';
             default: return 'Create New Item';
         }
     }
@@ -1527,6 +1573,7 @@ function App() {
             case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
             case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
             case 'contacts': return <ContactForm onSave={handleSaveContact} onClose={() => setIsContactFormOpen(false)} contactToEdit={null} allGroups={contactGroups} />;
+            case 'releases': return <ReleaseForm onSave={handleSaveRelease} onClose={() => setIsReleaseFormOpen(false)} />;
             default: return null;
         }
     }
@@ -1541,6 +1588,9 @@ function App() {
             } else if (view === 'shoppers') {
                 setEditingShopper(null);
                 setIsShopperFormOpen(true);
+            } else if (view === 'releases') {
+                setEditingRelease(null);
+                setIsReleaseFormOpen(true);
             } else {
                 setIsFormOpen(true);
             }
@@ -1548,7 +1598,7 @@ function App() {
     };
 
     const handleHeaderNewClick = () => {
-        if (currentView === 'dashboard') {
+        if (['dashboard', 'reports'].includes(currentView)) {
             setIsCreateChoiceModalOpen(true);
         } else if (currentView === 'contacts') {
             setEditingContact(null);
@@ -1556,6 +1606,9 @@ function App() {
         } else if (currentView === 'shoppers') {
             setEditingShopper(null);
             setIsShopperFormOpen(true);
+        } else if (currentView === 'releases') {
+            setEditingRelease(null);
+            setIsReleaseFormOpen(true);
         } else {
             setIsFormOpen(true);
         }
@@ -1571,6 +1624,129 @@ function App() {
         setIsDealershipGroupFormOpen(true);
     };
 
+    const handleExportDealerships = (dealershipsToExport: Dealership[]) => {
+        // 1. Define headers in the desired order.
+        const headers = [
+            'status', 'accountNumber', 'name', 'enterprise', 'storeNumber', 'branchNumber', 'address',
+            'wasFullpathCustomer', 'hasManagedSolution', 'orderNumber', 'orderReceivedDate', 'goLiveDate', 'termDate',
+            'eraSystemId', 'ppSysId', 'buId', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone',
+            'clientID1', 'websiteLink1', 'clientID2', 'websiteLink2', 'updates'
+        ];
+    
+        // 2. Process the data.
+        const dataForSheet = dealershipsToExport.map(d => {
+            const row: Record<string, any> = {};
+    
+            // Map main fields
+            row.status = d.status;
+            row.accountNumber = d.accountNumber;
+            row.name = d.name;
+            row.enterprise = d.enterprise;
+            row.storeNumber = d.storeNumber;
+            row.branchNumber = d.branchNumber;
+            row.address = d.address;
+            row.wasFullpathCustomer = d.wasFullpathCustomer;
+            row.hasManagedSolution = d.hasManagedSolution;
+            row.orderNumber = d.orderNumber;
+            row.orderReceivedDate = d.orderReceivedDate ? d.orderReceivedDate.split('T')[0] : '';
+            row.goLiveDate = d.goLiveDate ? d.goLiveDate.split('T')[0] : '';
+            row.termDate = d.termDate ? d.termDate.split('T')[0] : '';
+            row.eraSystemId = d.eraSystemId;
+            row.ppSysId = d.ppSysId;
+            row.buId = d.buId;
+            row.assignedSpecialist = d.assignedSpecialist;
+            row.sales = d.sales;
+            row.pocName = d.pocName;
+            row.pocEmail = d.pocEmail;
+            row.pocPhone = d.pocPhone;
+    
+            // Flatten website links
+            (d.websiteLinks || []).slice(0, 2).forEach((link, index) => {
+                row[`clientID${index + 1}`] = link.clientId;
+                row[`websiteLink${index + 1}`] = link.url;
+            });
+    
+            // Flatten updates
+            row.updates = (d.updates || [])
+                .map(u => `${new Date(u.date).toISOString().split('T')[0]} by ${u.author}: ${u.comment.replace(/<br\s*\/?>/gi, '\n')}`)
+                .join('\n\n');
+    
+            return row;
+        });
+    
+        // 3. Create worksheet and workbook.
+        const ws = XLSX.utils.json_to_sheet(dataForSheet, { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Dealerships');
+    
+        // 4. Trigger download.
+        const today = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `dealership_export_${today}.xlsx`);
+    
+        showToast('Dealerships exported successfully!', 'success');
+    };
+
+    const handleExportTickets = (ticketsToExport: Ticket[]) => {
+        const headers = [
+            'type','title','productArea','platform','location','pmrNumber','fpTicketNumber','ticketThreadId',
+            'startDate','priority','submitterName','client','status','onHoldReason','completionDate',
+            'completionNotes','problem','duplicationSteps','workaround','frequency','updates',
+            'linkedTicketNames','lastUpdatedDate'
+        ];
+    
+        const ticketMap = new Map(tickets.map(t => [t.id, t]));
+    
+        const dataForSheet = ticketsToExport.map(t => {
+            const row: Record<string, any> = {};
+            
+            row.type = t.type;
+            row.title = t.title;
+            row.productArea = t.productArea;
+            row.platform = t.platform;
+            row.location = t.location;
+            row.pmrNumber = t.pmrNumber;
+            row.fpTicketNumber = t.fpTicketNumber;
+            row.ticketThreadId = t.ticketThreadId;
+            row.startDate = t.startDate ? t.startDate.split('T')[0] : '';
+            row.priority = t.priority;
+            row.submitterName = t.submitterName;
+            row.client = t.client;
+            row.status = t.status;
+            row.onHoldReason = t.onHoldReason;
+            row.completionDate = t.completionDate ? t.completionDate.split('T')[0] : '';
+            row.completionNotes = t.completionNotes;
+    
+            if (t.type === TicketType.Issue) {
+                const issueTicket = t as IssueTicket;
+                row.problem = issueTicket.problem;
+                row.duplicationSteps = issueTicket.duplicationSteps;
+                row.workaround = issueTicket.workaround;
+                row.frequency = issueTicket.frequency;
+            }
+    
+            row.updates = (t.updates || [])
+                .map(u => `${new Date(u.date).toISOString().split('T')[0]} by ${u.author}: ${u.comment.replace(/<br\s*\/?>/gi, '\n')}`)
+                .join('\n\n');
+            
+            row.linkedTicketNames = (t.linkedTicketIds || [])
+                .map(id => ticketMap.get(id)?.title || `ID:${id}`)
+                .join('; ');
+    
+            row.lastUpdatedDate = t.lastUpdatedDate ? t.lastUpdatedDate.split('T')[0] : '';
+    
+            return row;
+        });
+    
+        const ws = XLSX.utils.json_to_sheet(dataForSheet, { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Tickets');
+    
+        const today = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `tickets_export_${today}.xlsx`);
+    
+        showToast('Tickets exported successfully!', 'success');
+    };
+
     const getNewButtonText = () => {
         switch (currentView) {
             case 'tickets': return 'New Ticket';
@@ -1580,9 +1756,11 @@ function App() {
             case 'meetings': return 'New Note';
             case 'contacts': return 'New Contact';
             case 'shoppers': return 'New Shopper';
+            case 'releases': return 'New Release';
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
             case 'knowledge': return '';
+            case 'reports': return 'New Item';
             default: return 'New Item';
         }
     }
@@ -1594,6 +1772,7 @@ function App() {
         setSelectedMeeting(null);
         setSelectedFeature(null);
         setSelectedShopper(null);
+        setSelectedRelease(null);
     };
 
     const handleSwitchToDetailView = (type: EntityType, id: string) => {
@@ -1629,6 +1808,10 @@ function App() {
                     const shopper = shoppers.find(s => s.id === id);
                     if (shopper) setSelectedShopper(shopper);
                     break;
+                case 'release':
+                    const release = releases.find(r => r.id === id);
+                    if (release) setSelectedRelease(release);
+                    break;
                 default:
                     break;
             }
@@ -1653,6 +1836,7 @@ function App() {
       { title: 'Features', data: features },
       { title: 'Meetings', data: meetings },
       { title: 'Shoppers', data: shoppers },
+      { title: 'Releases', data: releases },
     ];
 
     // Data for Dashboard
@@ -1747,6 +1931,7 @@ function App() {
         allDealerships: dealerships,
         allFeatures: features,
         allShoppers: shoppers,
+        allReleases: releases,
     };
     
     // Knowledge Base Handlers
@@ -1830,6 +2015,9 @@ function App() {
                   onSwitchView={handleSwitchToDetailView}
               />
           )}
+          {currentView === 'reports' && (
+              <ReportsView tickets={tickets} dealerships={dealerships} features={features} />
+          )}
            {currentView === 'knowledge' && (
               <KnowledgeBaseView 
                 articles={knowledgeArticles}
@@ -1864,6 +2052,7 @@ function App() {
                 onToggleFavorite={handleToggleFavoriteTicket}
                 selectedTicketIds={selectedTicketIds}
                 onToggleSelection={handleToggleTicketSelection}
+                onExport={() => handleExportTickets(filteredTickets)}
               />
             </>
           )}
@@ -1886,6 +2075,7 @@ function App() {
                   showToast={showToast}
                   onNewGroupClick={handleNewDealershipGroupClick}
                   onEditGroupClick={handleEditDealershipGroupClick}
+                  onExport={() => handleExportDealerships(filteredDealerships)}
                 />
               </>
           )}
@@ -1935,10 +2125,11 @@ function App() {
                 setIsGroupFormOpen={setIsGroupFormOpen}
                 editingGroup={editingGroup}
                 setEditingGroup={setEditingGroup}
-                // FIX: Corrected typo from onSaveGroup to handleSaveGroup
+// FIX: Changed 'onSaveGroup' to 'handleSaveGroup' to pass the correct function.
                 onSaveGroup={handleSaveGroup}
             />
           )}
+          {currentView === 'releases' && <ReleaseList releases={releases.sort((a,b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime())} onReleaseClick={setSelectedRelease} />}
         </div>
       </main>
       
@@ -1946,6 +2137,12 @@ function App() {
           <Modal title={getFormTitle()} onClose={() => setIsFormOpen(false)}>
               {renderForm()}
           </Modal>
+      )}
+
+       {isReleaseFormOpen && (
+        <Modal title={editingRelease ? 'Edit Release' : 'Create New Release'} onClose={() => { setIsReleaseFormOpen(false); setEditingRelease(null); }}>
+          <ReleaseForm onSave={handleSaveRelease} onClose={() => { setIsReleaseFormOpen(false); setEditingRelease(null); }} releaseToEdit={editingRelease} />
+        </Modal>
       )}
 
       {isShopperFormOpen && (
@@ -1971,151 +2168,186 @@ function App() {
                   </button>
                   <button onClick={() => handleCreateChoice('dealerships')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <BuildingStorefrontIcon className="w-8 h-8 text-blue-600 mb-2" />
-                      <span className="font-semibold text-gray-800">Dealership</span>
+                      <span className="font-semibold text-gray-800">Account</span>
                   </button>
-                   <button onClick={() => handleCreateChoice('contacts')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                  <button onClick={() => handleCreateChoice('contacts')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <UsersIcon className="w-8 h-8 text-blue-600 mb-2" />
                       <span className="font-semibold text-gray-800">Contact</span>
                   </button>
-                  <button onClick={() => handleCreateChoice('shoppers')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                   <button onClick={() => handleCreateChoice('shoppers')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <PersonIcon className="w-8 h-8 text-blue-600 mb-2" />
                       <span className="font-semibold text-gray-800">Shopper</span>
                   </button>
-                  <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                   <button onClick={() => handleCreateChoice('features')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
                       <SparklesIcon className="w-8 h-8 text-blue-600 mb-2" />
                       <span className="font-semibold text-gray-800">Feature</span>
+                  </button>
+                  <button onClick={() => handleCreateChoice('releases')} className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors">
+                      <RocketLaunchIcon className="w-8 h-8 text-blue-600 mb-2" />
+                      <span className="font-semibold text-gray-800">Release</span>
                   </button>
               </div>
           </Modal>
       )}
 
-      {editingTask && (
-        <Modal title="Edit Task" onClose={() => setEditingTask(null)}>
-            <EditTaskForm 
-                task={editingTask} 
-                onSave={handleUpdateTask} 
-                onClose={() => setEditingTask(null)}
-                onExport={() => handleExportTask(editingTask)}
-                allTasks={allTasks}
-                allTickets={tickets}
-                allProjects={projects}
-                allMeetings={meetings}
-                allDealerships={dealerships}
-                allFeatures={features}
-                allShoppers={shoppers}
-                onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType as EntityType, toId)}
-                onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType as EntityType, toId)}
-                onSwitchView={handleSwitchFromTaskModal}
-                showToast={showToast}
-            />
-        </Modal>
-      )}
+       {isDealershipGroupFormOpen && (
+          <Modal title={editingDealershipGroup ? 'Edit Group' : 'Create New Group'} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}>
+              <DealershipGroupForm onSave={handleSaveDealershipGroup} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }} groupToEdit={editingDealershipGroup} />
+          </Modal>
+       )}
 
-      {isExportModalOpen && (
-        <ExportModal
-          onClose={() => setIsExportModalOpen(false)}
-          dataSources={dataSourcesForExport}
-          showToast={showToast}
-        />
-      )}
-
-      {isDealershipGroupFormOpen && (
-        <Modal title={editingDealershipGroup ? 'Edit Dealership Group' : 'Create New Group'} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }}>
-            <DealershipGroupForm onSave={handleSaveDealershipGroup} onClose={() => { setIsDealershipGroupFormOpen(false); setEditingDealershipGroup(null); }} groupToEdit={editingDealershipGroup} />
-        </Modal>
-      )}
-
-
-      <SideView 
-        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || selectedShopper?.customerName || ''}
-        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature || selectedShopper)}
-        onClose={closeAllSideViews}
-      >
-        {selectedTicket && (
+      {selectedTicket && (
+        <SideView title={selectedTicket.title} onClose={closeAllSideViews} isOpen={!!selectedTicket}>
           <TicketDetailView
-            ticket={selectedTicket}
-            onUpdate={handleUpdateTicket}
-            onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedTicket.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
-            onExport={() => handleExportTicket(selectedTicket)}
-            onEmail={() => handleEmailTicket(selectedTicket)}
-            onDelete={handleDeleteTicket}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
-            onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
-            onSwitchView={handleSwitchToDetailView}
-            showToast={showToast}
+              ticket={selectedTicket}
+              onUpdate={handleUpdateTicket}
+              onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
+              onEditUpdate={(update) => handleEditUpdate(selectedTicket.id, update)}
+              onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
+              onExport={() => handleExportTicket(selectedTicket)}
+              onEmail={() => handleEmailTicket(selectedTicket)}
+              onDelete={() => handleDeleteTicket(selectedTicket.id)}
+              showToast={showToast}
+              onLink={(toType, toId) => handleLinkItem('ticket', selectedTicket.id, toType, toId)}
+              onUnlink={(toType, toId) => handleUnlinkItem('ticket', selectedTicket.id, toType, toId)}
+              onSwitchView={handleSwitchToDetailView}
+              {...allDataForLinking}
           />
-        )}
-        {selectedProject && <ProjectDetailView 
-            project={selectedProject} 
-            onUpdate={handleUpdateProject} 
+        </SideView>
+      )}
+      
+       {selectedProject && (
+        <SideView title={selectedProject.name} onClose={closeAllSideViews} isOpen={!!selectedProject}>
+          <ProjectDetailView
+            project={selectedProject}
+            onUpdate={handleUpdateProject}
             onDelete={handleDeleteProject}
             onExport={() => handleExportProject(selectedProject)}
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(update) => handleEditUpdate(selectedProject.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)} 
+            showToast={showToast}
+            onLink={(toType, toId) => handleLinkItem('project', selectedProject.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('project', selectedProject.id, toType, toId)}
-            onSwitchView={handleSwitchToDetailView} 
-            showToast={showToast}
-            />}
-        {selectedDealership && <DealershipDetailView 
-            dealership={selectedDealership} 
-            onUpdate={handleUpdateDealership} 
-            onDelete={handleDeleteDealership} 
-            onExport={() => handleExportDealership(selectedDealership)} 
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
+            onSwitchView={handleSwitchToDetailView}
             {...allDataForLinking}
-            allGroups={dealershipGroups}
-            onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView}
-            showToast={showToast}
-            />}
-        {selectedMeeting && <MeetingDetailView 
-            meeting={selectedMeeting} 
-            onUpdate={handleUpdateMeeting} 
-            onDelete={handleDeleteMeeting} 
-            onExport={() => handleExportMeeting(selectedMeeting)} 
+          />
+        </SideView>
+      )}
+      
+       {selectedDealership && (
+        <SideView title={selectedDealership.name} onClose={closeAllSideViews} isOpen={!!selectedDealership}>
+          <DealershipDetailView
+            dealership={selectedDealership}
+            onUpdate={handleUpdateDealership}
+            onDelete={handleDeleteDealership}
+            onExport={() => handleExportDealership(selectedDealership)}
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedMeeting.id, updatedUpdate)}
+            onEditUpdate={(update) => handleEditUpdate(selectedDealership.id, update)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
+            showToast={showToast}
+            onLink={(toType, toId) => handleLinkItem('dealership', selectedDealership.id, toType, toId)}
+            onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
+            allGroups={dealershipGroups}
+            {...allDataForLinking}
+          />
+        </SideView>
+      )}
+
+      {selectedMeeting && (
+        <SideView title={selectedMeeting.name} onClose={closeAllSideViews} isOpen={!!selectedMeeting}>
+          <MeetingDetailView 
+            meeting={selectedMeeting}
+            onUpdate={handleUpdateMeeting}
+            onDelete={handleDeleteMeeting}
+            onExport={() => handleExportMeeting(selectedMeeting)}
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(update) => handleEditUpdate(selectedMeeting.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedMeeting.id, updateId)}
             showToast={showToast}
+            onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)}
+            onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
             {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
-        {selectedFeature && <FeatureDetailView 
-            feature={selectedFeature} 
-            onUpdate={handleUpdateFeature} 
-            onDelete={handleDeleteFeature} 
+          />
+        </SideView>
+      )}
+      
+      {selectedFeature && (
+        <SideView title={selectedFeature.title} onClose={closeAllSideViews} isOpen={!!selectedFeature}>
+          <FeatureDetailView 
+            feature={selectedFeature}
+            onUpdate={handleUpdateFeature}
+            onDelete={handleDeleteFeature}
             onExport={() => handleExportFeature(selectedFeature)}
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedFeature.id, updatedUpdate)}
+            onEditUpdate={(update) => handleEditUpdate(selectedFeature.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedFeature.id, updateId)}
             showToast={showToast}
+            onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)}
+            onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
             {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
-        {selectedShopper && <ShopperDetailView
+          />
+        </SideView>
+      )}
+
+       {selectedShopper && (
+        <SideView title={selectedShopper.customerName} onClose={closeAllSideViews} isOpen={!!selectedShopper}>
+          <ShopperDetailView 
             shopper={selectedShopper}
             onUpdate={handleUpdateShopper}
             onDelete={handleDeleteShopper}
-            showToast={showToast}
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedShopper.id, updatedUpdate)}
+            onEditUpdate={(update) => handleEditUpdate(selectedShopper.id, update)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedShopper.id, updateId)}
-            {...allDataForLinking}
+            showToast={showToast}
             onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}
             onSwitchView={handleSwitchToDetailView}
-        />}
-      </SideView>
+            {...allDataForLinking}
+          />
+        </SideView>
+      )}
+
+      {selectedRelease && (
+          <SideView title={selectedRelease.name} onClose={closeAllSideViews} isOpen={!!selectedRelease}>
+              <ReleaseDetailView
+                  release={selectedRelease}
+                  onUpdate={handleSaveRelease}
+                  onDelete={handleDeleteRelease}
+                  onLink={(toType, toId) => handleLinkItem('release', selectedRelease.id, toType, toId)}
+                  onUnlink={(toType, toId) => handleUnlinkItem('release', selectedRelease.id, toType, toId)}
+                  onSwitchView={handleSwitchToDetailView}
+                  {...allDataForLinking}
+              />
+          </SideView>
+      )}
+      
+      {editingTask && (
+        <Modal title="Edit Task" onClose={() => setEditingTask(null)} size="4xl">
+            <EditTaskForm 
+                task={editingTask}
+                onSave={handleUpdateTask}
+                onClose={() => setEditingTask(null)}
+                onExport={() => handleExportTask(editingTask)}
+                showToast={showToast}
+                onLink={(toType, toId) => handleLinkItem('task', editingTask.id, toType, toId)}
+                onUnlink={(toType, toId) => handleUnlinkItem('task', editingTask.id, toType, toId)}
+                onSwitchView={handleSwitchFromTaskModal}
+                {...allDataForLinking}
+            />
+        </Modal>
+      )}
+      
+      {isExportModalOpen && (
+        <ExportModal 
+            onClose={() => setIsExportModalOpen(false)} 
+            dataSources={dataSourcesForExport} 
+            showToast={showToast}
+        />
+      )}
     </div>
   );
 }
-
-export default App;
