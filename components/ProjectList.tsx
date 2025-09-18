@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket, Task } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -61,7 +62,10 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
             <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Most Recent Update</h4>
                 {mostRecentUpdate ? (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{new Date(mostRecentUpdate.date).toLocaleDateString()} - {mostRecentUpdate.author}:<br/>{mostRecentUpdate.comment}</p>
+                    <div className="text-sm text-gray-700">
+                        <p>{new Date(mostRecentUpdate.date).toLocaleDateString()} - {mostRecentUpdate.author}:</p>
+                        <div className="mt-1 rich-text-content" dangerouslySetInnerHTML={{ __html: mostRecentUpdate.comment }} />
+                    </div>
                 ) : <p className="text-sm text-gray-500 italic">No updates posted.</p>}
             </div>
         </div>

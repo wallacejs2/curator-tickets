@@ -14,7 +14,7 @@ const statusColors: Record<ProjectStatus, string> = {
 };
 
 const getProjectDateRange = (project: Project): { start: Date; end: Date } | null => {
-    const dates = project.tasks
+    const dates = (project.tasks || [])
         .map(task => [
             task.creationDate ? new Date(task.creationDate) : null,
             task.dueDate ? new Date(task.dueDate) : null
@@ -99,7 +99,7 @@ const GanttChartView: React.FC<GanttChartViewProps> = ({ projects, onProjectClic
                                          <span className="truncate">{project.name}</span>
                                      </div>
                                      <div className="absolute top-10 w-full h-4">
-                                         {project.tasks.map(task => {
+                                         {(project.tasks || []).map(task => {
                                              const taskStart = task.creationDate ? new Date(task.creationDate) : null;
                                              const taskEnd = task.dueDate ? new Date(task.dueDate) : taskStart;
                                              if (!taskStart || !taskEnd) return null;
