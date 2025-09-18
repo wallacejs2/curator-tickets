@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect } from 'react';
 // FIX: Add Shopper to imports to support linking shoppers to tasks.
 import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus, Shopper, EntityType } from '../../types.ts';
@@ -9,6 +6,7 @@ import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
 import { DownloadIcon } from '../icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from '../icons/ContentCopyIcon.tsx';
+import { formatDisplayName } from '../../utils.ts';
 
 // FIX: Add 'shopper' as a valid entity type for linking.
 // type EntityType is now imported from types.ts
@@ -158,7 +156,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
                 <div>
                     <label className={labelClasses}>Status</label>
                     <select name="status" value={editedTask.status} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{formatDisplayName(s)}</option>)}
                     </select>
                 </div>
             </div>

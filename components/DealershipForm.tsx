@@ -4,6 +4,7 @@ import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink } from '../t
 import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 // A helper for consistent styling
 const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols?: number }> = ({ title, children, gridCols = 2 }) => (
@@ -135,7 +136,7 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
       <FormSection title="Account Information">
         <div><label className={labelClasses}>Dealership Name</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Account Number (CIF)</label><input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} /></div>
-        <div><label className={labelClasses}>Status</label><select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>{DEALERSHIP_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
+        <div><label className={labelClasses}>Status</label><select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>{DEALERSHIP_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}</select></div>
         <div><label className={labelClasses}>Enterprise (Group)</label><input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div className="col-span-2"><label className={labelClasses}>Address</label><input type="text" name="address" value={formData.address || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div className="col-span-2 flex items-center gap-6">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { STATUS_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, TaskPriority, Shopper } from '../types.ts';
@@ -9,6 +10,7 @@ import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { LinkIcon } from './icons/LinkIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
+import { formatDisplayName } from '../utils.ts';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
@@ -477,7 +479,7 @@ const TicketDetailView = ({
 
     const getReasonLabel = (status: Status) => {
         if (status === Status.Completed) return 'Reason for Completion';
-        return `Reason for ${status}`;
+        return `Reason for ${formatDisplayName(status)}`;
     };
 
     return (
@@ -488,7 +490,7 @@ const TicketDetailView = ({
               <input type="text" name="title" value={editableTicket.title} onChange={handleFormChange} required className={formElementClasses} />
             </div>
             <div><label className={labelClasses}>Type</label><select name="type" value={editableTicket.type} onChange={handleFormChange} className={formElementClasses}>{Object.values(TicketType).map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-            <div><label className={labelClasses}>Status</label><select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>{STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
+            <div><label className={labelClasses}>Status</label><select name="status" value={editableTicket.status} onChange={handleFormChange} className={formElementClasses}>{STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}</select></div>
             <div><label className={labelClasses}>Priority</label><select name="priority" value={editableTicket.priority} onChange={handleFormChange} className={formElementClasses}>{(editableTicket.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
             <div><label className={labelClasses}>Product Area</label><select name="productArea" value={editableTicket.productArea} onChange={handleFormChange} className={formElementClasses}>{Object.values(ProductArea).map(pa => <option key={pa} value={pa}>{pa}</option>)}</select></div>
             <div><label className={labelClasses}>Platform</label><select name="platform" value={editableTicket.platform} onChange={handleFormChange} className={formElementClasses}>{Object.values(Platform).map(p => <option key={p} value={p}>{p}</option>)}</select></div>
@@ -496,7 +498,7 @@ const TicketDetailView = ({
             {currentStatusHasReason && (
               <div className="col-span-3">
                 <label className={labelClasses}>{getReasonLabel(editableTicket.status)}</label>
-                <textarea name={reasonField} value={reasonValue || ''} onChange={handleFormChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${editableTicket.status}...`}/>
+                <textarea name={reasonField} value={reasonValue || ''} onChange={handleFormChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${formatDisplayName(editableTicket.status)}...`}/>
               </div>
             )}
         </FormSection>

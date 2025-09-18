@@ -59,6 +59,7 @@ import ReleaseDetailView from './components/ReleaseDetailView.tsx';
 import ReleaseForm from './components/ReleaseForm.tsx';
 import { RocketLaunchIcon } from './components/icons/RocketLaunchIcon.tsx';
 import * as XLSX from 'xlsx';
+import { formatDisplayName } from './utils.ts';
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div>
@@ -114,7 +115,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   <div>
     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h4>
     <span className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[value] || 'bg-gray-200 text-gray-800'}`}>
-      {value}
+      {formatDisplayName(value)}
     </span>
   </div>
 );
