@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Ticket, Dealership, Status, Priority, DealershipStatus, FeatureRequestTicket, ProductArea, FeatureAnnouncement, FeatureStatus } from '../types.ts';
+import { Ticket, Dealership, Status, Priority, DealershipStatus, FeatureRequestTicket, ProductArea, FeatureAnnouncement, FeatureStatus, TicketType } from '../types.ts';
 import PieChart from './reports/PieChart.tsx';
 import BarChart from './reports/BarChart.tsx';
 
@@ -139,7 +139,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     const featureRequestTrendsData = useMemo(() => {
         const months: Record<string, Record<ProductArea, number>> = {};
         tickets
-            .filter((t): t is FeatureRequestTicket => t.type === 'Feature Request')
+            // FIX: Use TicketType enum for comparison instead of a string literal with a space.
+            .filter((t): t is FeatureRequestTicket => t.type === TicketType.FeatureRequest)
             .forEach(t => {
                 const date = new Date(t.submissionDate);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -166,7 +167,8 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     const monthlyFeatureRequestsData = useMemo(() => {
         const counts: Record<string, number> = {};
         tickets
-            .filter((t): t is FeatureRequestTicket => t.type === 'Feature Request')
+            // FIX: Use TicketType enum for comparison instead of a string literal with a space.
+            .filter((t): t is FeatureRequestTicket => t.type === TicketType.FeatureRequest)
             .forEach(t => {
                 const date = new Date(t.submissionDate);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;

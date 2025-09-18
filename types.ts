@@ -1,17 +1,20 @@
-
+/**
+ * TypeScript definitions for Curator Tickets entities.
+ * Updated for consistency and improved type safety.
+ */
 
 export enum TicketType {
   Issue = 'Issue',
-  FeatureRequest = 'Feature Request',
+  FeatureRequest = 'FeatureRequest',
 }
 
 export enum Status {
-  NotStarted = 'Not Started',
-  InProgress = 'In Progress',
-  OnHold = 'On Hold',
-  InReview = 'In Review',
-  DevReview = 'DEV Review',
-  PmdReview = 'PMD Review',
+  NotStarted = 'NotStarted',
+  InProgress = 'InProgress',
+  OnHold = 'OnHold',
+  InReview = 'InReview',
+  DevReview = 'DevReview',
+  PmdReview = 'PmdReview',
   Testing = 'Testing',
   Completed = 'Completed',
 }
@@ -38,27 +41,26 @@ export enum Platform {
 
 export enum FeatureStatus {
   Backlog = 'Backlog',
-  InDiscovery = 'In Discovery',
-  InDevelopment = 'In Development',
+  InDiscovery = 'InDiscovery',
+  InDevelopment = 'InDevelopment',
   Testing = 'Testing',
   Upcoming = 'Upcoming',
   Launched = 'Launched',
 }
 
 export enum PrioritizationScore {
-    XS = 'XS',
-    S = 'S',
-    M = 'M',
-    L = 'L',
-    XL = 'XL',
-    XXL = 'XXL',
+  XS = 'XS',
+  S = 'S',
+  M = 'M',
+  L = 'L',
+  XL = 'XL',
+  XXL = 'XXL',
 }
 
-// FIX: Add RoadmapLane enum.
 export enum RoadmapLane {
-    Now = 'Now',
-    Next = 'Next',
-    Later = 'Later',
+  Now = 'Now',
+  Next = 'Next',
+  Later = 'Later',
 }
 
 export interface FeatureAnnouncement {
@@ -93,8 +95,8 @@ export interface Update {
 }
 
 export enum TaskStatus {
-  ToDo = 'To Do',
-  InProgress = 'In Progress',
+  ToDo = 'ToDo',
+  InProgress = 'InProgress',
   Done = 'Done',
 }
 
@@ -105,6 +107,9 @@ export enum TaskPriority {
   P4 = 'P4',
 }
 
+/**
+ * Represents a task associated with tickets, projects, etc.
+ */
 export interface Task {
   id: string;
   description: string;
@@ -126,10 +131,10 @@ export interface Task {
 }
 
 export interface EnrichedTask extends Task {
-    projectId: string | null;
-    projectName?: string;
-    ticketId: string | null;
-    ticketTitle?: string;
+  projectId: string | null;
+  projectName?: string;
+  ticketId: string | null;
+  ticketTitle?: string;
 }
 
 export interface Ticket {
@@ -188,9 +193,9 @@ export interface FeatureRequestTicket extends Ticket {
 }
 
 export enum ProjectStatus {
-  NotStarted = 'Not Started',
-  InProgress = 'In Progress',
-  OnHold = 'On Hold',
+  NotStarted = 'NotStarted',
+  InProgress = 'InProgress',
+  OnHold = 'OnHold',
   Completed = 'Completed',
 }
 
@@ -213,55 +218,55 @@ export interface Project {
 }
 
 export enum DealershipStatus {
-    Prospect = 'Prospect',
-    PendingDmt = 'Pending DMT',
-    PendingFocus = 'Pending FOCUS',
-    PendingSetup = 'Pending Setup',
-    Onboarding = 'Onboarding',
-    Enrollment = 'Enrollment',
-    Live = 'Live',
-    Pilot = 'Pilot',
-    Cancelled = 'Cancelled',
+  Prospect = 'Prospect',
+  PendingDmt = 'PendingDmt',
+  PendingFocus = 'PendingFocus',
+  PendingSetup = 'PendingSetup',
+  Onboarding = 'Onboarding',
+  Enrollment = 'Enrollment',
+  Live = 'Live',
+  Pilot = 'Pilot',
+  Cancelled = 'Cancelled',
 }
 
 export interface WebsiteLink {
-    url: string;
-    clientId?: string;
+  url: string;
+  clientId?: string;
 }
 
 export interface Dealership {
-    id: string;
-    name: string;
-    accountNumber: string;
-    status: DealershipStatus;
-    hasManagedSolution?: boolean;
-    wasFullpathCustomer?: boolean;
-    orderNumber?: string;
-    orderReceivedDate?: string;
-    goLiveDate?: string;
-    termDate?: string;
-    enterprise?: string;
-    storeNumber?: string;
-    branchNumber?: string;
-    eraSystemId?: string;
-    ppSysId?: string;
-    buId?: string;
-    address?: string;
-    assignedSpecialist?: string;
-    sales?: string;
-    pocName?: string;
-    pocEmail?: string;
-    pocPhone?: string;
-    websiteLinks?: WebsiteLink[];
-    updates?: Update[];
-    groupIds?: string[];
-    ticketIds?: string[];
-    projectIds?: string[];
-    meetingIds?: string[];
-    taskIds?: string[];
-    linkedDealershipIds?: string[];
-    featureIds?: string[];
-    shopperIds?: string[];
+  id: string;
+  name: string;
+  accountNumber: string;
+  status: DealershipStatus;
+  hasManagedSolution?: boolean;
+  wasFullpathCustomer?: boolean;
+  orderNumber?: string;
+  orderReceivedDate?: string;
+  goLiveDate?: string;
+  termDate?: string;
+  enterprise?: string;
+  storeNumber?: string;
+  branchNumber?: string;
+  eraSystemId?: string;
+  ppSysId?: string;
+  buId?: string;
+  address?: string;
+  assignedSpecialist?: string;
+  sales?: string;
+  pocName?: string;
+  pocEmail?: string;
+  pocPhone?: string;
+  websiteLinks?: WebsiteLink[];
+  updates?: Update[];
+  groupIds?: string[];
+  ticketIds?: string[];
+  projectIds?: string[];
+  meetingIds?: string[];
+  taskIds?: string[];
+  linkedDealershipIds?: string[];
+  featureIds?: string[];
+  shopperIds?: string[];
 }
 
 export interface DealershipGroup {
@@ -272,63 +277,63 @@ export interface DealershipGroup {
 }
 
 export interface Meeting {
-    id: string;
-    name: string;
-    meetingDate: string;
-    attendees: string[];
-    notes: string;
-    projectIds?: string[];
-    ticketIds?: string[];
-    linkedMeetingIds?: string[];
-    taskIds?: string[];
-    dealershipIds?: string[];
-    featureIds?: string[];
-    updates?: Update[];
+  id: string;
+  name: string;
+  meetingDate: string;
+  attendees: string[];
+  notes: string;
+  projectIds?: string[];
+  ticketIds?: string[];
+  linkedMeetingIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
+  updates?: Update[];
 }
 
 export enum ContactType {
-    Internal = 'Internal',
-    External = 'External',
+  Internal = 'Internal',
+  External = 'External',
 }
 
 export interface Contact {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    role?: string;
-    type: ContactType;
-    isFavorite?: boolean;
-    groupIds?: string[];
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  type: ContactType;
+  isFavorite?: boolean;
+  groupIds?: string[];
 }
 
 export interface ContactGroup {
-    id: string;
-    name: string;
-    description?: string;
-    contactIds: string[];
+  id: string;
+  name: string;
+  description?: string;
+  contactIds: string[];
 }
 
 export interface KnowledgeArticle {
-    id: string;
-    title: string;
-    content: string;
-    tags: string[];
-    category: string;
-    createdDate: string;
-    lastModifiedDate: string;
-    isFavorite?: boolean;
-    linkedArticleIds?: string[];
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  category: string;
+  createdDate: string;
+  lastModifiedDate: string;
+  isFavorite?: boolean;
+  linkedArticleIds?: string[];
 }
-
 
 export interface RecentActivity {
-    id: string;
-    date: string;
-    time: string;
-    activity: string;
-    action: string;
+  id: string;
+  date: string;
+  time: string;
+  activity: string;
+  action: string;
 }
+
 export interface Shopper {
   id: string;
   customerName: string;
@@ -348,27 +353,50 @@ export interface Shopper {
 }
 
 export enum ReleaseStatus {
-    Planned = 'Planned',
-    InProgress = 'In Progress',
-    Released = 'Released',
-    Cancelled = 'Cancelled',
+  Planned = 'Planned',
+  InProgress = 'InProgress',
+  Released = 'Released',
+  Cancelled = 'Cancelled',
 }
 
 export interface Release {
-    id: string;
-    name: string;
-    version: string;
-    releaseDate: string;
-    status: ReleaseStatus;
-    description?: string;
-    featureIds?: string[];
-    ticketIds?: string[];
+  id: string;
+  name: string;
+  version: string;
+  releaseDate: string;
+  status: ReleaseStatus;
+  description?: string;
+  featureIds?: string[];
+  ticketIds?: string[];
 }
 
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'releases';
+export type View =
+  | 'dashboard'
+  | 'tickets'
+  | 'projects'
+  | 'dealerships'
+  | 'tasks'
+  | 'features'
+  | 'meetings'
+  | 'contacts'
+  | 'knowledge'
+  | 'shoppers'
+  | 'releases';
 
-// FIX: Centralized EntityType to resolve conflicts across different components.
-export type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'release';
+/**
+ * Centralized entity type to resolve conflicts across different components.
+ */
+export type EntityType =
+  | 'ticket'
+  | 'project'
+  | 'task'
+  | 'meeting'
+  | 'dealership'
+  | 'feature'
+  | 'contact'
+  | 'knowledge'
+  | 'shopper'
+  | 'release';
 
 export interface FilterState {
   searchTerm: string;
@@ -379,45 +407,53 @@ export interface FilterState {
 }
 
 export interface DealershipFilterState {
-    searchTerm: string;
-    status: 'all' | DealershipStatus;
+  searchTerm: string;
+  status: 'all' | DealershipStatus;
 }
 
 export interface MeetingFilterState {
-    searchTerm: string;
+  searchTerm: string;
 }
 
 export interface FeatureAnnouncementFilterState {
-    searchTerm: string;
-    platform: 'all' | Platform;
-    category: 'all' | string;
+  searchTerm: string;
+  platform: 'all' | Platform;
+  category: 'all' | string;
 }
 
 export interface ContactFilterState {
-    searchTerm: string;
-    type: 'all' | ContactType;
+  searchTerm: string;
+  type: 'all' | ContactType;
 }
 
 export interface KnowledgeBaseFilterState {
-    searchTerm: string;
-    category: 'all' | string;
-    tag: 'all' | string;
+  searchTerm: string;
+  category: 'all' | string;
+  tag: 'all' | string;
 }
 
 export interface ShopperFilterState {
-    searchTerm: string;
+  searchTerm: string;
 }
 
 export interface SavedTicketView {
-    id: string;
-    name: string;
-    filters: FilterState;
+  id: string;
+  name: string;
+  filters: FilterState;
 }
+
+/**
+ * Widget configuration for dashboard and reporting components.
+ */
+export type WidgetConfigType =
+  | { type: 'kpi'; data: Record<string, unknown> }
+  | { type: 'list'; items: unknown[] }
+  | { type: 'chart'; chartType: string; options?: Record<string, unknown> };
 
 export interface WidgetConfig {
   id: string;
-  type: 'kpi' | 'list' | 'chart';
+  type: WidgetConfigType['type'];
   title: string;
-  config: any;
+  config: WidgetConfigType;
   position: { x: number; y: number; w: number; h: number };
 }

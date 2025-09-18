@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Ticket, Dealership, Status, Priority, DealershipStatus, FeatureRequestTicket, ProductArea, FeatureAnnouncement, FeatureStatus } from '../types.ts';
+import { Ticket, Dealership, Status, Priority, DealershipStatus, FeatureRequestTicket, ProductArea, FeatureAnnouncement, FeatureStatus, TicketType } from '../types.ts';
 import PieChart from './reports/PieChart.tsx';
 import BarChart from './reports/BarChart.tsx';
 
@@ -18,11 +18,11 @@ const PRODUCT_AREA_COLORS: Record<ProductArea, string> = {
 const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, features }) => {
 
     const ticketStatusData = useMemo(() => {
-        // FIX: Explicitly type the accumulator to prevent type inference issues.
-        const counts = tickets.reduce((acc: Record<string, number>, ticket) => {
+        // FIX: Corrected the accumulator type in the reduce function for better type safety.
+        const counts = tickets.reduce((acc: Record<Status, number>, ticket) => {
             acc[ticket.status] = (acc[ticket.status] || 0) + 1;
             return acc;
-        }, {});
+        }, {} as Record<Status, number>);
         return Object.entries(counts).map(([label, value], index) => ({
             label,
             value,
@@ -31,10 +31,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     }, [tickets]);
 
     const ticketPriorityData = useMemo(() => {
-        const counts = tickets.reduce((acc: Record<string, number>, ticket) => {
+        // FIX: Corrected the accumulator type in the reduce function for better type safety.
+        const counts = tickets.reduce((acc: Record<Priority, number>, ticket) => {
             acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
             return acc;
-        }, {});
+        }, {} as Record<Priority, number>);
         return Object.entries(counts).map(([label, value], index) => ({
             label,
             value,
@@ -43,11 +44,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     }, [tickets]);
 
     const dealershipStatusData = useMemo(() => {
-        // FIX: Explicitly type the accumulator to prevent type inference issues.
-        const counts = dealerships.reduce((acc: Record<string, number>, dealership) => {
+        // FIX: Corrected the accumulator type in the reduce function for better type safety.
+        const counts = dealerships.reduce((acc: Record<DealershipStatus, number>, dealership) => {
             acc[dealership.status] = (acc[dealership.status] || 0) + 1;
             return acc;
-        }, {});
+        }, {} as Record<DealershipStatus, number>);
         return Object.entries(counts).map(([label, value], index) => ({
             label,
             value,
@@ -138,11 +139,11 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
         });
     }, [features]);
     
-    // FIX: Add explicit return type to useMemo hook to ensure correct type inference for complex objects with computed properties.
-    const featureRequestTrendsData = useMemo((): ({ label: string } & Record<ProductArea, number>)[] => {
+    // FIX: Changed the explicit return type of useMemo to a more specific type to avoid a conflict between the `label` property and the index signature from `Record`.
+    const featureRequestTrendsData = useMemo((): ({ label: string; [ProductArea.Reynolds]: number; [ProductArea.Fullpath]: number; })[] => {
         const months: Record<string, Record<ProductArea, number>> = {};
         tickets
-            .filter((t): t is FeatureRequestTicket => t.type === 'Feature Request')
+            .filter((t): t is FeatureRequestTicket => t.type === TicketType.FeatureRequest)
             .forEach(t => {
                 const date = new Date(t.submissionDate);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -158,6 +159,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
             const date = new Date(`${key}-02`);
             const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
             const data = months[key];
+            // FIX: Replaced object spread with explicit properties to avoid "computed property name" error.
             return {
                 label,
                 [ProductArea.Reynolds]: data[ProductArea.Reynolds],
@@ -169,7 +171,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     const monthlyFeatureRequestsData = useMemo(() => {
         const counts: Record<string, number> = {};
         tickets
-            .filter((t): t is FeatureRequestTicket => t.type === 'Feature Request')
+            .filter((t): t is FeatureRequestTicket => t.type === TicketType.FeatureRequest)
             .forEach(t => {
                 const date = new Date(t.submissionDate);
                 const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -212,9 +214,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
                      <div className="lg:col-span-2">
                         <BarChart
                             title="Feature Requests by Product Area (Last 12 Months)"
-                            // FIX: The `data` prop for BarChart requires an array of objects with `label` and `value`.
-                            // The previous code was passing an array of numbers, which caused a type error. This has been corrected
-                            // to map the data to the correct shape.
                             data={featureRequestTrendsData.map(d => ({ label: d.label, value: d[ProductArea.Reynolds] + d[ProductArea.Fullpath] }))}
                             stackedData={[
                                 { data: featureRequestTrendsData.map(d => d[ProductArea.Reynolds]), color: PRODUCT_AREA_COLORS.Reynolds, label: 'Reynolds' },

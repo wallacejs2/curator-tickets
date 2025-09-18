@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status } from '../types.ts';
+// FIX: Import EntityType from the centralized types file.
+import { Project, Task, TaskStatus, ProjectStatus, Ticket, TaskPriority, Update, Meeting, Dealership, FeatureAnnouncement, Status, EntityType } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
@@ -9,8 +10,7 @@ import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
-// Define EntityType for linking
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+// FIX: Removed local EntityType definition.
 
 interface ProjectDetailViewProps {
   project: Project;
