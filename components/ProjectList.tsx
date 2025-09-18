@@ -4,7 +4,6 @@ import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
-import GanttChartView from './GanttChartView.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
@@ -156,7 +155,6 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tickets }) => {
   const [projectView, setProjectView] = useState<'active' | 'completed'>('active');
-  const [listOrGantt, setListOrGantt] = useState<'list' | 'gantt'>('list');
 
   const { activeProjects, completedProjects } = useMemo(() => {
     return projects.reduce<{ activeProjects: Project[]; completedProjects: Project[] }>(
@@ -210,23 +208,13 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
             Completed ({completedProjects.length})
             </button>
         </div>
-        <div className="flex items-center">
-             <div className="bg-gray-200 p-0.5 rounded-md flex">
-                <button onClick={() => setListOrGantt('list')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'list' ? 'bg-white shadow' : 'text-gray-600'}`}>List</button>
-                <button onClick={() => setListOrGantt('gantt')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'gantt' ? 'bg-white shadow' : 'text-gray-600'}`}>Gantt</button>
-            </div>
-        </div>
       </div>
       
-      {listOrGantt === 'list' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {projectsToShow.map(project => (
-            <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
-          ))}
-        </div>
-      ) : (
-         <GanttChartView projects={projectsToShow} onProjectClick={onProjectClick} />
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {projectsToShow.map(project => (
+          <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
+        ))}
+      </div>
     </div>
   );
 };
