@@ -365,7 +365,7 @@ export interface Release {
     ticketIds?: string[];
 }
 
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'reports' | 'releases';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'releases';
 
 // FIX: Centralized EntityType to resolve conflicts across different components.
 export type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'release';

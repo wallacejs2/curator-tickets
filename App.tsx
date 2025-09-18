@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, Release } from './types.ts';
 import TicketList from './components/TicketList.tsx';
@@ -63,7 +64,6 @@ import ShoppersView from './components/ShopperList.tsx';
 import ShopperForm from './components/ShopperForm.tsx';
 import ShopperDetailView from './components/ShopperDetailView.tsx';
 import { PersonIcon } from './components/icons/PersonIcon.tsx';
-import ReportsView from './components/ReportsView.tsx';
 import ReleaseList from './components/ReleaseList.tsx';
 import ReleaseDetailView from './components/ReleaseDetailView.tsx';
 import ReleaseForm from './components/ReleaseForm.tsx';
@@ -1598,7 +1598,7 @@ export default function App() {
     };
 
     const handleHeaderNewClick = () => {
-        if (['dashboard', 'reports'].includes(currentView)) {
+        if (currentView === 'dashboard') {
             setIsCreateChoiceModalOpen(true);
         } else if (currentView === 'contacts') {
             setEditingContact(null);
@@ -1760,7 +1760,6 @@ export default function App() {
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
             case 'knowledge': return '';
-            case 'reports': return 'New Item';
             default: return 'New Item';
         }
     }
@@ -2014,9 +2013,6 @@ export default function App() {
                   myFavorites={myDayData.myFavorites}
                   onSwitchView={handleSwitchToDetailView}
               />
-          )}
-          {currentView === 'reports' && (
-              <ReportsView tickets={tickets} dealerships={dealerships} features={features} />
           )}
            {currentView === 'knowledge' && (
               <KnowledgeBaseView 

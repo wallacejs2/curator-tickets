@@ -212,6 +212,9 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
                      <div className="lg:col-span-2">
                         <BarChart
                             title="Feature Requests by Product Area (Last 12 Months)"
+                            // FIX: The `data` prop for BarChart requires an array of objects with `label` and `value`.
+                            // The previous code was passing an array of numbers, which caused a type error. This has been corrected
+                            // to map the data to the correct shape.
                             data={featureRequestTrendsData.map(d => ({ label: d.label, value: d[ProductArea.Reynolds] + d[ProductArea.Fullpath] }))}
                             stackedData={[
                                 { data: featureRequestTrendsData.map(d => d[ProductArea.Reynolds]), color: PRODUCT_AREA_COLORS.Reynolds, label: 'Reynolds' },
