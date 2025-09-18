@@ -18,12 +18,11 @@ const PRODUCT_AREA_COLORS: Record<ProductArea, string> = {
 const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, features }) => {
 
     const ticketStatusData = useMemo(() => {
-// FIX: Changed the initial value type for reduce to Record<string, number>
-// to avoid potential type errors with enum keys.
-        const counts = tickets.reduce((acc, ticket) => {
+        // FIX: Explicitly type the accumulator to prevent type inference issues.
+        const counts = tickets.reduce((acc: Record<string, number>, ticket) => {
             acc[ticket.status] = (acc[ticket.status] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
         return Object.entries(counts).map(([label, value], index) => ({
             label,
             value,
@@ -32,12 +31,10 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     }, [tickets]);
 
     const ticketPriorityData = useMemo(() => {
-// FIX: Changed the initial value type for reduce to Record<string, number>
-// to avoid potential type errors with enum keys.
-        const counts = tickets.reduce((acc, ticket) => {
+        const counts = tickets.reduce((acc: Record<string, number>, ticket) => {
             acc[ticket.priority] = (acc[ticket.priority] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
+        }, {});
         return Object.entries(counts).map(([label, value], index) => ({
             label,
             value,
@@ -46,33 +43,103 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
     }, [tickets]);
 
     const dealershipStatusData = useMemo(() => {
-// FIX: Changed the initial value type for reduce from Record<DealershipStatus, number> to Record<string, number>
-// to avoid potential type errors with enum keys.
-        const counts = dealerships.reduce((acc, dealership) => {
+        // FIX: Explicitly type the accumulator to prevent type inference issues.
+        const counts = dealerships.reduce((acc: Record<string, number>, dealership) => {
             acc[dealership.status] = (acc[dealership.status] || 0) + 1;
             return acc;
-        }, {} as Record<string, number>);
-        return Object.entries(counts).map(([label, value]) => ({
+        }, {});
+        return Object.entries(counts).map(([label, value], index) => ({
             label,
-            value
+            value,
+            color: CHART_COLORS[index % CHART_COLORS.length]
         })).sort((a,b) => b.value - a.value);
     }, [dealerships]);
     
-    // PM Chart: Feature Velocity
-    const featureVelocityData = useMemo(() => {
+    const newSignupsData = useMemo(() => {
+        const counts: Record<string, number> = {};
+        dealerships
+            .filter(d => d.orderReceivedDate)
+            .forEach(d => {
+                const date = new Date(d.orderReceivedDate!);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                counts[monthKey] = (counts[monthKey] || 0) + 1;
+            });
+        
+        const sortedKeys = Object.keys(counts).sort();
+
+        return sortedKeys.map(key => {
+            const date = new Date(`${key}-02`); // Use day 2 to avoid timezone issues
+            const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
+            return {
+                label,
+                value: counts[key]
+            };
+        });
+    }, [dealerships]);
+
+    const cancellationsData = useMemo(() => {
+        const counts: Record<string, number> = {};
+        dealerships
+            .filter(d => d.status === DealershipStatus.Cancelled && d.termDate)
+            .forEach(d => {
+                const date = new Date(d.termDate!);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                counts[monthKey] = (counts[monthKey] || 0) + 1;
+            });
+
+        const sortedKeys = Object.keys(counts).sort();
+        
+        return sortedKeys.map(key => {
+            const date = new Date(`${key}-02`);
+            const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
+            return {
+                label,
+                value: counts[key]
+            };
+        });
+    }, [dealerships]);
+
+    const newLiveAccountsData = useMemo(() => {
+        const counts: Record<string, number> = {};
+        dealerships
+            .filter(d => d.goLiveDate)
+            .forEach(d => {
+                const date = new Date(d.goLiveDate!);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                counts[monthKey] = (counts[monthKey] || 0) + 1;
+            });
+        
+        const sortedKeys = Object.keys(counts).sort();
+
+        return sortedKeys.map(key => {
+            const date = new Date(`${key}-02`); // Use day 2 to avoid timezone issues
+            const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
+            return {
+                label,
+                value: counts[key]
+            };
+        });
+    }, [dealerships]);
+
+    const featuresLaunchedByMonthData = useMemo(() => {
         const counts: Record<string, number> = {};
         features
-            .filter(f => f.status === FeatureStatus.Launched)
+            .filter(f => f.status === FeatureStatus.Launched && f.launchDate)
             .forEach(f => {
                 const date = new Date(f.launchDate);
-                const quarter = `Q${Math.floor(date.getMonth() / 3) + 1} '${String(date.getFullYear()).slice(-2)}`;
-                counts[quarter] = (counts[quarter] || 0) + 1;
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                counts[monthKey] = (counts[monthKey] || 0) + 1;
             });
-        return Object.entries(counts).map(([label, value]) => ({ label, value }));
+        const sortedKeys = Object.keys(counts).sort();
+        return sortedKeys.map(key => {
+            const date = new Date(`${key}-02`);
+            const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
+            return { label, value: counts[key] };
+        });
     }, [features]);
     
-    // PM Chart: Feature Request Trends
-    const featureRequestTrendsData = useMemo(() => {
+    // FIX: Add explicit return type to useMemo hook to ensure correct type inference for complex objects with computed properties.
+    const featureRequestTrendsData = useMemo((): ({ label: string } & Record<ProductArea, number>)[] => {
         const months: Record<string, Record<ProductArea, number>> = {};
         tickets
             .filter((t): t is FeatureRequestTicket => t.type === 'Feature Request')
@@ -87,9 +154,6 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
         
         const sortedKeys = Object.keys(months).sort().slice(-12);
         
-// FIX: The spread operator (`...`) with an indexed type can lead to poor type inference.
-// Creating the object with explicit properties ensures TypeScript correctly understands the shape of `d`
-// in later `.map()` calls, resolving the arithmetic operation error.
         return sortedKeys.map(key => {
             const date = new Date(`${key}-02`);
             const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
@@ -101,44 +165,55 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
             };
         });
     }, [tickets]);
-
-    // PM Chart: Top Requesting Dealerships
-    const topRequestingDealershipsData = useMemo(() => {
+    
+    const monthlyFeatureRequestsData = useMemo(() => {
         const counts: Record<string, number> = {};
         tickets
-            .filter(t => t.type === 'Feature Request' && t.dealershipIds)
+            .filter((t): t is FeatureRequestTicket => t.type === 'Feature Request')
             .forEach(t => {
-                t.dealershipIds?.forEach(dealershipId => {
-                    counts[dealershipId] = (counts[dealershipId] || 0) + 1;
-                });
+                const date = new Date(t.submissionDate);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                counts[monthKey] = (counts[monthKey] || 0) + 1;
             });
         
-        const dealershipMap = new Map(dealerships.map(d => [d.id, d.name]));
-        
-        return Object.entries(counts)
-            .map(([dealershipId, value]) => ({ label: dealershipMap.get(dealershipId) || 'Unknown', value }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 10);
-    }, [tickets, dealerships]);
+        const sortedKeys = Object.keys(counts).sort();
+
+        return sortedKeys.map(key => {
+            const date = new Date(`${key}-02`);
+            const label = date.toLocaleString('default', { month: 'short', year: '2-digit'});
+            return {
+                label,
+                value: counts[key]
+            };
+        });
+    }, [tickets]);
 
 
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-bold text-gray-800">Reporting Dashboard</h1>
+
+            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Sales & Onboarding Insights</h2>
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridAutoRows: 'minmax(300px, auto)'}}>
+                    <BarChart title="New Orders by Month" data={newSignupsData} color="bg-green-500" />
+                    <BarChart title="Cancellations by Month" data={cancellationsData} color="bg-red-500" />
+                    <div className="lg:col-span-2">
+                        <BarChart title="New Live Accounts by Month" data={newLiveAccountsData} color="bg-indigo-500" />
+                    </div>
+                 </div>
+            </div>
             
-            {/* PM Reports */}
             <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Product Management Insights</h2>
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridAutoRows: 'minmax(300px, auto)'}}>
-                    <BarChart title="Feature Velocity by Quarter" data={featureVelocityData} color="bg-purple-500" />
-                    <BarChart title="Top Requesting Dealerships" data={topRequestingDealershipsData} color="bg-pink-500" />
+                    <BarChart title="Features Launched by Month" data={featuresLaunchedByMonthData} color="bg-purple-500" />
+                    <BarChart title="Feature Requests Submitted by Month" data={monthlyFeatureRequestsData} color="bg-pink-500" />
                      <div className="lg:col-span-2">
                         <BarChart
                             title="Feature Requests by Product Area (Last 12 Months)"
-                            // FIX: Replaced `(d as any)` casting with type-safe bracket notation using the enum.
                             data={featureRequestTrendsData.map(d => ({ label: d.label, value: d[ProductArea.Reynolds] + d[ProductArea.Fullpath] }))}
                             stackedData={[
-                                // FIX: Replaced `(d as any)` casting with type-safe bracket notation using the enum.
                                 { data: featureRequestTrendsData.map(d => d[ProductArea.Reynolds]), color: PRODUCT_AREA_COLORS.Reynolds, label: 'Reynolds' },
                                 { data: featureRequestTrendsData.map(d => d[ProductArea.Fullpath]), color: PRODUCT_AREA_COLORS.Fullpath, label: 'Fullpath' },
                             ]}
@@ -147,15 +222,12 @@ const ReportsView: React.FC<ReportsViewProps> = ({ tickets, dealerships, feature
                  </div>
             </div>
 
-            {/* General Reports */}
             <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4">General Insights</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ gridAutoRows: 'minmax(300px, auto)'}}>
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">General Status Overview</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ gridAutoRows: 'minmax(300px, auto)'}}>
                     <PieChart title="Tickets by Status" data={ticketStatusData} />
                     <PieChart title="Tickets by Priority" data={ticketPriorityData} />
-                    <div className="lg:col-span-2">
-                        <BarChart title="Dealerships by Status" data={dealershipStatusData} color="bg-green-500" />
-                    </div>
+                    <PieChart title="Dealerships by Status" data={dealershipStatusData} />
                 </div>
             </div>
         </div>
