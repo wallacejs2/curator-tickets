@@ -1,15 +1,17 @@
 
 
+
+
 import React, { useState, useEffect } from 'react';
 // FIX: Add Shopper to imports to support linking shoppers to tasks.
-import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus, Shopper } from '../../types.ts';
+import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus, Shopper, EntityType } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
 import { DownloadIcon } from '../icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from '../icons/ContentCopyIcon.tsx';
 
 // FIX: Add 'shopper' as a valid entity type for linking.
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
+// type EntityType is now imported from types.ts
 
 interface EditTaskFormProps {
   task: Task & { projectId: string | null; ticketId: string | null; };
@@ -26,8 +28,8 @@ interface EditTaskFormProps {
   allFeatures: FeatureAnnouncement[];
   // FIX: Add allShoppers prop to allow linking tasks with shoppers.
   allShoppers: Shopper[];
-  onLink: (toType: string, toId: string) => void;
-  onUnlink: (toType: string, toId: string) => void;
+  onLink: (toType: EntityType, toId: string) => void;
+  onUnlink: (toType: EntityType, toId: string) => void;
   onSwitchView: (type: EntityType, id: string) => void;
 }
 
