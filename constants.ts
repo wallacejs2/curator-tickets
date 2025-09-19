@@ -1,4 +1,4 @@
-import { Status, Priority, TicketType, ProductArea, Platform, DealershipStatus, FeatureStatus, ContactType, PrioritizationScore, ReleaseStatus } from './types.ts';
+import { Status, Priority, TicketType, ProductArea, Platform, DealershipStatus, FeatureStatus, ContactType } from './types.ts';
 
 export const STATUS_OPTIONS = [
   Status.NotStarted,
@@ -17,8 +17,6 @@ export const PLATFORM_OPTIONS = Object.values(Platform);
 export const DEALERSHIP_STATUS_OPTIONS = Object.values(DealershipStatus);
 export const FEATURE_STATUS_OPTIONS = Object.values(FeatureStatus);
 export const CONTACT_TYPE_OPTIONS = Object.values(ContactType);
-export const PRIORITIZATION_SCORE_OPTIONS = Object.values(PrioritizationScore);
-export const RELEASE_STATUS_OPTIONS = Object.values(ReleaseStatus);
 
 
 export const ISSUE_PRIORITY_OPTIONS = [Priority.P1, Priority.P2, Priority.P3, Priority.P4];

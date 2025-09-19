@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform } from '../types.ts';
 import { FEATURE_STATUS_OPTIONS, PLATFORM_OPTIONS } from '../constants.ts';
-import { formatDisplayName } from '../utils.ts';
 
 type FormSubmitCallback = (feature: Omit<FeatureAnnouncement, 'id'>) => void;
 type FormUpdateCallback = (feature: FeatureAnnouncement) => void;
@@ -106,7 +105,7 @@ const FeatureForm: React.FC<FeatureFormProps> = ({ onSubmit, onUpdate, featureTo
         <div>
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
-            {FEATURE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{formatDisplayName(s)}</option>)}
+            {FEATURE_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       </div>

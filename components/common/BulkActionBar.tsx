@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Status, Priority } from '../../types.ts';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS } from '../../constants.ts';
 import { XIcon } from '../icons/XIcon.tsx';
-import { formatDisplayName } from '../../utils.ts';
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -27,7 +26,7 @@ const BulkActionBar: React.FC<BulkActionBarProps> = ({ selectedCount, onClearSel
             {showStatus && (
                 <div className="absolute top-full mt-1 bg-white border rounded-md shadow-lg z-20">
                     {STATUS_OPTIONS.map(status => (
-                        <a key={status} href="#" onClick={(e) => { e.preventDefault(); onUpdateStatus(status); setShowStatus(false); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{formatDisplayName(status)}</a>
+                        <a key={status} href="#" onClick={(e) => { e.preventDefault(); onUpdateStatus(status); setShowStatus(false); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">{status}</a>
                     ))}
                 </div>
             )}

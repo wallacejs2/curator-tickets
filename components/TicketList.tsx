@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform } from '../types.ts';
+import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
@@ -7,20 +7,19 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { StarIcon } from './icons/StarIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
-import { formatDisplayName } from '../utils.ts';
 
 
 interface TicketTableProps {
   tickets: Ticket[];
   onRowClick: (ticket: Ticket) => void;
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
+  projects: Project[];
   onToggleFavorite: (ticketId: string) => void;
   selectedTicketIds: string[];
   onToggleSelection: (ticketId: string) => void;
-  onExport: () => void;
 }
 
 const tagColorStyles: Record<string, string> = {
@@ -55,7 +54,7 @@ const tagColorStyles: Record<string, string> = {
 
 const Tag: React.FC<{ label: string }> = ({ label }) => (
     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${tagColorStyles[label] || 'bg-gray-200 text-gray-800'}`}>
-        {formatDisplayName(label)}
+        {label}
     </span>
 );
 
@@ -108,7 +107,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 type TicketView = 'active' | 'onHold' | 'completed' | 'favorites';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, onToggleFavorite, selectedTicketIds, onToggleSelection, onExport }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -175,7 +174,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
     const startDate = new Date(ticket.startDate);
     const endDate = new Date();
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const diffDays = Math.floor(diffTime / (1000 * 3600 * 24)) + 1;
     
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
   };
@@ -183,55 +182,50 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
   return (
     <div>
       <div className="mb-4 flex border-b border-gray-200 justify-between items-center">
-        <div className="flex items-center gap-4">
-            <div className="flex">
-                <button
-                onClick={() => setTicketView('active')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    ticketView === 'active'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                aria-pressed={ticketView === 'active'}
-                >
-                Active ({activeTickets.length})
-                </button>
-                <button
-                onClick={() => setTicketView('onHold')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    ticketView === 'onHold'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                aria-pressed={ticketView === 'onHold'}
-                >
-                On Hold ({onHoldTickets.length})
-                </button>
-                <button
-                onClick={() => setTicketView('completed')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    ticketView === 'completed'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                aria-pressed={ticketView === 'completed'}
-                >
-                Completed ({completedTickets.length})
-                </button>
-                <button
-                onClick={() => setTicketView('favorites')}
-                className={`px-4 py-2 text-sm font-medium transition-colors ${
-                    ticketView === 'favorites'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-                aria-pressed={ticketView === 'favorites'}
-                >
-                Favorites ({favoriteTickets.length})
-                </button>
-            </div>
-             <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-green-700">
-                <DownloadIcon className="w-4 h-4" /> Export
+        <div className="flex">
+            <button
+            onClick={() => setTicketView('active')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'active'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'active'}
+            >
+            Active ({activeTickets.length})
+            </button>
+            <button
+            onClick={() => setTicketView('onHold')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'onHold'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'onHold'}
+            >
+            On Hold ({onHoldTickets.length})
+            </button>
+            <button
+            onClick={() => setTicketView('completed')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'completed'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'completed'}
+            >
+            Completed ({completedTickets.length})
+            </button>
+            <button
+            onClick={() => setTicketView('favorites')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                ticketView === 'favorites'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            aria-pressed={ticketView === 'favorites'}
+            >
+            Favorites ({favoriteTickets.length})
             </button>
         </div>
         {ticketsToShow.length > 0 && (
@@ -272,7 +266,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                 reasonContainerStyle = "bg-[#ffcd85]/20 border-[#ffcd85] text-stone-800";
             } else if ([...reviewStatuses, Status.Testing].includes(ticket.status)) {
                 reasonText = ticket.onHoldReason;
-                reasonLabel = formatDisplayName(ticket.status);
+                reasonLabel = ticket.status;
                 if(ticket.status === Status.Testing) {
                     reasonContainerStyle = "bg-orange-50 border-orange-200 text-orange-800";
                 } else {
@@ -315,6 +309,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
 
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
                         {linkedTicketsCount > 0 && <span title={`${linkedTicketsCount} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedTicketsCount}</span></span>}
+                        {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
                         {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
                         {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
                         {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}
@@ -388,7 +383,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
                         aria-label={`Change status for ticket ${ticket.title}`}
                     >
                         {STATUS_OPTIONS.map(status => (
-                            <option key={status} value={status}>{formatDisplayName(status)}</option>
+                            <option key={status} value={status}>{status}</option>
                         ))}
                     </select>
                     </div>

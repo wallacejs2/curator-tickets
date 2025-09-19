@@ -14,6 +14,7 @@ interface ShopperDetailViewProps {
   shopper: Shopper;
   onUpdate: (shopper: Shopper) => void;
   onDelete: (shopperId: string) => void;
+  showToast: (message: string, type: 'success' | 'error') => void;
   isReadOnly?: boolean;
   onAddUpdate: (shopperId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
@@ -34,7 +35,7 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 );
 
 const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
-  shopper, onUpdate, onDelete, isReadOnly = false,
+  shopper, onUpdate, onDelete, showToast, isReadOnly = false,
   onAddUpdate, onEditUpdate, onDeleteUpdate,
   allTickets, allDealerships, allTasks, onLink, onUnlink, onSwitchView
 }) => {
@@ -107,7 +108,7 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
     }
 
     navigator.clipboard.writeText(content.trim());
-    // FIX: Removed call to deprecated showToast function.
+    showToast('Shopper info copied!', 'success');
   };
   
   const handleNewActivityChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -117,8 +118,7 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
   
   const handleAddActivity = () => {
     if (!newActivity.activity.trim() || !newActivity.date || !newActivity.time) {
-        // FIX: Replaced deprecated showToast with window.alert for error notification.
-        window.alert('Date, time, and activity fields are required.');
+        showToast('Date, time, and activity fields are required.', 'error');
         return;
     }
     const activityToAdd: RecentActivity = { id: crypto.randomUUID(), ...newActivity };
@@ -133,14 +133,14 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
         activity: '',
         action: ''
     });
-    // FIX: Removed call to deprecated showToast function.
+    showToast('Activity logged successfully!', 'success');
   };
 
   const handleDeleteActivity = (activityId: string) => {
     if(window.confirm('Are you sure you want to delete this activity?')) {
         const updatedActivities = (shopper.recentActivity || []).filter(act => act.id !== activityId);
         onUpdate({ ...shopper, recentActivity: updatedActivities });
-        // FIX: Removed call to deprecated showToast function.
+        showToast('Activity deleted.', 'success');
     }
   };
   
@@ -157,14 +157,13 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
   const handleSaveEdit = () => {
     if (!editedActivity) return;
      if (!editedActivity.activity.trim() || !editedActivity.date || !editedActivity.time) {
-        // FIX: Replaced deprecated showToast with window.alert for error notification.
-        window.alert('Date, time, and activity fields are required.');
+        showToast('Date, time, and activity fields are required.', 'error');
         return;
     }
     const updatedActivities = (shopper.recentActivity || []).map(act => act.id === editingActivityId ? editedActivity : act);
     onUpdate({ ...shopper, recentActivity: updatedActivities });
     handleCancelEdit();
-    // FIX: Removed call to deprecated showToast function.
+    showToast('Activity updated!', 'success');
   };
   
   const handleEditedActivityChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

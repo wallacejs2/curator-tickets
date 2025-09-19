@@ -14,8 +14,7 @@ const statusColors: Record<ProjectStatus, string> = {
 };
 
 const getProjectDateRange = (project: Project): { start: Date; end: Date } | null => {
-    const dates = (project.tasks || [])
-        .filter(Boolean)
+    const dates = project.tasks
         .map(task => [
             task.creationDate ? new Date(task.creationDate) : null,
             task.dueDate ? new Date(task.dueDate) : null
@@ -32,7 +31,7 @@ const getProjectDateRange = (project: Project): { start: Date; end: Date } | nul
 
 const GanttChartView: React.FC<GanttChartViewProps> = ({ projects, onProjectClick }) => {
     const { chartStartDate, chartEndDate, months, totalDays } = useMemo(() => {
-        const projectRanges = projects.filter(Boolean).map(getProjectDateRange).filter((r): r is { start: Date; end: Date } => r !== null);
+        const projectRanges = projects.map(getProjectDateRange).filter((r): r is { start: Date; end: Date } => r !== null);
         if (projectRanges.length === 0) return { chartStartDate: new Date(), chartEndDate: new Date(), months: [], totalDays: 0 };
 
         const chartStartDate = new Date(Math.min(...projectRanges.map(r => r.start.getTime())));
@@ -65,7 +64,7 @@ const GanttChartView: React.FC<GanttChartViewProps> = ({ projects, onProjectClic
             <div className="flex">
                 <div className="w-1/4 border-r border-gray-200 font-semibold text-sm text-gray-700">
                     <div className="h-12 flex items-center px-2">Project Name</div>
-                    {projects.filter(Boolean).map(p => (
+                    {projects.map(p => (
                         <div key={p.id} className="h-16 flex items-center px-2 border-t border-gray-200 truncate">
                             {p.name}
                         </div>
@@ -82,7 +81,7 @@ const GanttChartView: React.FC<GanttChartViewProps> = ({ projects, onProjectClic
                             ))}
                         </div>
                         {/* Rows */}
-                        {projects.filter(Boolean).map(project => {
+                        {projects.map(project => {
                              const range = getProjectDateRange(project);
                              if (!range) return <div key={project.id} className="h-16 border-t border-gray-200"/>;
 
@@ -100,7 +99,7 @@ const GanttChartView: React.FC<GanttChartViewProps> = ({ projects, onProjectClic
                                          <span className="truncate">{project.name}</span>
                                      </div>
                                      <div className="absolute top-10 w-full h-4">
-                                         {(project.tasks || []).filter(Boolean).map(task => {
+                                         {project.tasks.map(task => {
                                              const taskStart = task.creationDate ? new Date(task.creationDate) : null;
                                              const taskEnd = task.dueDate ? new Date(task.dueDate) : taskStart;
                                              if (!taskStart || !taskEnd) return null;

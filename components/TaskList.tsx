@@ -9,7 +9,6 @@ import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
-import { formatDisplayName } from '../utils.ts';
 
 // Define EntityType for linking
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -204,7 +203,7 @@ const TaskList: React.FC<TaskListProps> = ({
                       className={`flex-shrink-0 px-2 py-0.5 text-xs font-semibold rounded-full whitespace-nowrap border-transparent focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 focus:outline-none appearance-none ${statusColorStyles[task.status]}`}
                       aria-label={`Change status for ${task.description}`}
                   >
-                      {Object.values(TaskStatus).map(s => <option key={s} value={s}>{formatDisplayName(s)}</option>)}
+                      {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div className="text-xs text-gray-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">

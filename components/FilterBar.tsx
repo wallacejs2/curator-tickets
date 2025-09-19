@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { FilterState, View, DealershipFilterState, ShopperFilterState } from '../types.ts';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
@@ -11,12 +12,12 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { DashboardIcon } from './icons/DashboardIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
+import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { AccountCircleIcon } from './icons/AccountCircleIcon.tsx';
+import { SunIcon } from './icons/SunIcon.tsx';
 import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
-import { RocketLaunchIcon } from './icons/RocketLaunchIcon.tsx';
-import { formatDisplayName } from '../utils.ts';
 
 interface LeftSidebarProps {
   ticketFilters: FilterState;
@@ -130,17 +131,20 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </div>
 
           <nav className="mb-8">
+            <h2 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Navigation</h2>
             <div className="space-y-1">
               <NavItem icon={<DashboardIcon className="w-5 h-5" />} label="Dashboard" isActive={currentView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
               <NavItem icon={<BrainCircuitIcon className="w-5 h-5" />} label="Knowledge Base" isActive={currentView === 'knowledge'} onClick={() => onViewChange('knowledge')} />
-              <NavItem icon={<RocketLaunchIcon className="w-5 h-5" />} label="Releases" isActive={currentView === 'releases'} onClick={() => onViewChange('releases')} />
-              <NavItem icon={<ReceiptLongIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
-              <NavItem icon={<SparklesIcon className="w-6 h-6"/>} label="New Features" isActive={currentView === 'features'} onClick={() => onViewChange('features')} />
-              <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />
-              <NavItem icon={<PersonIcon className="w-6 h-6"/>} label="Shoppers" isActive={currentView === 'shoppers'} onClick={() => onViewChange('shoppers')} />
-              <NavItem icon={<DocumentTextIcon className="w-6 h-6"/>} label="Meeting Notes" isActive={currentView === 'meetings'} onClick={() => onViewChange('meetings')} />
-              <NavItem icon={<AccountBalanceIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
-              <NavItem icon={<AccountCircleIcon className="w-6 h-6"/>} label="Contacts" isActive={currentView === 'contacts'} onClick={() => onViewChange('contacts')} />
+              <div className="pt-2 mt-2 border-t border-gray-700/50">
+                <NavItem icon={<ReceiptLongIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
+                <NavItem icon={<WorkspaceIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />
+                <NavItem icon={<PersonIcon className="w-6 h-6"/>} label="Shoppers" isActive={currentView === 'shoppers'} onClick={() => onViewChange('shoppers')} />
+                <NavItem icon={<ChecklistIcon className="w-6 h-6"/>} label="Tasks" isActive={currentView === 'tasks'} onClick={() => onViewChange('tasks')} />
+                <NavItem icon={<DocumentTextIcon className="w-6 h-6"/>} label="Meeting Notes" isActive={currentView === 'meetings'} onClick={() => onViewChange('meetings')} />
+                <NavItem icon={<AccountBalanceIcon className="w-6 h-6"/>} label="Dealerships" isActive={currentView === 'dealerships'} onClick={() => onViewChange('dealerships')} />
+                <NavItem icon={<AccountCircleIcon className="w-6 h-6"/>} label="Contacts" isActive={currentView === 'contacts'} onClick={() => onViewChange('contacts')} />
+                <NavItem icon={<SparklesIcon className="w-6 h-6"/>} label="New Features" isActive={currentView === 'features'} onClick={() => onViewChange('features')} />
+              </div>
             </div>
           </nav>
           
@@ -174,7 +178,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <label htmlFor="type" className={labelClasses}>Type</label>
                       <select id="type" name="type" value={ticketFilters.type} onChange={handleInputChange} className={selectClasses}>
                         <option value="all">All Types</option>
-                        {TICKET_TYPE_OPTIONS.map(type => <option key={type} value={type}>{formatDisplayName(type)}</option>)}
+                        {TICKET_TYPE_OPTIONS.map(type => <option key={type} value={type}>{type}</option>)}
                       </select>
                     </div>
                     <div>
@@ -188,7 +192,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <label htmlFor="status" className={labelClasses}>Status</label>
                       <select id="status" name="status" value={ticketFilters.status} onChange={handleInputChange} className={selectClasses}>
                         <option value="all">All Statuses</option>
-                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{formatDisplayName(status)}</option>)}
+                        {STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
                       </select>
                     </div>
                     <div>
@@ -219,7 +223,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       <select id="status" name="status" value={dealershipFilters.status} onChange={handleInputChange} className={selectClasses}>
                         <option value="all">All Statuses</option>
                         {DEALERSHIP_STATUS_OPTIONS.map(status => (
-                          <option key={status} value={status}>{formatDisplayName(status)}</option>
+                          <option key={status} value={status}>{status}</option>
                         ))}
                       </select>
                     </div>

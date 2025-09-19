@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import Modal from './common/Modal.tsx';
@@ -11,6 +12,7 @@ interface ExportModalProps {
     title: string;
     data: any[];
   }[];
+  showToast: (message: string, type: 'success' | 'error') => void;
 }
 
 const getFieldsFromData = (data: any[], title: string) => {
@@ -67,7 +69,7 @@ const idFieldToEntityTypeMap: Record<string, string> = {
     'linkedFeatureIds': 'feature',
 };
 
-const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources }) => {
+const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources, showToast }) => {
   const [selectedSheets, setSelectedSheets] = useState<Record<string, boolean>>({});
   const [selectedFields, setSelectedFields] = useState<Record<string, string[]>>({});
   const [format, setFormat] = useState<'xlsx' | 'csv'>('xlsx');
@@ -183,13 +185,11 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources }) => {
   const handleExport = () => {
     const sheetsToExport = Object.keys(selectedSheets).filter(title => selectedSheets[title]);
     if (sheetsToExport.length === 0) {
-      // FIX: Replaced deprecated showToast with window.alert for error notification.
-      window.alert('Please select at least one data type to export.');
+      showToast('Please select at least one data type to export.', 'error');
       return;
     }
     if (format === 'csv' && sheetsToExport.length > 1) {
-        // FIX: Replaced deprecated showToast with window.alert for error notification.
-        window.alert('Only one data type can be exported as CSV at a time.');
+        showToast('Only one data type can be exported as CSV at a time.', 'error');
         return;
     }
     
@@ -256,8 +256,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources }) => {
         const title = sheetsToExport[0];
         const processed = processData(title);
         if (!processed) {
-            // FIX: Replaced deprecated showToast with window.alert for error notification.
-            window.alert(`No data or fields selected for ${title}.`);
+            showToast(`No data or fields selected for ${title}.`, 'error');
             return;
         }
         const ws = XLSX.utils.json_to_sheet(processed.data, { header: processed.headers });
@@ -269,7 +268,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources }) => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        // FIX: Removed call to deprecated showToast function.
+        showToast('Export successful!', 'success');
     } else { // xlsx
         const wb = XLSX.utils.book_new();
         sheetsToExport.forEach(title => {
@@ -281,12 +280,11 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources }) => {
         });
         
         if (!hasDataToExport) {
-            // FIX: Replaced deprecated showToast with window.alert for error notification.
-            window.alert('No fields selected for the chosen data types.');
+            showToast('No fields selected for the chosen data types.', 'error');
             return;
         }
         XLSX.writeFile(wb, `curator_export_${today}.xlsx`);
-        // FIX: Removed call to deprecated showToast function.
+        showToast('Export successful!', 'success');
     }
     
     onClose();
@@ -367,86 +365,79 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, dataSources }) => {
                             <label className="flex items-center gap-2 text-sm cursor-pointer">
                                 <input type="radio" name="format" value="csv" checked={format === 'csv'} onChange={() => {
                                     setFormat('csv');
-                                    // For CSV, only allow one sheet. Keep the active one or the first selected.
-                                    const firstSelected = Object.keys(selectedSheets).find(s => selectedSheets[s]);
-                                    const sheetToKeep = activeDataType && selectedSheets[activeDataType] ? activeDataType : firstSelected;
-                                    if (sheetToKeep) {
-                                        setSelectedSheets({ [sheetToKeep]: true });
-                                    } else {
-                                        setSelectedSheets({});
-                                    }
-                                }} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                                    const firstSelected = Object.keys(selectedSheets).find(key => selectedSheets[key]);
+                                    setSelectedSheets(firstSelected ? { [firstSelected]: true } : {});
+                                }} className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"/>
                                 CSV (.csv)
                             </label>
                         </div>
                     </div>
                     <div>
                         <h4 className="font-semibold text-gray-800 mb-2 text-sm">Options</h4>
-                         <div className="flex items-center p-3 bg-gray-100 rounded-md">
-                             <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="checkbox" checked={enrichData} onChange={e => setEnrichData(e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/>
-                                Enrich linked ID fields with names
+                        <div className="p-3 bg-gray-100 rounded-md">
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input type="checkbox" checked={enrichData} onChange={e => setEnrichData(e.target.checked)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                                Enrich linked data (show names instead of IDs)
                             </label>
-                         </div>
-                    </div>
-                </div>
-
-                <div className="flex">
-                    {/* Data Source Selection Sidebar */}
-                    <div className="w-1/4 pr-6 border-r border-gray-200">
-                        <h4 className="font-semibold text-gray-800 mb-2 text-sm">Data Types to Export</h4>
-                        <div className="space-y-2">
-                            {dataSources.map(ds => (
-                                <div key={ds.title} className="flex items-center justify-between">
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer w-full">
-                                        <input
-                                            type="checkbox"
-                                            checked={!!selectedSheets[ds.title]}
-                                            onChange={() => handleSheetToggle(ds.title)}
-                                        />
-                                        <span className={activeDataType === ds.title ? 'font-bold text-blue-600' : 'text-gray-700'}>{ds.title}</span>
-                                    </label>
-                                    <button
-                                        onClick={() => setActiveDataType(ds.title)}
-                                        className={`text-xs font-semibold px-2 py-0.5 rounded ${activeDataType === ds.title ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
-                                    >
-                                        Edit
-                                    </button>
-                                </div>
-                            ))}
                         </div>
                     </div>
-
-                    {/* Field Selection Area */}
-                    <div className="w-3/4 pl-6">
+                </div>
+                
+                <div className="flex gap-x-6 pt-4 border-t border-gray-200">
+                    <div className="w-1/4">
+                        <h4 className="font-semibold text-gray-800 mb-2 text-sm">Data Types to Export</h4>
+                        {format === 'csv' && <p className="text-xs text-orange-600 mb-2 -mt-1">Select one data type.</p>}
+                        <div className="space-y-2">
+                           {dataSources.map(source => (
+                            <div
+                                key={source.title}
+                                onClick={() => setActiveDataType(source.title)}
+                                className={`flex items-center gap-3 p-2.5 rounded-md cursor-pointer border transition-colors ${activeDataType === source.title ? 'bg-blue-100 border-blue-300' : 'hover:bg-gray-100 border-transparent'}`}
+                            >
+                                <input
+                                    type={format === 'csv' ? 'radio' : 'checkbox'}
+                                    name="sheet-selection"
+                                    id={`checkbox-${source.title.replace(/\s+/g, '-')}`}
+                                    checked={!!selectedSheets[source.title]}
+                                    onChange={() => handleSheetToggle(source.title)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-4 w-4 rounded border-gray-400 text-blue-600 focus:ring-blue-500"
+                                />
+                                <label htmlFor={`checkbox-${source.title.replace(/\s+/g, '-')}`} className="font-medium text-gray-800 text-sm cursor-pointer select-none">
+                                    {source.title} ({source.data.length})
+                                </label>
+                            </div>
+                           ))}
+                        </div>
+                    </div>
+                    <div className="w-3/4">
                         {activeDataType && selectedSheets[activeDataType] ? (
                             <>
-                                <h4 className="font-semibold text-gray-800 mb-4 text-md">Configure Columns for: <span className="text-blue-700">{activeDataType}</span></h4>
+                                <h4 className="font-semibold text-gray-800 mb-2 text-sm">
+                                    Configure Columns for <span className="text-blue-600">{activeDataType}</span>
+                                </h4>
                                 {renderFieldSelection(activeDataType)}
                             </>
                         ) : (
-                            <div className="h-[50vh] flex items-center justify-center bg-gray-50 rounded-md">
-                                <p className="text-gray-500">Select a data type on the left to configure its columns.</p>
+                            <div className="h-full flex items-center justify-center bg-gray-50 rounded-md border-2 border-dashed">
+                                <p className="text-gray-500">Select and check a data type on the left to configure its columns.</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                    <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-                    <button
-                        onClick={handleExport}
-                        className="flex items-center gap-2 bg-green-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-green-700 disabled:bg-green-300"
-                        disabled={Object.values(selectedSheets).every(v => !v)}
-                    >
-                        <DownloadIcon className="w-5 h-5" />
-                        Export
-                    </button>
-                </div>
+            </div>
+             <div className="mt-8 flex justify-end items-center gap-3">
+                 <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+                <button 
+                    onClick={handleExport}
+                    className="flex items-center gap-2 bg-green-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                >
+                    <DownloadIcon className="w-4 h-4" />
+                    <span>Export Data</span>
+                </button>
             </div>
         </Modal>
     );
 };
-
 export default ExportModal;

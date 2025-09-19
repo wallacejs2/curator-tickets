@@ -1,30 +1,33 @@
+
+
 import React, { useState, useEffect } from 'react';
 // FIX: Add Shopper to imports to support linking shoppers to tasks.
-import { Task, TaskPriority, TaskStatus, Ticket, Meeting, Dealership, FeatureAnnouncement, Status, Shopper, EntityType } from '../../types.ts';
+import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus, Shopper } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
 import { DownloadIcon } from '../icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from '../icons/ContentCopyIcon.tsx';
-import { formatDisplayName } from '../../utils.ts';
 
 // FIX: Add 'shopper' as a valid entity type for linking.
-// type EntityType is now imported from types.ts
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
 
 interface EditTaskFormProps {
   task: Task & { projectId: string | null; ticketId: string | null; };
   onSave: (task: Task) => void;
   onClose: () => void;
   onExport: () => void;
+  showToast: (message: string, type: 'success' | 'error') => void;
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   // Add all other entities for linking
   allTickets: Ticket[];
+  allProjects: Project[];
   allMeetings: Meeting[];
   allDealerships: Dealership[];
   allFeatures: FeatureAnnouncement[];
   // FIX: Add allShoppers prop to allow linking tasks with shoppers.
   allShoppers: Shopper[];
-  onLink: (toType: EntityType, toId: string) => void;
-  onUnlink: (toType: EntityType, toId: string) => void;
+  onLink: (toType: string, toId: string) => void;
+  onUnlink: (toType: string, toId: string) => void;
   onSwitchView: (type: EntityType, id: string) => void;
 }
 
@@ -33,8 +36,10 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     onSave, 
     onClose,
     onExport,
+    showToast,
     allTasks,
     allTickets,
+    allProjects,
     allMeetings,
     allDealerships,
     allFeatures,
@@ -105,6 +110,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
         appendSection('Linked Item IDs');
         appendField('Linked Task IDs', (editedTask.linkedTaskIds || []).join(', '));
         appendField('Ticket IDs', (editedTask.ticketIds || []).join(', '));
+        appendField('Project IDs', (editedTask.projectIds || []).join(', '));
         appendField('Meeting IDs', (editedTask.meetingIds || []).join(', '));
         appendField('Dealership IDs', (editedTask.dealershipIds || []).join(', '));
         appendField('Feature IDs', (editedTask.featureIds || []).join(', '));
@@ -112,7 +118,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
         appendField('Shopper IDs', (editedTask.shopperIds || []).join(', '));
         
         navigator.clipboard.writeText(content);
-        // FIX: Removed call to deprecated showToast function.
+        showToast('Task info copied!', 'success');
     };
 
     const formElementClasses = "mt-1 block w-full bg-gray-100 text-gray-900 border border-gray-300 rounded-sm shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm";
@@ -120,6 +126,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     
     // Linked items
     const linkedTickets = allTickets.filter(item => (editedTask.ticketIds || []).includes(item.id));
+    const linkedProjects = allProjects.filter(item => (editedTask.projectIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => (editedTask.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (editedTask.dealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (editedTask.featureIds || []).includes(item.id));
@@ -129,6 +136,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     
     // Available items for linking (filter out completed items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(editedTask.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(editedTask.projectIds || []).includes(item.id));
     const availableMeetings = allMeetings.filter(item => !(editedTask.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(editedTask.dealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => !(editedTask.featureIds || []).includes(item.id));
@@ -150,7 +158,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
                 <div>
                     <label className={labelClasses}>Status</label>
                     <select name="status" value={editedTask.status} onChange={handleChange} className={formElementClasses}>
-                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{formatDisplayName(s)}</option>)}
+                        {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                 </div>
             </div>
@@ -178,6 +186,7 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
             </div>
 
             <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => handleItemClick('ticket', id)} />
+            <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => handleItemClick('project', id)} />
             <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => handleItemClick('meeting', id)} />
             <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => handleItemClick('dealership', id)} />
             <LinkingSection title="Linked Features" itemTypeLabel="feature" linkedItems={linkedFeatures} availableItems={availableFeatures} onLink={(id) => onLink('feature', id)} onUnlink={(id) => onUnlink('feature', id)} onItemClick={(id) => handleItemClick('feature', id)} />

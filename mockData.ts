@@ -1,7 +1,5 @@
 
-
-
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, Release, ReleaseStatus } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -43,6 +41,7 @@ export const initialTickets: Ticket[] = [
       }
     ],
     tasks: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -71,6 +70,7 @@ export const initialTickets: Ticket[] = [
     currentFunctionality: 'The application currently only has a light theme, which can cause eye strain in low-light environments.',
     suggestedSolution: 'Implement a theme switcher in the user settings that toggles CSS variables for colors across the entire UI.',
     benefits: 'Improved user experience, reduced eye strain, modern look and feel, and better accessibility for some users.',
+    projectIds: ['proj-1'],
     updates: [
       {
         id: 'update-2-1',
@@ -109,6 +109,7 @@ export const initialTickets: Ticket[] = [
     frequency: 'Always.',
     updates: [],
     tasks: [],
+    projectIds: [],
     linkedTicketIds: [],
     meetingIds: [],
     taskIds: [],
@@ -144,6 +145,7 @@ export const initialTickets: Ticket[] = [
     ],
     completionNotes: 'The fix involved correcting the Blob constructor to explicitly set the MIME type to "text/csv;charset=utf-8;". This ensures Firefox correctly interprets the file format upon download. The change was deployed in patch v2.3.1.',
     tasks: [],
+    projectIds: [],
     linkedTicketIds: [],
     meetingIds: [],
     taskIds: [],
@@ -172,11 +174,82 @@ export const initialTickets: Ticket[] = [
     linkedTicketIds: ['1'],
     updates: [],
     tasks: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
     featureIds: [],
   } as IssueTicket
+];
+
+export const initialProjects: Project[] = [
+  {
+    id: 'proj-1',
+    name: 'Q3 Feature Rollout: Dark Mode & Performance Boost',
+    description: 'Implement dark mode across the entire application and optimize key performance metrics before the end of Q3.',
+    status: ProjectStatus.InProgress,
+    creationDate: new Date('2024-07-10T10:00:00Z').toISOString(),
+    ticketIds: ['2'],
+    involvedPeople: ['Project Lead', 'John Doe', 'UX Team', 'Backend Team', 'Alice Johnson'],
+    meetingIds: ['meet-1'],
+    updates: [
+      {
+        id: 'update-proj-1-1',
+        author: 'Project Lead',
+        date: new Date('2024-07-12T09:00:00Z').toISOString(),
+        comment: 'Project kickoff complete. Design phase has begun.'
+      }
+    ],
+    tasks: [
+      { id: 'sub-1-1', description: 'Design dark mode color palette', assignedUser: 'UX Team', status: TaskStatus.Done, priority: TaskPriority.P1, type: 'Design', creationDate: new Date('2024-07-11T10:00:00Z').toISOString(), dueDate: new Date('2024-07-15T17:00:00Z').toISOString() },
+      { id: 'sub-1-2', description: 'Implement CSS variables for theming', assignedUser: 'John Doe', status: TaskStatus.InProgress, priority: TaskPriority.P1, type: 'Development', creationDate: new Date('2024-07-11T11:00:00Z').toISOString(), dueDate: new Date().toISOString(), linkedTaskIds: ['sub-1-4'], notifyOnCompletion: 'Project Lead' }, // Due today for "My Day"
+      { id: 'sub-1-3', description: 'Analyze API response times', assignedUser: 'Backend Team', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'QA', creationDate: new Date('2024-07-12T10:00:00Z').toISOString(), dueDate: new Date('2024-08-05T17:00:00Z').toISOString() },
+      { id: 'sub-1-4', description: 'Refactor main dashboard component', assignedUser: 'Alice Johnson', status: TaskStatus.ToDo, priority: TaskPriority.P3, type: 'Development', creationDate: new Date('2024-07-12T11:00:00Z').toISOString(), dueDate: new Date('2024-08-10T17:00:00Z').toISOString() },
+    ],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  },
+  {
+    id: 'proj-2',
+    name: '2024 Compliance Audit Prep',
+    description: 'Prepare all necessary documentation and system reports for the upcoming annual compliance audit.',
+    status: ProjectStatus.NotStarted,
+    creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
+    ticketIds: [],
+    involvedPeople: ['Security Team', 'DevOps Team'],
+    meetingIds: ['meet-2'],
+    updates: [],
+    tasks: [
+       { id: 'sub-2-1', description: 'Gather all user access logs', assignedUser: 'Security Team', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'Documentation', creationDate: new Date('2024-07-25T15:00:00Z').toISOString() },
+       { id: 'sub-2-2', description: 'Verify data encryption at rest', assignedUser: 'DevOps', status: TaskStatus.ToDo, priority: TaskPriority.P1, type: 'QA', creationDate: new Date('2024-07-25T16:00:00Z').toISOString(), dueDate: new Date('2024-08-20T17:00:00Z').toISOString() },
+    ],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  },
+    {
+    id: 'proj-3',
+    name: 'Mobile App Launch Campaign',
+    description: 'Coordinate marketing efforts for the new mobile application launch in September.',
+    status: ProjectStatus.Completed,
+    creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
+    ticketIds: [],
+    involvedPeople: ['Marketing Team', 'PR Team'],
+    updates: [],
+    tasks: [
+       { id: 'sub-3-1', description: 'Finalize App Store screenshots', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Design', creationDate: new Date('2024-05-02T10:00:00Z').toISOString() },
+       { id: 'sub-3-2', description: 'Prepare press release', assignedUser: 'PR Team', status: TaskStatus.Done, priority: TaskPriority.P3, type: 'Documentation', creationDate: new Date('2024-05-02T11:00:00Z').toISOString() },
+       { id: 'sub-3-3', description: 'Schedule social media posts', assignedUser: 'Marketing', status: TaskStatus.Done, priority: TaskPriority.P4, type: 'Meeting', creationDate: new Date('2024-05-03T10:00:00Z').toISOString() },
+    ],
+    meetingIds: [],
+    linkedProjectIds: [],
+    taskIds: [],
+    dealershipIds: [],
+    featureIds: [],
+  }
 ];
 
 export const initialTasks: Task[] = [
@@ -192,6 +265,7 @@ export const initialTasks: Task[] = [
     notifyOnCompletion: 'design-team@example.com',
     linkedTaskIds: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     dealershipIds: [],
     featureIds: [],
@@ -207,6 +281,7 @@ export const initialTasks: Task[] = [
     creationDate: new Date('2024-07-21T10:00:00Z').toISOString(),
     linkedTaskIds: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     dealershipIds: [],
     featureIds: [],
@@ -256,6 +331,7 @@ export const initialDealerships: Dealership[] = [
     ],
     groupIds: ['d-group-1'],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -285,6 +361,7 @@ export const initialDealerships: Dealership[] = [
     updates: [],
     groupIds: ['d-group-2'],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -311,6 +388,7 @@ export const initialDealerships: Dealership[] = [
     pocPhone: '555-555-5555',
     updates: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -334,6 +412,7 @@ export const initialDealerships: Dealership[] = [
     pocPhone: '555-444-4444',
     updates: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -353,6 +432,7 @@ export const initialDealerships: Dealership[] = [
     updates: [],
     groupIds: ['d-group-2'],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -371,6 +451,7 @@ export const initialDealerships: Dealership[] = [
     assignedSpecialist: 'Peter Jones',
     updates: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -389,6 +470,7 @@ export const initialDealerships: Dealership[] = [
     assignedSpecialist: 'Susan Storm',
     updates: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -406,6 +488,7 @@ export const initialDealerships: Dealership[] = [
     pocEmail: 'j.anderton@futurehorizons.com',
     updates: [],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     linkedDealershipIds: [],
@@ -436,6 +519,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
         }
     ],
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -455,6 +539,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     targetAudience: 'Project managers and team members.',
     supportUrl: 'https://example.com/support/drag-drop',
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -472,6 +557,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     successMetrics: 'Users generate 30% more custom reports. Decrease in requests for custom report generation from support.',
     targetAudience: 'Managers, Analysts, and Account Executives.',
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -489,6 +575,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     successMetrics: 'No API downtime caused by traffic spikes. Fair usage across all API clients.',
     targetAudience: 'Third-party developers and integrators.',
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -506,6 +593,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     successMetrics: 'Increased usage of meeting notes feature. Positive qualitative feedback.',
     targetAudience: 'All teams participating in meetings.',
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -523,6 +611,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     successMetrics: 'Onboard 5 major enterprise clients using SSO within 6 months.',
     targetAudience: 'Enterprise-level customers with internal identity providers.',
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -540,6 +629,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     successMetrics: 'Achieve a Lighthouse accessibility and performance score of 90+ on key pages. Increase in mobile session duration by 15%.',
     targetAudience: 'All users, especially those accessing the app on tablets and phones.',
     ticketIds: [],
+    projectIds: [],
     meetingIds: [],
     taskIds: [],
     dealershipIds: [],
@@ -554,6 +644,7 @@ export const initialMeetings: Meeting[] = [
     meetingDate: new Date('2024-07-11T10:00:00Z').toISOString(),
     attendees: ['Project Lead', 'John Doe', 'UX Team'],
     notes: '<h3>Agenda</h3><ul><li>Finalize design specs</li><li>Outline development tasks</li><li>Set timeline</li></ul><p>Discussion points were positive. Team is aligned.</p>',
+    projectIds: ['proj-1'],
     ticketIds: ['2'],
     linkedMeetingIds: [],
     taskIds: [],
@@ -566,6 +657,7 @@ export const initialMeetings: Meeting[] = [
     meetingDate: new Date('2024-07-28T14:00:00Z').toISOString(),
     attendees: ['Security Team', 'DevOps', 'Legal Advisor'],
     notes: '<p>Reviewed progress on log gathering. DevOps to provide an update on encryption verification by EOW.</p>',
+    projectIds: ['proj-2'],
     ticketIds: [],
     linkedMeetingIds: [],
     taskIds: [],
@@ -656,26 +748,4 @@ export const initialShoppers: Shopper[] = [
     taskIds: ['task-1'],
     isFavorite: false,
   }
-];
-
-export const initialReleases: Release[] = [
-  {
-    id: 'rel-1',
-    name: 'Q3 Feature Drop',
-    version: 'v3.0.0',
-    releaseDate: new Date('2024-09-15T00:00:00Z').toISOString(),
-    status: ReleaseStatus.InProgress,
-    description: 'Major release including Dark Mode and performance improvements.',
-    featureIds: ['feat-1', 'feat-2', 'feat-3'],
-    ticketIds: ['2', '4'],
-  },
-  {
-    id: 'rel-2',
-    name: 'Q4 Security Patch',
-    version: 'v3.1.0',
-    releaseDate: new Date('2024-11-01T00:00:00Z').toISOString(),
-    status: ReleaseStatus.Planned,
-    description: 'Security enhancements including SSO and API rate limiting.',
-    featureIds: ['feat-6', 'feat-4'],
-  },
 ];

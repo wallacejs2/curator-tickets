@@ -1,13 +1,14 @@
+
 import React, { useState, useMemo } from 'react';
 import { Project, ProjectStatus, TaskStatus, Ticket, Task } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
+import GanttChartView from './GanttChartView.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
-import { formatDisplayName } from '../utils.ts';
 
 
 interface ProjectListProps {
@@ -37,7 +38,7 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tasks</h4>
                 {projectTasks.length > 0 ? (
                     <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                        {projectTasks.filter(task => task && typeof task === 'object').slice(0, 3).map(task => (
+                        {projectTasks.slice(0, 3).map(task => (
                             <li key={task.id} className={task.status === TaskStatus.Done ? 'line-through text-gray-500' : ''}>{task.description}</li>
                         ))}
                         {projectTasks.length > 3 && <li>...and {projectTasks.length - 3} more.</li>}
@@ -60,10 +61,7 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
             <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Most Recent Update</h4>
                 {mostRecentUpdate ? (
-                    <div className="text-sm text-gray-700">
-                        <p>{new Date(mostRecentUpdate.date).toLocaleDateString()} - {mostRecentUpdate.author}:</p>
-                        <div className="mt-1 rich-text-content" dangerouslySetInnerHTML={{ __html: mostRecentUpdate.comment }} />
-                    </div>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{new Date(mostRecentUpdate.date).toLocaleDateString()} - {mostRecentUpdate.author}:<br/>{mostRecentUpdate.comment}</p>
                 ) : <p className="text-sm text-gray-500 italic">No updates posted.</p>}
             </div>
         </div>
@@ -78,7 +76,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
     const countTasksRecursively = (tasks: Task[]): { completed: number; total: number } => {
         let completed = 0;
         let total = 0;
-        for (const task of (tasks || []).filter(task => task && typeof task === 'object')) {
+        for (const task of tasks) {
             total++;
             if (task.status === TaskStatus.Done) {
                 completed++;
@@ -105,7 +103,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
         <div className="flex justify-between items-start gap-3">
             <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
           <span className={`px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColor.bg} ${statusColor.text}`}>
-            {formatDisplayName(project.status)}
+            {project.status}
           </span>
         </div>
         <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description || 'No description provided.'}</p>
@@ -155,6 +153,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tickets }) => {
   const [projectView, setProjectView] = useState<'active' | 'completed'>('active');
+  const [listOrGantt, setListOrGantt] = useState<'list' | 'gantt'>('list');
 
   const { activeProjects, completedProjects } = useMemo(() => {
     return projects.reduce<{ activeProjects: Project[]; completedProjects: Project[] }>(
@@ -208,13 +207,23 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
             Completed ({completedProjects.length})
             </button>
         </div>
+        <div className="flex items-center">
+             <div className="bg-gray-200 p-0.5 rounded-md flex">
+                <button onClick={() => setListOrGantt('list')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'list' ? 'bg-white shadow' : 'text-gray-600'}`}>List</button>
+                <button onClick={() => setListOrGantt('gantt')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'gantt' ? 'bg-white shadow' : 'text-gray-600'}`}>Gantt</button>
+            </div>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {projectsToShow.map(project => (
-          <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
-        ))}
-      </div>
+      {listOrGantt === 'list' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {projectsToShow.map(project => (
+            <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
+          ))}
+        </div>
+      ) : (
+         <GanttChartView projects={projectsToShow} onProjectClick={onProjectClick} />
+      )}
     </div>
   );
 };

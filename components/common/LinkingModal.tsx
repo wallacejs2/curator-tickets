@@ -1,8 +1,9 @@
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';
-// FIX: Added ReleaseStatus to make the LinkableItem type compatible with LinkingSection.
-import { Status, Priority, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus, ProductArea, Platform, ReleaseStatus } from '../../types.ts';
+import { Status, Priority, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus, ProductArea, Platform } from '../../types.ts';
 
 // FIX: The `Status`, `ProjectStatus`, `TaskStatus`, and `FeatureStatus` enums share some of the same string values
 // (e.g., 'In Progress', 'Testing'), which created duplicate keys in this object literal. The conflicting
@@ -53,8 +54,7 @@ interface LinkableItem {
   title?: string;
   customerName?: string;
   description?: string;
-  // FIX: Added ReleaseStatus to the status union type to ensure compatibility with LinkingSection.
-  status?: Status | ProjectStatus | TaskStatus | DealershipStatus | FeatureStatus | ReleaseStatus;
+  status?: Status | ProjectStatus | TaskStatus | DealershipStatus | FeatureStatus;
   priority?: Priority;
   // Ticket specific
   pmrNumber?: string;

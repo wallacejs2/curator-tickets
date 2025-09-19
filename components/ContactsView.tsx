@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Contact, ContactGroup, ContactFilterState, ContactType } from '../types.ts';
 import { CONTACT_TYPE_OPTIONS } from '../constants.ts';
@@ -12,7 +14,6 @@ import ContactForm from './ContactForm.tsx';
 import ContactGroupForm from './ContactGroupForm.tsx';
 import { AlternateEmailIcon } from './icons/AlternateEmailIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
-import { formatDisplayName } from '../utils.ts';
 
 interface ContactsViewProps {
   contacts: Contact[];
@@ -21,6 +22,7 @@ interface ContactsViewProps {
   onDeleteContact: (contactId: string) => void;
   onUpdateGroup: (group: ContactGroup) => void;
   onDeleteGroup: (groupId: string) => void;
+  showToast: (message: string, type: 'success' | 'error') => void;
   isContactFormOpen: boolean;
   setIsContactFormOpen: (isOpen: boolean) => void;
   editingContact: Contact | null;
@@ -33,11 +35,11 @@ interface ContactsViewProps {
   onSaveGroup: (group: Omit<ContactGroup, 'id' | 'contactIds'> | ContactGroup) => void;
 }
 
-const ContactCard: React.FC<{ contact: Contact; allGroups: ContactGroup[]; onEdit: () => void; onDelete: () => void; onToggleFavorite: () => void; }> = ({ contact, allGroups, onEdit, onDelete, onToggleFavorite }) => {
+const ContactCard: React.FC<{ contact: Contact; allGroups: ContactGroup[]; onEdit: () => void; onDelete: () => void; onToggleFavorite: () => void; showToast: (message: string, type: 'success' | 'error') => void; }> = ({ contact, allGroups, onEdit, onDelete, onToggleFavorite, showToast }) => {
   const handleCopyEmail = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard.writeText(contact.email);
-    // FIX: Removed call to deprecated showToast function.
+    showToast('Email copied to clipboard!', 'success');
   };
 
   const contactMemberOfGroups = useMemo(() => allGroups.filter(g => (contact.groupIds || []).includes(g.id)), [allGroups, contact.groupIds]);
@@ -55,7 +57,7 @@ const ContactCard: React.FC<{ contact: Contact; allGroups: ContactGroup[]; onEdi
     ].filter(Boolean).join('\n');
 
     navigator.clipboard.writeText(infoString);
-    // FIX: Removed call to deprecated showToast function.
+    showToast('Contact information copied!', 'success');
   };
 
   return (
@@ -66,7 +68,7 @@ const ContactCard: React.FC<{ contact: Contact; allGroups: ContactGroup[]; onEdi
         <div className="flex-grow min-w-0">
             <div className="flex items-center gap-2">
                 <p className="font-bold text-gray-800 truncate">{contact.name}</p>
-                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.type === ContactType.Internal ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{formatDisplayName(contact.type)}</span>
+                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.type === ContactType.Internal ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{contact.type}</span>
             </div>
             <p className="text-sm text-gray-600 truncate">{contact.role}</p>
             {contactMemberOfGroups.length > 0 && (
@@ -103,9 +105,10 @@ const ContactGroupCard: React.FC<{
     onContactEdit: (contact: Contact) => void;
     onContactDelete: (contactId: string) => void;
     onContactToggleFavorite: (contactId: string) => void;
+    showToast: (message: string, type: 'success' | 'error') => void;
     onManageMembers: () => void;
     allGroups: ContactGroup[];
-}> = ({ group, allContacts, onGroupEdit, onGroupDelete, onContactEdit, onContactDelete, onContactToggleFavorite, onManageMembers, allGroups }) => {
+}> = ({ group, allContacts, onGroupEdit, onGroupDelete, onContactEdit, onContactDelete, onContactToggleFavorite, showToast, onManageMembers, allGroups }) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const memberContacts = useMemo(() => allContacts.filter(c => group.contactIds.includes(c.id)), [allContacts, group.contactIds]);
 
@@ -133,6 +136,7 @@ const ContactGroupCard: React.FC<{
                             onEdit={() => onContactEdit(contact)}
                             onDelete={() => onContactDelete(contact.id)}
                             onToggleFavorite={() => onContactToggleFavorite(contact.id)}
+                            showToast={showToast}
                         />
                     )) : (
                         <p className="text-sm text-gray-500 italic text-center py-4">No contacts in this group.</p>
@@ -190,7 +194,7 @@ const ManageGroupMembersModal: React.FC<{
 
 
 const ContactsView: React.FC<ContactsViewProps> = ({ 
-    contacts, contactGroups, onUpdateContact, onDeleteContact, onUpdateGroup, onDeleteGroup,
+    contacts, contactGroups, onUpdateContact, onDeleteContact, onUpdateGroup, onDeleteGroup, showToast,
     isContactFormOpen, setIsContactFormOpen, editingContact, setEditingContact, onSaveContact,
     isGroupFormOpen, setIsGroupFormOpen, editingGroup, setEditingGroup, onSaveGroup
 }) => {
@@ -282,7 +286,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({
                     {/* FIX: Cast e.target.value to the correct type to resolve setState error. */}
                     <select value={filters.type} onChange={e => setFilters(prev => ({ ...prev, type: e.target.value as 'all' | ContactType }))} className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="all">All Types</option>
-                        {CONTACT_TYPE_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}
+                        {CONTACT_TYPE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                 </div>
             </div>
@@ -297,6 +301,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({
                             onEdit={() => { setEditingContact(contact); setIsContactFormOpen(true); }}
                             onDelete={() => onDeleteContact(contact.id)}
                             onToggleFavorite={() => handleToggleFavorite(contact.id)}
+                            showToast={showToast}
                         />
                     ))}
                 </div>
@@ -314,6 +319,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({
                             onContactEdit={(contact) => { setEditingContact(contact); setIsContactFormOpen(true); }}
                             onContactDelete={onDeleteContact}
                             onContactToggleFavorite={handleToggleFavorite}
+                            showToast={showToast}
                             onManageMembers={() => setManagingGroup(group)}
                         />
                     ))}

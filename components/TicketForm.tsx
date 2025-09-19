@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, PrioritizationScore } from '../types.ts';
-import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS, PRIORITIZATION_SCORE_OPTIONS } from '../constants.ts';
-import { formatDisplayName } from '../utils.ts';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
+import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 
 // FIX: Update FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
-type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => void;
+type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
+  projects: Project[];
 }
 
 interface FormData {
@@ -35,8 +35,7 @@ interface FormData {
   benefits: string;
   completionNotes: string;
   onHoldReason: string;
-  impact: PrioritizationScore;
-  effort: PrioritizationScore;
+  selectedProjectId: string;
 }
 
 const getInitialState = (): FormData => {
@@ -65,8 +64,7 @@ const getInitialState = (): FormData => {
     benefits: '',
     completionNotes: '',
     onHoldReason: '',
-    impact: PrioritizationScore.M,
-    effort: PrioritizationScore.M,
+    selectedProjectId: '',
   };
 };
 
@@ -82,7 +80,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
 );
 
 
-const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
+const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
   const [formData, setFormData] = useState<FormData>(getInitialState());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -103,11 +101,12 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { type, ...rest } = formData;
+    const { type, selectedProjectId, ...rest } = formData;
 
     const dataToSubmit: any = {
       ...rest,
       startDate: rest.startDate ? new Date(`${rest.startDate}T00:00:00`).toISOString() : undefined,
+      projectIds: selectedProjectId ? [selectedProjectId] : [],
     };
     
     // Clean up reason fields if status doesn't require them
@@ -125,12 +124,10 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
         currentFunctionality,
         suggestedSolution,
         benefits,
-        impact,
-        effort,
         ...issueData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> = { type, ...issueData };
+      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...issueData };
       onSubmit(finalTicket);
     } else {
       const {
@@ -141,7 +138,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
         ...featureData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> = { type, ...featureData };
+      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...featureData };
       onSubmit(finalTicket);
     }
   };
@@ -174,7 +171,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
 
   const getReasonLabel = (status: Status) => {
       if (status === Status.Completed) return 'Reason for Completion';
-      return `Reason for ${formatDisplayName(status)}`;
+      return `Reason for ${status}`;
   };
 
   return (
@@ -247,7 +244,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
         <div>
           <label className={labelClasses}>Status</label>
           <select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>
-            {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{formatDisplayName(opt)}</option>)}
+            {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         </div>
         <div>
@@ -256,30 +253,20 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
               {(formData.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
         </div>
+        <div className="col-span-2">
+            <label className={labelClasses}>Project</label>
+            <select name="selectedProjectId" value={formData.selectedProjectId} onChange={handleChange} className={formElementClasses}>
+                <option value="">None</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+        </div>
         {currentStatusHasReason && (
           <div className="col-span-2">
             <label htmlFor="reason" className={labelClasses}>{getReasonLabel(formData.status)}</label>
-            <textarea id="reason" name={reasonField} value={reasonValue || ''} onChange={handleChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${formatDisplayName(formData.status)}...`}/>
+            <textarea id="reason" name={reasonField} value={reasonValue || ''} onChange={handleChange} rows={2} required className={formElementClasses} placeholder={`Explain why this ticket is ${formData.status}...`}/>
           </div>
         )}
       </FormSection>
-
-      {formData.type === TicketType.FeatureRequest && (
-        <FormSection title="Prioritization Scoring">
-            <div>
-                <label className={labelClasses}>Impact</label>
-                <select name="impact" value={formData.impact} onChange={handleChange} className={formElementClasses}>
-                    {PRIORITIZATION_SCORE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-            </div>
-            <div>
-                <label className={labelClasses}>Effort</label>
-                <select name="effort" value={formData.effort} onChange={handleChange} className={formElementClasses}>
-                    {PRIORITIZATION_SCORE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-            </div>
-        </FormSection>
-      )}
       
       <FormSection title="Dates" gridCols={1}>
         <div>

@@ -1,20 +1,16 @@
-/**
- * TypeScript definitions for Curator Tickets entities.
- * Updated for consistency and improved type safety.
- */
 
 export enum TicketType {
   Issue = 'Issue',
-  FeatureRequest = 'FeatureRequest',
+  FeatureRequest = 'Feature Request',
 }
 
 export enum Status {
-  NotStarted = 'NotStarted',
-  InProgress = 'InProgress',
-  OnHold = 'OnHold',
-  InReview = 'InReview',
-  DevReview = 'DevReview',
-  PmdReview = 'PmdReview',
+  NotStarted = 'Not Started',
+  InProgress = 'In Progress',
+  OnHold = 'On Hold',
+  InReview = 'In Review',
+  DevReview = 'DEV Review',
+  PmdReview = 'PMD Review',
   Testing = 'Testing',
   Completed = 'Completed',
 }
@@ -41,26 +37,11 @@ export enum Platform {
 
 export enum FeatureStatus {
   Backlog = 'Backlog',
-  InDiscovery = 'InDiscovery',
-  InDevelopment = 'InDevelopment',
+  InDiscovery = 'In Discovery',
+  InDevelopment = 'In Development',
   Testing = 'Testing',
   Upcoming = 'Upcoming',
   Launched = 'Launched',
-}
-
-export enum PrioritizationScore {
-  XS = 'XS',
-  S = 'S',
-  M = 'M',
-  L = 'L',
-  XL = 'XL',
-  XXL = 'XXL',
-}
-
-export enum RoadmapLane {
-  Now = 'Now',
-  Next = 'Next',
-  Later = 'Later',
 }
 
 export interface FeatureAnnouncement {
@@ -78,14 +59,11 @@ export interface FeatureAnnouncement {
   supportUrl?: string;
   updates?: Update[];
   ticketIds?: string[];
+  projectIds?: string[];
   meetingIds?: string[];
   taskIds?: string[];
   dealershipIds?: string[];
   linkedFeatureIds?: string[];
-  releaseIds?: string[];
-  roadmapLane?: RoadmapLane;
-  // FIX: Add projectIds property
-  projectIds?: string[];
 }
 
 export interface Update {
@@ -96,8 +74,8 @@ export interface Update {
 }
 
 export enum TaskStatus {
-  ToDo = 'ToDo',
-  InProgress = 'InProgress',
+  ToDo = 'To Do',
+  InProgress = 'In Progress',
   Done = 'Done',
 }
 
@@ -108,9 +86,6 @@ export enum TaskPriority {
   P4 = 'P4',
 }
 
-/**
- * Represents a task associated with tickets, projects, etc.
- */
 export interface Task {
   id: string;
   description: string;
@@ -124,17 +99,18 @@ export interface Task {
   subTasks?: Task[];
   linkedTaskIds?: string[];
   ticketIds?: string[];
+  projectIds?: string[];
   meetingIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
   shopperIds?: string[];
-  // FIX: Add projectIds property
-  projectIds?: string[];
 }
 
 export interface EnrichedTask extends Task {
-  ticketId: string | null;
-  ticketTitle?: string;
+    projectId: string | null;
+    projectName?: string;
+    ticketId: string | null;
+    ticketTitle?: string;
 }
 
 export interface Ticket {
@@ -148,9 +124,11 @@ export interface Ticket {
   pmrLink?: string;
   fpTicketNumber?: string;
   ticketThreadId?: string;
+  // FIX: Added missing submissionDate property.
   submissionDate: string;
   lastUpdatedDate: string;
   startDate?: string;
+  // FIX: Added missing estimatedCompletionDate property.
   estimatedCompletionDate?: string;
   completionDate?: string;
   status: Status;
@@ -162,17 +140,13 @@ export interface Ticket {
   completionNotes?: string;
   onHoldReason?: string;
   isFavorite?: boolean;
+  projectIds?: string[];
   linkedTicketIds?: string[];
   meetingIds?: string[];
   taskIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
   shopperIds?: string[];
-  releaseIds?: string[];
-  contactIds?: string[];
-  roadmapLane?: RoadmapLane;
-  // FIX: Add projectIds property
-  projectIds?: string[];
 }
 
 export interface IssueTicket extends Ticket {
@@ -189,61 +163,82 @@ export interface FeatureRequestTicket extends Ticket {
   currentFunctionality: string;
   suggestedSolution: string;
   benefits: string;
-  impact?: PrioritizationScore;
-  effort?: PrioritizationScore;
+}
+
+export enum ProjectStatus {
+  NotStarted = 'Not Started',
+  InProgress = 'In Progress',
+  OnHold = 'On Hold',
+  Completed = 'Completed',
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  tasks: Task[];
+  creationDate: string;
+  updates?: Update[];
+  involvedPeople?: string[];
+  ticketIds: string[];
+  meetingIds?: string[];
+  linkedProjectIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
 }
 
 export enum DealershipStatus {
-  Prospect = 'Prospect',
-  PendingDmt = 'PendingDmt',
-  PendingFocus = 'PendingFocus',
-  PendingSetup = 'PendingSetup',
-  Onboarding = 'Onboarding',
-  Enrollment = 'Enrollment',
-  Live = 'Live',
-  Pilot = 'Pilot',
-  Cancelled = 'Cancelled',
+    Prospect = 'Prospect',
+    PendingDmt = 'Pending DMT',
+    PendingFocus = 'Pending FOCUS',
+    PendingSetup = 'Pending Setup',
+    Onboarding = 'Onboarding',
+    Enrollment = 'Enrollment',
+    Live = 'Live',
+    Pilot = 'Pilot',
+    Cancelled = 'Cancelled',
 }
 
 export interface WebsiteLink {
-  url: string;
-  clientId?: string;
+    url: string;
+    clientId?: string;
 }
 
 export interface Dealership {
-  id: string;
-  name: string;
-  accountNumber: string;
-  status: DealershipStatus;
-  hasManagedSolution?: boolean;
-  wasFullpathCustomer?: boolean;
-  orderNumber?: string;
-  orderReceivedDate?: string;
-  goLiveDate?: string;
-  termDate?: string;
-  enterprise?: string;
-  storeNumber?: string;
-  branchNumber?: string;
-  eraSystemId?: string;
-  ppSysId?: string;
-  buId?: string;
-  address?: string;
-  assignedSpecialist?: string;
-  sales?: string;
-  pocName?: string;
-  pocEmail?: string;
-  pocPhone?: string;
-  websiteLinks?: WebsiteLink[];
-  updates?: Update[];
-  groupIds?: string[];
-  ticketIds?: string[];
-  meetingIds?: string[];
-  taskIds?: string[];
-  linkedDealershipIds?: string[];
-  featureIds?: string[];
-  shopperIds?: string[];
-  // FIX: Add projectIds property
-  projectIds?: string[];
+    id: string;
+    name: string;
+    accountNumber: string;
+    status: DealershipStatus;
+    hasManagedSolution?: boolean;
+    wasFullpathCustomer?: boolean;
+    orderNumber?: string;
+    orderReceivedDate?: string;
+    goLiveDate?: string;
+    termDate?: string;
+    enterprise?: string;
+    storeNumber?: string;
+    branchNumber?: string;
+    eraSystemId?: string;
+    ppSysId?: string;
+    buId?: string;
+    address?: string;
+    assignedSpecialist?: string;
+    sales?: string;
+    pocName?: string;
+    pocEmail?: string;
+    pocPhone?: string;
+    websiteLinks?: WebsiteLink[];
+    updates?: Update[];
+    groupIds?: string[];
+    ticketIds?: string[];
+    projectIds?: string[];
+    meetingIds?: string[];
+    taskIds?: string[];
+    linkedDealershipIds?: string[];
+    featureIds?: string[];
+    shopperIds?: string[];
 }
 
 export interface DealershipGroup {
@@ -254,64 +249,63 @@ export interface DealershipGroup {
 }
 
 export interface Meeting {
-  id: string;
-  name: string;
-  meetingDate: string;
-  attendees: string[];
-  notes: string;
-  ticketIds?: string[];
-  linkedMeetingIds?: string[];
-  taskIds?: string[];
-  dealershipIds?: string[];
-  featureIds?: string[];
-  updates?: Update[];
-  // FIX: Add projectIds property
-  projectIds?: string[];
+    id: string;
+    name: string;
+    meetingDate: string;
+    attendees: string[];
+    notes: string;
+    projectIds?: string[];
+    ticketIds?: string[];
+    linkedMeetingIds?: string[];
+    taskIds?: string[];
+    dealershipIds?: string[];
+    featureIds?: string[];
+    updates?: Update[];
 }
 
 export enum ContactType {
-  Internal = 'Internal',
-  External = 'External',
+    Internal = 'Internal',
+    External = 'External',
 }
 
 export interface Contact {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role?: string;
-  type: ContactType;
-  isFavorite?: boolean;
-  groupIds?: string[];
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    role?: string;
+    type: ContactType;
+    isFavorite?: boolean;
+    groupIds?: string[];
 }
 
 export interface ContactGroup {
-  id: string;
-  name: string;
-  description?: string;
-  contactIds: string[];
+    id: string;
+    name: string;
+    description?: string;
+    contactIds: string[];
 }
 
 export interface KnowledgeArticle {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  category: string;
-  createdDate: string;
-  lastModifiedDate: string;
-  isFavorite?: boolean;
-  linkedArticleIds?: string[];
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+    category: string;
+    createdDate: string;
+    lastModifiedDate: string;
+    isFavorite?: boolean;
+    linkedArticleIds?: string[];
 }
+
 
 export interface RecentActivity {
-  id: string;
-  date: string;
-  time: string;
-  activity: string;
-  action: string;
+    id: string;
+    date: string;
+    time: string;
+    activity: string;
+    action: string;
 }
-
 export interface Shopper {
   id: string;
   customerName: string;
@@ -330,77 +324,7 @@ export interface Shopper {
   updates?: Update[];
 }
 
-export enum ReleaseStatus {
-  Planned = 'Planned',
-  InProgress = 'InProgress',
-  Released = 'Released',
-  Cancelled = 'Cancelled',
-}
-
-export interface Release {
-  id: string;
-  name: string;
-  version: string;
-  releaseDate: string;
-  status: ReleaseStatus;
-  description?: string;
-  featureIds?: string[];
-  ticketIds?: string[];
-}
-
-// FIX: Add ProjectStatus enum
-export enum ProjectStatus {
-  NotStarted = 'NotStarted',
-  InProgress = 'InProgress',
-  OnHold = 'OnHold',
-  Completed = 'Completed',
-}
-
-// FIX: Add Project interface
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: ProjectStatus;
-  creationDate: string;
-  tasks?: Task[];
-  involvedPeople?: string[];
-  ticketIds?: string[];
-  linkedProjectIds?: string[];
-  meetingIds?: string[];
-  taskIds?: string[];
-  dealershipIds?: string[];
-  featureIds?: string[];
-  updates?: Update[];
-}
-
-export type View =
-  | 'dashboard'
-  | 'tickets'
-  | 'dealerships'
-  | 'tasks'
-  | 'features'
-  | 'meetings'
-  | 'contacts'
-  | 'knowledge'
-  | 'shoppers'
-  | 'releases';
-
-/**
- * Centralized entity type to resolve conflicts across different components.
- */
-export type EntityType =
-  | 'ticket'
-  | 'task'
-  | 'meeting'
-  | 'dealership'
-  | 'feature'
-  | 'contact'
-  | 'knowledge'
-  | 'shopper'
-  | 'release'
-  // FIX: Add 'project' to EntityType
-  | 'project';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers';
 
 export interface FilterState {
   searchTerm: string;
@@ -411,53 +335,45 @@ export interface FilterState {
 }
 
 export interface DealershipFilterState {
-  searchTerm: string;
-  status: 'all' | DealershipStatus;
+    searchTerm: string;
+    status: 'all' | DealershipStatus;
 }
 
 export interface MeetingFilterState {
-  searchTerm: string;
+    searchTerm: string;
 }
 
 export interface FeatureAnnouncementFilterState {
-  searchTerm: string;
-  platform: 'all' | Platform;
-  category: 'all' | string;
+    searchTerm: string;
+    platform: 'all' | Platform;
+    category: 'all' | string;
 }
 
 export interface ContactFilterState {
-  searchTerm: string;
-  type: 'all' | ContactType;
+    searchTerm: string;
+    type: 'all' | ContactType;
 }
 
 export interface KnowledgeBaseFilterState {
-  searchTerm: string;
-  category: 'all' | string;
-  tag: 'all' | string;
+    searchTerm: string;
+    category: 'all' | string;
+    tag: 'all' | string;
 }
 
 export interface ShopperFilterState {
-  searchTerm: string;
+    searchTerm: string;
 }
 
 export interface SavedTicketView {
-  id: string;
-  name: string;
-  filters: FilterState;
+    id: string;
+    name: string;
+    filters: FilterState;
 }
-
-/**
- * Widget configuration for dashboard and reporting components.
- */
-export type WidgetConfigType =
-  | { type: 'kpi'; data: Record<string, unknown> }
-  | { type: 'list'; items: unknown[] }
-  | { type: 'chart'; chartType: string; options?: Record<string, unknown> };
 
 export interface WidgetConfig {
   id: string;
-  type: WidgetConfigType['type'];
+  type: 'kpi' | 'list' | 'chart';
   title: string;
-  config: WidgetConfigType;
+  config: any;
   position: { x: number; y: number; w: number; h: number };
 }

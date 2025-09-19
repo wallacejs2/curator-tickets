@@ -1,5 +1,7 @@
+
+
 import React, { useState } from 'react';
-import { Dealership, DealershipStatus, Ticket, Task, Meeting, FeatureAnnouncement, Status, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
+import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -7,9 +9,8 @@ import DealershipForm from './DealershipForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
-import { formatDisplayName } from '../utils.ts';
 
-type EntityType = 'ticket' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
 
 interface DealershipDetailViewProps {
   dealership: Dealership;
@@ -20,9 +21,11 @@ interface DealershipDetailViewProps {
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
   isReadOnly?: boolean;
+  showToast: (message: string, type: 'success' | 'error') => void;
   
   // All entities for linking
   allTickets: Ticket[];
+  allProjects: Project[];
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   allMeetings: Meeting[];
   allDealerships: Dealership[];
@@ -59,15 +62,15 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   <div>
     <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h4>
     <span className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${statusColors[value] || 'bg-gray-200 text-gray-800'}`}>
-      {formatDisplayName(value)}
+      {value}
     </span>
   </div>
 );
 
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
     dealership, onUpdate, onDelete, onExport, isReadOnly = false,
-    onAddUpdate, onEditUpdate, onDeleteUpdate,
-    allTickets, allTasks, allMeetings, allDealerships, allFeatures, allGroups, allShoppers,
+    onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
+    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups, allShoppers,
     onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -84,6 +87,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     
     // Linked items
     const linkedTickets = allTickets.filter(item => (dealership.ticketIds || []).includes(item.id));
+    const linkedProjects = allProjects.filter(item => (dealership.projectIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => (dealership.meetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => item.id !== dealership.id && (dealership.linkedDealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (dealership.featureIds || []).includes(item.id));
@@ -92,12 +96,16 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     // Enhanced Task Linking Logic: Include tasks from linked tickets and projects
     const directlyLinkedTaskIds = dealership.taskIds || [];
     const taskIdsFromLinkedTickets = linkedTickets.flatMap(ticket => ticket.tasks?.map(task => task.id) || []);
+    const tasksFromLinkedProjects = allProjects
+        .filter(p => (dealership.projectIds || []).includes(p.id))
+        .flatMap(p => p.tasks?.map(t => t.id) || []);
     
-    const allRelatedTaskIds = [...new Set([...directlyLinkedTaskIds, ...taskIdsFromLinkedTickets])];
+    const allRelatedTaskIds = [...new Set([...directlyLinkedTaskIds, ...taskIdsFromLinkedTickets, ...tasksFromLinkedProjects])];
     const linkedTasks = allTasks.filter(item => allRelatedTaskIds.includes(item.id));
 
     // Available items for linking (filter out completed and already related items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(dealership.ticketIds || []).includes(item.id));
+    const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(dealership.projectIds || []).includes(item.id));
     const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !allRelatedTaskIds.includes(item.id));
     const availableMeetings = allMeetings.filter(item => !(dealership.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => item.id !== dealership.id && !(dealership.linkedDealershipIds || []).includes(item.id));
@@ -184,6 +192,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendSection('Linked Item IDs');
         appendField('Group IDs', (dealership.groupIds || []).join(', '));
         appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
+        appendField('Project IDs', (dealership.projectIds || []).join(', '));
         appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
         appendField('Task IDs', (dealership.taskIds || []).join(', '));
         appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
@@ -191,7 +200,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
 
         navigator.clipboard.writeText(content.trim());
-        // FIX: Removed call to deprecated showToast function.
+        showToast('Dealership info copied!', 'success');
     };
 
     return (
@@ -379,6 +388,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 {!isReadOnly && (
                   <>
                     <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
+                    <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
                     <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
                     <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
                     <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />
