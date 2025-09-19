@@ -66,10 +66,10 @@ const QuarterDetailView: React.FC<QuarterDetailViewProps> = ({
   const linkedMeetings = allMeetings.filter(item => (quarter.meetingIds || []).includes(item.id));
   const linkedProjects = allProjects.filter(item => (quarter.projectIds || []).includes(item.id));
 
-  const availableFeatures = allFeatures.filter(item => item.status !== FeatureStatus.Launched && !(quarter.featureIds || []).includes(item.id));
-  const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(quarter.ticketIds || []).includes(item.id));
+  const availableFeatures = allFeatures.filter(item => !(quarter.featureIds || []).includes(item.id));
+  const availableTickets = allTickets.filter(item => !(quarter.ticketIds || []).includes(item.id));
   const availableMeetings = allMeetings.filter(item => !(quarter.meetingIds || []).includes(item.id));
-  const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(quarter.projectIds || []).includes(item.id));
+  const availableProjects = allProjects.filter(item => !(quarter.projectIds || []).includes(item.id));
 
   return (
     <div className="space-y-8">

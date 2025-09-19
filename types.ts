@@ -327,6 +327,8 @@ export interface CuratorArticle {
     lastModifiedDate: string;
     isFavorite?: boolean;
     linkedArticleIds?: string[];
+    navigation?: { title: string; url: string }[];
+    supportingMaterialsUrl?: string;
 }
 
 export interface QuarterPlan {

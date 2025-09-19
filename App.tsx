@@ -167,6 +167,7 @@ function App() {
 
   const [isQuarterFormOpen, setIsQuarterFormOpen] = useState(false);
   const [editingQuarter, setEditingQuarter] = useState<QuarterPlan | null>(null);
+  const [deletingQuarter, setDeletingQuarter] = useState<QuarterPlan | null>(null);
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -661,6 +662,16 @@ function App() {
 
   const handleUpdateQuarter = (updatedQuarter: QuarterPlan) => {
     handleSaveQuarterPlan(updatedQuarter);
+  };
+
+  const handleDeleteQuarter = () => {
+    if (!deletingQuarter) return;
+    setQuarters(prev => prev.filter(q => q.id !== deletingQuarter.id));
+    if (selectedQuarter?.id === deletingQuarter.id) {
+        setSelectedQuarter(null);
+    }
+    showToast('Quarter plan deleted!', 'success');
+    setDeletingQuarter(null);
   };
 
     const handleUpdateTask = (updatedTask: Task) => {
@@ -1967,6 +1978,7 @@ function App() {
                 onQuarterClick={setSelectedQuarter}
                 onNewQuarterClick={() => { setEditingQuarter(null); setIsQuarterFormOpen(true); }}
                 onEditQuarterClick={(q) => { setEditingQuarter(q); setIsQuarterFormOpen(true); }}
+                onDeleteQuarterClick={(q) => setDeletingQuarter(q)}
               />
           )}
           {currentView === 'tickets' && (
@@ -2093,6 +2105,18 @@ function App() {
                   quarterToEdit={editingQuarter}
                   existingQuarters={quarters}
               />
+          </Modal>
+      )}
+
+      {deletingQuarter && (
+          <Modal title={`Delete "${deletingQuarter.name}"?`} onClose={() => setDeletingQuarter(null)}>
+              <p className="text-gray-700">Are you sure you want to delete this quarterly plan? This action cannot be undone.</p>
+              <div className="flex justify-end gap-3 mt-6">
+                  <button onClick={() => setDeletingQuarter(null)} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
+                  <button onClick={handleDeleteQuarter} className="bg-red-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-red-700">
+                      Delete Plan
+                  </button>
+              </div>
           </Modal>
       )}
 

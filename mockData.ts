@@ -709,12 +709,17 @@ export const initialCuratorArticles: CuratorArticle[] = [
     {
         id: 'curator-kb-1',
         title: 'Introduction to Curator',
-        content: '<h3>What is Curator?</h3><p>Curator is a revolutionary platform designed to enhance the automotive customer journey by providing personalized, intelligent, and seamless digital retailing experiences. It integrates with existing dealership systems to create a unified view of the customer and their needs.</p>',
+        content: '<h3>What is Curator?</h3><p>Curator is a revolutionary platform designed to enhance the automotive customer journey by providing personalized, intelligent, and seamless digital retailing experiences. It integrates with existing dealership systems to create a unified view of the customer and their needs.</p><h3>Core Features</h3><p>The platform is built around several core features including advanced analytics, personalized content delivery, and integrated communication tools.</p>',
         tags: ['getting-started', 'overview', 'platform'],
         category: 'General',
         createdDate: new Date('2024-07-01T10:00:00Z').toISOString(),
         lastModifiedDate: new Date('2024-07-02T11:00:00Z').toISOString(),
         isFavorite: true,
+        navigation: [
+            { title: 'Curator Official Website', url: 'https://curator.example.com' },
+            { title: 'Technical Documentation', url: 'https://docs.curator.example.com' },
+        ],
+        supportingMaterialsUrl: 'https://example.com/curator-intro-deck.pdf',
     },
     {
         id: 'curator-kb-2',

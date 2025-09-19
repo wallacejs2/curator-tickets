@@ -3,15 +3,17 @@ import { QuarterPlan } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { EditIcon } from './icons/EditIcon.tsx';
+import { TrashIcon } from './icons/TrashIcon.tsx';
 
 interface QuartersViewProps {
   quarters: QuarterPlan[];
   onQuarterClick: (quarter: QuarterPlan) => void;
   onNewQuarterClick: () => void;
   onEditQuarterClick: (quarter: QuarterPlan) => void;
+  onDeleteQuarterClick: (quarter: QuarterPlan) => void;
 }
 
-const QuarterCard: React.FC<{ quarter: QuarterPlan; onCardClick: () => void; onEditClick: () => void; }> = ({ quarter, onCardClick, onEditClick }) => {
+const QuarterCard: React.FC<{ quarter: QuarterPlan; onCardClick: () => void; onEditClick: () => void; onDeleteClick: () => void; }> = ({ quarter, onCardClick, onEditClick, onDeleteClick }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const ExpandedContent: React.FC = () => (
@@ -50,13 +52,22 @@ const QuarterCard: React.FC<{ quarter: QuarterPlan; onCardClick: () => void; onE
           <div className="flex-1 cursor-pointer" onClick={onCardClick}>
             <h3 className="text-xl font-semibold text-gray-900 hover:text-blue-600">{quarter.name}</h3>
           </div>
-          <button
-              onClick={(e) => { e.stopPropagation(); onEditClick(); }}
-              className="p-2 text-gray-400 hover:text-blue-600 rounded-full"
-              aria-label={`Edit ${quarter.name}`}
-          >
-              <EditIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center">
+            <button
+                onClick={(e) => { e.stopPropagation(); onEditClick(); }}
+                className="p-2 text-gray-400 hover:text-blue-600 rounded-full"
+                aria-label={`Edit ${quarter.name}`}
+            >
+                <EditIcon className="w-5 h-5" />
+            </button>
+            <button
+                onClick={(e) => { e.stopPropagation(); onDeleteClick(); }}
+                className="p-2 text-gray-400 hover:text-red-600 rounded-full"
+                aria-label={`Delete ${quarter.name}`}
+            >
+                <TrashIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 text-sm text-gray-600 space-y-1 cursor-pointer" onClick={onCardClick}>
@@ -82,7 +93,7 @@ const QuarterCard: React.FC<{ quarter: QuarterPlan; onCardClick: () => void; onE
 };
 
 
-const QuartersView: React.FC<QuartersViewProps> = ({ quarters, onQuarterClick, onNewQuarterClick, onEditQuarterClick }) => {
+const QuartersView: React.FC<QuartersViewProps> = ({ quarters, onQuarterClick, onNewQuarterClick, onEditQuarterClick, onDeleteQuarterClick }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const years = Array.from(new Set(quarters.map(q => q.year))).sort((a, b) => b - a);
@@ -125,6 +136,7 @@ const QuartersView: React.FC<QuartersViewProps> = ({ quarters, onQuarterClick, o
                     quarter={quarter}
                     onCardClick={() => onQuarterClick(quarter)}
                     onEditClick={() => onEditQuarterClick(quarter)}
+                    onDeleteClick={() => onDeleteQuarterClick(quarter)}
                 />
             ))}
           </div>
