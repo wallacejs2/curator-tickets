@@ -290,10 +290,12 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
                                 <TrashIcon className="w-5 h-5" />
                             </button>
                         </div>
-                        <EditableRichText 
-                            value={section.content} 
-                            onSave={(newContent) => handleSectionContentSave(section.id, newContent)}
-                        />
+                        <div className="text-sm">
+                            <EditableRichText 
+                                value={section.content} 
+                                onSave={(newContent) => handleSectionContentSave(section.id, newContent)}
+                            />
+                        </div>
                     </div>
                 ))}
                 
