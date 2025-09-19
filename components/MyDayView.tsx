@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Ticket, EnrichedTask, KnowledgeArticle } from '../types.ts';
+import { Ticket, EnrichedTask, KnowledgeArticle, CuratorArticle } from '../types.ts';
 import { StarIcon } from './icons/StarIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { ClockIcon } from './icons/ClockIcon.tsx';
@@ -8,11 +8,11 @@ import { UserIcon } from './icons/UserIcon.tsx';
 import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'knowledge';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'knowledge' | 'curator';
 
 interface MyDayViewProps {
     dueToday: (Ticket | EnrichedTask)[];
-    myFavorites: (Ticket | KnowledgeArticle)[];
+    myFavorites: ( (Ticket & {itemType: 'ticket'}) | (KnowledgeArticle & {itemType: 'knowledge'}) | (CuratorArticle & {itemType: 'curator'}) )[];
     onSwitchView: (type: EntityType, id: string) => void;
 }
 
@@ -56,8 +56,8 @@ const MyDayView: React.FC<MyDayViewProps> = ({ dueToday, myFavorites, onSwitchVi
 
             <Widget icon={<StarIcon filled={true} className="w-6 h-6 text-yellow-500" />} title="Favorites" count={myFavorites.length}>
                 {myFavorites.map(item => (
-                    <div key={`${'content' in item ? 'knowledge' : 'ticket'}-${item.id}`} onClick={() => onSwitchView('content' in item ? 'knowledge' : 'ticket', item.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200 flex items-center gap-3">
-                       {'content' in item ? <BrainCircuitIcon className="w-5 h-5 text-gray-500 flex-shrink-0" /> : <ReceiptLongIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />}
+                    <div key={`${item.itemType}-${item.id}`} onClick={() => onSwitchView(item.itemType, item.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200 flex items-center gap-3">
+                       {item.itemType === 'knowledge' || item.itemType === 'curator' ? <BrainCircuitIcon className="w-5 h-5 text-gray-500 flex-shrink-0" /> : <ReceiptLongIcon className="w-5 h-5 text-gray-500 flex-shrink-0" />}
                        <p className="font-medium text-sm text-gray-800 truncate">{item.title}</p>
                     </div>
                 ))}

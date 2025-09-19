@@ -135,6 +135,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <div className="space-y-1">
               <NavItem icon={<DashboardIcon className="w-5 h-5" />} label="Dashboard" isActive={currentView === 'dashboard'} onClick={() => onViewChange('dashboard')} />
               <NavItem icon={<BrainCircuitIcon className="w-5 h-5" />} label="Knowledge Base" isActive={currentView === 'knowledge'} onClick={() => onViewChange('knowledge')} />
+              <NavItem icon={<BrainCircuitIcon className="w-5 h-5" />} label="Curator Docs" isActive={currentView === 'curator'} onClick={() => onViewChange('curator')} />
               <div className="pt-2 mt-2 border-t border-gray-700/50">
                 <NavItem icon={<ReceiptLongIcon className="w-5 h-5" />} label="Tickets" isActive={currentView === 'tickets'} onClick={() => onViewChange('tickets')} />
                 <NavItem icon={<WorkspaceIcon className="w-5 h-5" />} label="Projects" isActive={currentView === 'projects'} onClick={() => onViewChange('projects')} />

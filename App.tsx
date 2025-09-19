@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, CuratorArticle } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -16,7 +16,7 @@ import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers, initialCuratorArticles } from './mockData.ts';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
 import ProjectForm from './components/ProjectForm.tsx';
@@ -59,6 +59,7 @@ import ShoppersView from './components/ShopperList.tsx';
 import ShopperForm from './components/ShopperForm.tsx';
 import ShopperDetailView from './components/ShopperDetailView.tsx';
 import { PersonIcon } from './components/icons/PersonIcon.tsx';
+import CuratorView from './components/CuratorView.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -120,7 +121,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'curator';
 
 // Hardcoded current user for dashboard widgets
 const CURRENT_USER = 'John Doe';
@@ -137,6 +138,7 @@ function App() {
   const [dealershipGroups, setDealershipGroups] = useLocalStorage<DealershipGroup[]>('dealershipGroups', initialDealershipGroups);
   const [savedTicketViews, setSavedTicketViews] = useLocalStorage<SavedTicketView[]>('savedTicketViews', []);
   const [knowledgeArticles, setKnowledgeArticles] = useLocalStorage<KnowledgeArticle[]>('knowledgeArticles', initialKnowledgeArticles);
+  const [curatorArticles, setCuratorArticles] = useLocalStorage<CuratorArticle[]>('curatorArticles', initialCuratorArticles);
   const [shoppers, setShoppers] = useLocalStorage<Shopper[]>('shoppers', initialShoppers);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -1294,6 +1296,7 @@ function App() {
           case 'contact': return setContacts;
           case 'knowledge': return setKnowledgeArticles;
           case 'shopper': return setShoppers;
+          case 'curator': return setCuratorArticles;
       }
     };
     
@@ -1333,6 +1336,7 @@ function App() {
                 case 'dealership': return 'linkedDealershipIds';
                 case 'feature': return 'linkedFeatureIds';
                 case 'knowledge': return 'linkedArticleIds';
+                case 'curator': return 'linkedArticleIds';
                 default: return `${type}Ids`;
             }
         }
@@ -1583,6 +1587,7 @@ function App() {
             case 'tasks': return ''; // No main "new" button for tasks view
             case 'dashboard': return 'New Item';
             case 'knowledge': return '';
+            case 'curator': return '';
             default: return 'New Item';
         }
     }
@@ -1597,6 +1602,11 @@ function App() {
     };
 
     const handleSwitchToDetailView = (type: EntityType, id: string) => {
+        if (type === 'knowledge' || type === 'curator') {
+            handleViewChange(type);
+            return;
+        }
+
         closeAllSideViews();
         // A small delay allows for a smoother visual transition if a side view is already open.
         setTimeout(() => {
@@ -1653,6 +1663,8 @@ function App() {
       { title: 'Features', data: features },
       { title: 'Meetings', data: meetings },
       { title: 'Shoppers', data: shoppers },
+      { title: 'Knowledge Articles', data: knowledgeArticles },
+      { title: 'Curator Articles', data: curatorArticles },
     ];
 
     // Data for Dashboard
@@ -1770,6 +1782,27 @@ function App() {
         setKnowledgeArticles(prev => prev.map(a => a.id === articleId ? { ...a, isFavorite: !a.isFavorite } : a));
     };
     
+    // Curator Docs Handlers
+    const handleSaveCuratorArticle = (articleData: Omit<CuratorArticle, 'id'> | CuratorArticle) => {
+      if ('id' in articleData) {
+          setCuratorArticles(prev => prev.map(a => a.id === articleData.id ? articleData : a));
+          showToast('Article updated!', 'success');
+      } else {
+          const newArticle = { ...articleData, id: crypto.randomUUID() };
+          setCuratorArticles(prev => [...prev, newArticle]);
+          showToast('Article created!', 'success');
+      }
+    };
+
+    const handleDeleteCuratorArticle = (articleId: string) => {
+        setCuratorArticles(prev => prev.filter(a => a.id !== articleId));
+        showToast('Article deleted!', 'success');
+    };
+
+    const handleToggleFavoriteCuratorArticle = (articleId: string) => {
+        setCuratorArticles(prev => prev.map(a => a.id === articleId ? { ...a, isFavorite: !a.isFavorite } : a));
+    };
+
     // Data for "My Day" View, now passed to Dashboard
     const myDayData = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
@@ -1778,12 +1811,14 @@ function App() {
         const dueTodayTasks = allTasks.filter(t => t.dueDate?.startsWith(today) && t.status !== TaskStatus.Done);
         const dueToday: (Ticket | EnrichedTask)[] = [...dueTodayTickets, ...dueTodayTasks];
         
-        const favoriteTickets = tickets.filter(t => t.isFavorite);
-        const favoriteArticles = knowledgeArticles.filter(a => a.isFavorite);
-        const myFavorites: (Ticket | KnowledgeArticle)[] = [...favoriteTickets, ...favoriteArticles];
+        const favoriteTickets = tickets.filter(t => t.isFavorite).map(t => ({ ...t, itemType: 'ticket' as const }));
+        const favoriteArticles = knowledgeArticles.filter(a => a.isFavorite).map(a => ({...a, itemType: 'knowledge' as const }));
+        const favoriteCuratorArticles = curatorArticles.filter(a => a.isFavorite).map(a => ({...a, itemType: 'curator' as const}));
+        
+        const myFavorites: ( (Ticket & {itemType: 'ticket'}) | (KnowledgeArticle & {itemType: 'knowledge'}) | (CuratorArticle & {itemType: 'curator'}) )[] = [...favoriteTickets, ...favoriteArticles, ...favoriteCuratorArticles];
         
         return { dueToday, myFavorites };
-    }, [tickets, allTasks, knowledgeArticles]);
+    }, [tickets, allTasks, knowledgeArticles, curatorArticles]);
 
 
     return (
@@ -1836,6 +1871,14 @@ function App() {
                 onSave={handleSaveKnowledgeArticle}
                 onDelete={handleDeleteKnowledgeArticle}
                 onToggleFavorite={handleToggleFavoriteArticle}
+              />
+          )}
+           {currentView === 'curator' && (
+              <CuratorView 
+                articles={curatorArticles}
+                onSave={handleSaveCuratorArticle}
+                onDelete={handleDeleteCuratorArticle}
+                onToggleFavorite={handleToggleFavoriteCuratorArticle}
               />
           )}
           {currentView === 'tickets' && (

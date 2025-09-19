@@ -66,6 +66,25 @@ export interface FeatureAnnouncement {
   linkedFeatureIds?: string[];
 }
 
+// FIX: Added missing ReleaseStatus enum and Release interface.
+export enum ReleaseStatus {
+  Planned = 'Planned',
+  InProgress = 'In Progress',
+  Released = 'Released',
+  Cancelled = 'Cancelled',
+}
+
+export interface Release {
+  id: string;
+  name: string;
+  version: string;
+  status: ReleaseStatus;
+  releaseDate: string;
+  description?: string;
+  featureIds?: string[];
+  ticketIds?: string[];
+}
+
 export interface Update {
   id: string;
   author: string;
@@ -298,6 +317,18 @@ export interface KnowledgeArticle {
     linkedArticleIds?: string[];
 }
 
+export interface CuratorArticle {
+    id: string;
+    title: string;
+    content: string;
+    tags: string[];
+    category: string;
+    createdDate: string;
+    lastModifiedDate: string;
+    isFavorite?: boolean;
+    linkedArticleIds?: string[];
+}
+
 
 export interface RecentActivity {
     id: string;
@@ -324,7 +355,7 @@ export interface Shopper {
   updates?: Update[];
 }
 
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'curator';
 
 export interface FilterState {
   searchTerm: string;

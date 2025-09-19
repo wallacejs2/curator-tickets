@@ -1,5 +1,5 @@
 
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, CuratorArticle } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -703,6 +703,28 @@ export const initialKnowledgeArticles: KnowledgeArticle[] = [
         category: 'Technical',
         createdDate: new Date('2024-07-15T14:30:00Z').toISOString(),
         lastModifiedDate: new Date('2024-07-15T14:30:00Z').toISOString(),
+    }
+];
+
+export const initialCuratorArticles: CuratorArticle[] = [
+    {
+        id: 'curator-kb-1',
+        title: 'Introduction to Curator',
+        content: '<h3>What is Curator?</h3><p>Curator is a revolutionary platform designed to enhance the automotive customer journey by providing personalized, intelligent, and seamless digital retailing experiences. It integrates with existing dealership systems to create a unified view of the customer and their needs.</p>',
+        tags: ['getting-started', 'overview', 'platform'],
+        category: 'General',
+        createdDate: new Date('2024-07-01T10:00:00Z').toISOString(),
+        lastModifiedDate: new Date('2024-07-02T11:00:00Z').toISOString(),
+        isFavorite: true,
+    },
+    {
+        id: 'curator-kb-2',
+        title: 'Setting up your first project in Curator',
+        content: '<p>Follow these steps to get started with projects in Curator:</p><ol><li>Navigate to the Projects view from the sidebar.</li><li>Click the "New Project" button.</li><li>Fill in the project name and description.</li><li>Start adding tasks and linking tickets.</li></ol>',
+        tags: ['projects', 'setup', 'tutorial'],
+        category: 'How-To',
+        createdDate: new Date('2024-07-05T14:30:00Z').toISOString(),
+        lastModifiedDate: new Date('2024-07-05T14:30:00Z').toISOString(),
     }
 ];
 
