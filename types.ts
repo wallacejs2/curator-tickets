@@ -1,3 +1,4 @@
+// FIX: Removed circular import `from './types.ts'` that was causing multiple declaration errors.
 
 export enum TicketType {
   Issue = 'Issue',
@@ -64,6 +65,7 @@ export interface FeatureAnnouncement {
   taskIds?: string[];
   dealershipIds?: string[];
   linkedFeatureIds?: string[];
+  curatorIds?: string[];
 }
 
 // FIX: Added missing ReleaseStatus enum and Release interface.
@@ -329,6 +331,7 @@ export interface CuratorArticle {
     linkedArticleIds?: string[];
     navigation?: { title: string; url: string }[];
     supportingMaterialsUrl?: string;
+    featureIds?: string[];
 }
 
 export interface QuarterPlan {

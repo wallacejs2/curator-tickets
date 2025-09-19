@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { CuratorArticle } from '../types.ts';
+import { CuratorArticle, FeatureAnnouncement } from '../types.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -10,15 +10,33 @@ import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
 import SideView from './common/SideView.tsx';
 import RichTextEditor from './common/RichTextEditor.tsx';
 import { ShareIcon } from './icons/ShareIcon.tsx';
+import LinkingSection from './common/LinkingSection.tsx';
+import { SparklesIcon } from './icons/SparklesIcon.tsx';
+
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'curator' | 'quarter';
+
 
 interface CuratorViewProps {
   articles: CuratorArticle[];
   onSave: (article: Omit<CuratorArticle, 'id'> | CuratorArticle) => void;
   onDelete: (articleId: string) => void;
   onToggleFavorite: (articleId: string) => void;
+  allFeatures: FeatureAnnouncement[];
+  onLink: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+  onUnlink: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+  onSwitchView: (type: EntityType, id: string) => void;
 }
 
-const ArticleForm: React.FC<{ onSave: (article: Omit<CuratorArticle, 'id'> | CuratorArticle) => void, onClose: () => void, articleToEdit?: CuratorArticle | null }> = ({ onSave, onClose, articleToEdit }) => {
+const ArticleForm: React.FC<{ 
+    onSave: (article: Omit<CuratorArticle, 'id'> | CuratorArticle) => void, 
+    onClose: () => void, 
+    articleToEdit?: CuratorArticle | null,
+    // Linking props
+    allFeatures: FeatureAnnouncement[];
+    onLink: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+    onUnlink: (fromType: EntityType, fromId: string, toType: EntityType, toId: string) => void;
+    onSwitchView: (type: EntityType, id: string) => void;
+}> = ({ onSave, onClose, articleToEdit, allFeatures, onLink, onUnlink, onSwitchView }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('');
@@ -26,6 +44,9 @@ const ArticleForm: React.FC<{ onSave: (article: Omit<CuratorArticle, 'id'> | Cur
     const [newNavItem, setNewNavItem] = useState({ title: '', url: '' });
     const [supportingMaterialsUrl, setSupportingMaterialsUrl] = useState('');
     const isEditing = !!articleToEdit;
+
+    const linkedFeatures = allFeatures.filter(f => articleToEdit?.featureIds?.includes(f.id));
+    const availableFeatures = allFeatures.filter(f => !articleToEdit?.featureIds?.includes(f.id));
 
     useEffect(() => {
         if (articleToEdit) {
@@ -149,6 +170,19 @@ const ArticleForm: React.FC<{ onSave: (article: Omit<CuratorArticle, 'id'> | Cur
                 <label className={labelClasses}>Content</label>
                 <RichTextEditor value={content} onChange={setContent} placeholder="Start writing your article..."/>
             </div>
+
+            {isEditing && articleToEdit && (
+                <LinkingSection
+                    title="Link Features"
+                    itemTypeLabel="feature"
+                    linkedItems={linkedFeatures}
+                    availableItems={availableFeatures}
+                    onLink={(featureId) => onLink('curator', articleToEdit.id, 'feature', featureId)}
+                    onUnlink={(featureId) => onUnlink('curator', articleToEdit.id, 'feature', featureId)}
+                    onItemClick={(featureId) => onSwitchView('feature', featureId)}
+                />
+            )}
+
              <div className="flex justify-end pt-4 border-t">
                 <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="ml-3 bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700">{isEditing ? 'Save Changes' : 'Create Article'}</button>
@@ -157,7 +191,7 @@ const ArticleForm: React.FC<{ onSave: (article: Omit<CuratorArticle, 'id'> | Cur
     );
 };
 
-const CuratorView: React.FC<CuratorViewProps> = ({ articles, onSave, onDelete, onToggleFavorite }) => {
+const CuratorView: React.FC<CuratorViewProps> = ({ articles, onSave, onDelete, onToggleFavorite, allFeatures, onLink, onUnlink, onSwitchView }) => {
     const [selectedArticle, setSelectedArticle] = useState<CuratorArticle | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingArticle, setEditingArticle] = useState<CuratorArticle | null>(null);
@@ -195,11 +229,21 @@ const CuratorView: React.FC<CuratorViewProps> = ({ articles, onSave, onDelete, o
         }
     }
 
+    const linkedFeatures = allFeatures.filter(f => selectedArticle?.featureIds?.includes(f.id));
+
     return (
         <div className="flex h-full">
             {isFormOpen && !editingArticle && (
                 <Modal title="Create New Article" onClose={() => { setIsFormOpen(false); setEditingArticle(null); }}>
-                    <ArticleForm onSave={handleSave} onClose={() => { setIsFormOpen(false); setEditingArticle(null); }} articleToEdit={null} />
+                    <ArticleForm 
+                        onSave={handleSave} 
+                        onClose={() => { setIsFormOpen(false); setEditingArticle(null); }} 
+                        articleToEdit={null}
+                        allFeatures={allFeatures}
+                        onLink={onLink}
+                        onUnlink={onUnlink}
+                        onSwitchView={onSwitchView}
+                    />
                 </Modal>
             )}
 
@@ -213,6 +257,10 @@ const CuratorView: React.FC<CuratorViewProps> = ({ articles, onSave, onDelete, o
                         onSave={handleSave}
                         onClose={() => { setIsFormOpen(false); setEditingArticle(null); }}
                         articleToEdit={editingArticle}
+                        allFeatures={allFeatures}
+                        onLink={onLink}
+                        onUnlink={onUnlink}
+                        onSwitchView={onSwitchView}
                     />
                 )}
             </SideView>
@@ -292,6 +340,25 @@ const CuratorView: React.FC<CuratorViewProps> = ({ articles, onSave, onDelete, o
                             </div>
                             
                             <div className="prose max-w-none rich-text-content" dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
+
+                            <div className="pt-6 mt-6 border-t border-gray-200">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                    <SparklesIcon className="w-6 h-6 text-pink-500" />
+                                    Related Features ({linkedFeatures.length})
+                                </h3>
+                                {linkedFeatures.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {linkedFeatures.map(feature => (
+                                            <div key={feature.id} onClick={() => onSwitchView('feature', feature.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200">
+                                                <p className="font-medium text-sm text-blue-700">{feature.title}</p>
+                                                <p className="text-xs text-gray-500 mt-1">Status: {feature.status} | Launch: {new Date(feature.launchDate).toLocaleDateString()}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-gray-500 italic">No features linked to this article.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ) : (

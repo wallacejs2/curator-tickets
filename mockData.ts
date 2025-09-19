@@ -523,6 +523,7 @@ export const initialFeatures: FeatureAnnouncement[] = [
     taskIds: [],
     dealershipIds: [],
     linkedFeatureIds: [],
+    curatorIds: ['curator-kb-1'],
   },
   {
     id: 'feat-2',
@@ -720,6 +721,7 @@ export const initialCuratorArticles: CuratorArticle[] = [
             { title: 'Technical Documentation', url: 'https://docs.curator.example.com' },
         ],
         supportingMaterialsUrl: 'https://example.com/curator-intro-deck.pdf',
+        featureIds: ['feat-1'],
     },
     {
         id: 'curator-kb-2',

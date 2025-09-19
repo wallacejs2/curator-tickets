@@ -1970,6 +1970,10 @@ function App() {
                 onSave={handleSaveCuratorArticle}
                 onDelete={handleDeleteCuratorArticle}
                 onToggleFavorite={handleToggleFavoriteCuratorArticle}
+                allFeatures={features}
+                onLink={handleLinkItem}
+                onUnlink={handleUnlinkItem}
+                onSwitchView={handleSwitchToDetailView}
               />
           )}
            {currentView === 'quarters' && (
