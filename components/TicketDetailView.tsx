@@ -136,7 +136,7 @@ const TicketDetailView = ({
     }
   }, [ticket]);
 
-  const ticketTasks = ticket.tasks || [];
+  const ticketTasks = (ticket.tasks || []).filter(task => task && typeof task === 'object');
 
   // Linked items
   const linkedTickets = allTickets.filter(item => item.id !== ticket.id && (ticket.linkedTicketIds || []).includes(item.id));

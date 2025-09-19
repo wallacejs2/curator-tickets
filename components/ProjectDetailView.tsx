@@ -69,7 +69,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     const dragOverItem = useRef<string | null>(null);
     const [dragging, setDragging] = useState(false);
 
-    const projectTasks = project.tasks || [];
+    const projectTasks = (project.tasks || []).filter(task => task && typeof task === 'object');
 
     // Linked items
     const linkedTickets = allTickets.filter(item => (project.ticketIds || []).includes(item.id));

@@ -37,7 +37,7 @@ const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> 
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tasks</h4>
                 {projectTasks.length > 0 ? (
                     <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                        {projectTasks.filter(Boolean).slice(0, 3).map(task => (
+                        {projectTasks.filter(task => task && typeof task === 'object').slice(0, 3).map(task => (
                             <li key={task.id} className={task.status === TaskStatus.Done ? 'line-through text-gray-500' : ''}>{task.description}</li>
                         ))}
                         {projectTasks.length > 3 && <li>...and {projectTasks.length - 3} more.</li>}
@@ -78,7 +78,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
     const countTasksRecursively = (tasks: Task[]): { completed: number; total: number } => {
         let completed = 0;
         let total = 0;
-        for (const task of (tasks || []).filter(Boolean)) {
+        for (const task of (tasks || []).filter(task => task && typeof task === 'object')) {
             total++;
             if (task.status === TaskStatus.Done) {
                 completed++;

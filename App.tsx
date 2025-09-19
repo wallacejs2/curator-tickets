@@ -258,7 +258,7 @@ export default function App() {
 
   const allTasks: EnrichedTask[] = useMemo(() => {
     const projectTasks = projects.flatMap(p => 
-      (p.tasks || []).map(task => ({
+      (p.tasks || []).filter(task => task && typeof task === 'object').map(task => ({
         ...task,
         projectId: p.id,
         projectName: p.name,
@@ -267,7 +267,7 @@ export default function App() {
       }))
     );
      const ticketTasks = tickets.flatMap(t => 
-        (t.tasks || []).map(task => ({
+        (t.tasks || []).filter(task => task && typeof task === 'object').map(task => ({
             ...task,
             projectId: null,
             projectName: undefined,
@@ -275,7 +275,7 @@ export default function App() {
             ticketTitle: t.title,
         }))
     );
-    const standaloneTasks = tasks.map(t => ({
+    const standaloneTasks = tasks.filter(task => task && typeof task === 'object').map(t => ({
         ...t,
         projectId: null,
         projectName: 'General',
