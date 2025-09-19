@@ -1,5 +1,4 @@
-
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, CuratorArticle } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, CuratorArticle, QuarterPlan } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -770,4 +769,55 @@ export const initialShoppers: Shopper[] = [
     taskIds: ['task-1'],
     isFavorite: false,
   }
+];
+
+const currentYear = new Date().getFullYear();
+
+export const initialQuarters: QuarterPlan[] = [
+    {
+        id: `${currentYear}-Q1`,
+        year: currentYear,
+        quarter: 1,
+        name: `Q1 ${currentYear}`,
+        salesPlan: '<h3>Focus on Enterprise Leads</h3><p>- Launch new outreach campaign for Luxury Auto Group.<br>- Follow up with all prospects from the NADA conference.</p>',
+        supportPlan: '<h3>Reduce Ticket Response Time</h3><p>Goal: Average first response time under 2 hours.</p>',
+        developmentPlan: '<h3>Performance Overhaul</h3><ul><li>Refactor main dashboard component.</li><li>Analyze and optimize slow API endpoints.</li></ul>',
+        productPlan: '<h3>Finalize Dark Mode</h3><p>Gather final user feedback and prepare for Q2 launch.</p>',
+        updates: [],
+        featureIds: [],
+        ticketIds: [],
+        meetingIds: [],
+        projectIds: [],
+    },
+    {
+        id: `${currentYear}-Q2`,
+        year: currentYear,
+        quarter: 2,
+        name: `Q2 ${currentYear}`,
+        productPlan: '<h3>Dark Mode Launch</h3><p>Launch the new Dark Mode feature across all platforms.</p>',
+        ticketIds: ['2'],
+        featureIds: ['feat-1'],
+        projectIds: [],
+    },
+    {
+        id: `${currentYear}-Q3`,
+        year: currentYear,
+        quarter: 3,
+        name: `Q3 ${currentYear}`,
+        developmentPlan: '<h3>Mobile Responsiveness Overhaul</h3><p>Complete the full audit and update of all pages to ensure they are fully responsive.</p>',
+        featureIds: ['feat-7', 'feat-3'],
+        projectIds: ['proj-1'],
+    },
+    {
+        id: `${currentYear}-Q4`,
+        year: currentYear,
+        quarter: 4,
+        name: `Q4 ${currentYear}`,
+        productPlan: '<h3>Plan for Next Year</h3><p>Review all feature requests and create the product roadmap for the next year.</p>',
+        updates: [],
+        featureIds: ['feat-4'],
+        ticketIds: [],
+        meetingIds: [],
+        projectIds: [],
+    }
 ];

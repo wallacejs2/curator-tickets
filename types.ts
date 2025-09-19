@@ -329,6 +329,21 @@ export interface CuratorArticle {
     linkedArticleIds?: string[];
 }
 
+export interface QuarterPlan {
+    id: string;
+    year: number;
+    quarter: 1 | 2 | 3 | 4;
+    name: string;
+    salesPlan?: string;
+    supportPlan?: string;
+    developmentPlan?: string;
+    productPlan?: string;
+    updates?: Update[];
+    featureIds?: string[];
+    ticketIds?: string[];
+    meetingIds?: string[];
+    projectIds?: string[];
+}
 
 export interface RecentActivity {
     id: string;
@@ -355,7 +370,7 @@ export interface Shopper {
   updates?: Update[];
 }
 
-export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'curator';
+export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'tasks' | 'features' | 'meetings' | 'contacts' | 'knowledge' | 'shoppers' | 'curator' | 'quarters';
 
 export interface FilterState {
   searchTerm: string;

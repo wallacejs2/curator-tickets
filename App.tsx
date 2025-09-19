@@ -1,6 +1,5 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, CuratorArticle } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, CuratorArticle, QuarterPlan } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -16,7 +15,7 @@ import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
 import { XIcon } from './components/icons/XIcon.tsx';
 import { useLocalStorage } from './hooks/useLocalStorage.ts';
-import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers, initialCuratorArticles } from './mockData.ts';
+import { initialTickets, initialProjects, initialDealerships, initialTasks, initialFeatures, initialMeetings, initialContacts, initialContactGroups, initialDealershipGroups, initialKnowledgeArticles, initialShoppers, initialCuratorArticles, initialQuarters } from './mockData.ts';
 import ProjectList from './components/ProjectList.tsx';
 import ProjectDetailView from './components/ProjectDetailView.tsx';
 import ProjectForm from './components/ProjectForm.tsx';
@@ -60,6 +59,9 @@ import ShopperForm from './components/ShopperForm.tsx';
 import ShopperDetailView from './components/ShopperDetailView.tsx';
 import { PersonIcon } from './components/icons/PersonIcon.tsx';
 import CuratorView from './components/CuratorView.tsx';
+import QuartersView from './components/QuartersView.tsx';
+import QuarterDetailView from './components/QuarterDetailView.tsx';
+import QuarterForm from './components/QuarterForm.tsx';
 
 
 const DetailField: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -121,7 +123,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'curator';
+type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'contact' | 'knowledge' | 'shopper' | 'curator' | 'quarter';
 
 // Hardcoded current user for dashboard widgets
 const CURRENT_USER = 'John Doe';
@@ -140,6 +142,7 @@ function App() {
   const [knowledgeArticles, setKnowledgeArticles] = useLocalStorage<KnowledgeArticle[]>('knowledgeArticles', initialKnowledgeArticles);
   const [curatorArticles, setCuratorArticles] = useLocalStorage<CuratorArticle[]>('curatorArticles', initialCuratorArticles);
   const [shoppers, setShoppers] = useLocalStorage<Shopper[]>('shoppers', initialShoppers);
+  const [quarters, setQuarters] = useLocalStorage<QuarterPlan[]>('quarters', initialQuarters);
   
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -147,6 +150,7 @@ function App() {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
   const [selectedShopper, setSelectedShopper] = useState<Shopper | null>(null);
+  const [selectedQuarter, setSelectedQuarter] = useState<QuarterPlan | null>(null);
   const [editingTask, setEditingTask] = useState<(Task & { projectId: string | null; projectName?: string; ticketId: string | null; ticketTitle?: string; }) | null>(null);
   const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([]);
   
@@ -160,6 +164,9 @@ function App() {
   
   const [editingShopper, setEditingShopper] = useState<Shopper | null>(null);
   const [isShopperFormOpen, setIsShopperFormOpen] = useState(false);
+
+  const [isQuarterFormOpen, setIsQuarterFormOpen] = useState(false);
+  const [editingQuarter, setEditingQuarter] = useState<QuarterPlan | null>(null);
 
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -239,6 +246,13 @@ function App() {
       setSelectedShopper(freshShopper || null);
     }
   }, [shoppers]);
+
+  useEffect(() => {
+    if (selectedQuarter) {
+      const freshQuarter = quarters.find(q => q.id === selectedQuarter.id);
+      setSelectedQuarter(freshQuarter || null);
+    }
+  }, [quarters]);
 
   // When changing views, clear selections
   useEffect(() => {
@@ -619,6 +633,36 @@ function App() {
       }
   };
 
+  const handleSaveQuarterPlan = (quarterData: Omit<QuarterPlan, 'id'> | QuarterPlan) => {
+      if ('id' in quarterData) {
+          // Update
+          const updatedQuarter = quarterData as QuarterPlan;
+          setQuarters(prev => prev.map(q => q.id === updatedQuarter.id ? updatedQuarter : q));
+          showToast('Quarter plan updated!', 'success');
+          if (selectedQuarter?.id === updatedQuarter.id) {
+              setSelectedQuarter(updatedQuarter);
+          }
+      } else {
+          // Create
+          const newQuarter: QuarterPlan = { 
+              ...quarterData, 
+              id: `${quarterData.year}-Q${quarterData.quarter}`,
+              updates: [],
+              featureIds: [],
+              ticketIds: [],
+              meetingIds: [],
+          };
+          setQuarters(prev => [...prev, newQuarter].sort((a,b) => a.id.localeCompare(b.id)));
+          showToast('Quarter plan created!', 'success');
+      }
+      setIsQuarterFormOpen(false);
+      setEditingQuarter(null);
+  };
+
+  const handleUpdateQuarter = (updatedQuarter: QuarterPlan) => {
+    handleSaveQuarterPlan(updatedQuarter);
+  };
+
     const handleUpdateTask = (updatedTask: Task) => {
         const taskInAll = allTasks.find(t => t.id === updatedTask.id);
         if (!taskInAll) return;
@@ -748,7 +792,8 @@ function App() {
                 handleUpdateTicket({ ...ticket, tasks: updatedTasks });
             }
         } else {
-            setTasks(prev => prev.filter(t => t.id === taskId));
+            // FIX: Used .filter instead of .map to correctly remove the task from state.
+            setTasks(prev => prev.filter(t => t.id !== taskId));
         }
         showToast('Task deleted!', 'success');
     };
@@ -780,6 +825,9 @@ function App() {
         const updatedShopper = { ...selectedShopper, updates: [...(selectedShopper.updates || []), newUpdate] };
         setSelectedShopper(updatedShopper);
         setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
+    } else if (selectedQuarter && selectedQuarter.id === id) {
+        const updatedQuarter = { ...selectedQuarter, updates: [...(selectedQuarter.updates || []), newUpdate] };
+        handleUpdateQuarter(updatedQuarter);
     }
     showToast('Update added!', 'success');
   };
@@ -828,6 +876,12 @@ function App() {
         };
         setSelectedShopper(updatedShopper);
         setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
+    } else if (selectedQuarter && selectedQuarter.id === id) {
+        const updatedQuarter = {
+            ...selectedQuarter,
+            updates: (selectedQuarter.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
+        };
+        handleUpdateQuarter(updatedQuarter);
     }
     showToast('Update modified!', 'success');
   };
@@ -876,6 +930,12 @@ function App() {
         };
         setSelectedShopper(updatedShopper);
         setShoppers(prevShoppers => prevShoppers.map(s => s.id === id ? updatedShopper : s));
+    } else if (selectedQuarter && selectedQuarter.id === id) {
+        const updatedQuarter = {
+            ...selectedQuarter,
+            updates: (selectedQuarter.updates || []).filter(u => u.id !== updateId)
+        };
+        handleUpdateQuarter(updatedQuarter);
     }
     showToast('Update deleted!', 'success');
   };
@@ -1297,6 +1357,7 @@ function App() {
           case 'knowledge': return setKnowledgeArticles;
           case 'shopper': return setShoppers;
           case 'curator': return setCuratorArticles;
+          case 'quarter': return setQuarters;
       }
     };
     
@@ -1377,6 +1438,22 @@ function App() {
         }));
         
         showToast(`${fromType.charAt(0).toUpperCase() + fromType.slice(1)} and ${toType} unlinked successfully!`, 'success');
+    };
+
+    const handleQuarterLink = (quarterId: string, toType: 'feature' | 'ticket' | 'meeting' | 'project', toId: string) => {
+        const key = `${toType}Ids`; 
+        setQuarters(prev => prev.map(q => 
+            q.id === quarterId ? { ...q, [key]: [...new Set([...(q[key as keyof QuarterPlan] as string[] || []), toId])] } : q
+        ));
+        showToast('Item linked to quarter!', 'success');
+    };
+
+    const handleQuarterUnlink = (quarterId: string, toType: 'feature' | 'ticket' | 'meeting' | 'project', toId: string) => {
+        const key = `${toType}Ids`; 
+        setQuarters(prev => prev.map(q => 
+            q.id === quarterId ? { ...q, [key]: (q[key as keyof QuarterPlan] as string[] || []).filter(id => id !== toId) } : q
+        ));
+        showToast('Item unlinked from quarter!', 'success');
     };
 
     const filteredTickets = useMemo(() => {
@@ -1588,6 +1665,7 @@ function App() {
             case 'dashboard': return 'New Item';
             case 'knowledge': return '';
             case 'curator': return '';
+            case 'quarters': return '';
             default: return 'New Item';
         }
     }
@@ -1599,6 +1677,7 @@ function App() {
         setSelectedMeeting(null);
         setSelectedFeature(null);
         setSelectedShopper(null);
+        setSelectedQuarter(null);
     };
 
     const handleSwitchToDetailView = (type: EntityType, id: string) => {
@@ -1665,6 +1744,7 @@ function App() {
       { title: 'Shoppers', data: shoppers },
       { title: 'Knowledge Articles', data: knowledgeArticles },
       { title: 'Curator Articles', data: curatorArticles },
+      { title: 'Quarters', data: quarters },
     ];
 
     // Data for Dashboard
@@ -1881,6 +1961,14 @@ function App() {
                 onToggleFavorite={handleToggleFavoriteCuratorArticle}
               />
           )}
+           {currentView === 'quarters' && (
+              <QuartersView 
+                quarters={quarters}
+                onQuarterClick={setSelectedQuarter}
+                onNewQuarterClick={() => { setEditingQuarter(null); setIsQuarterFormOpen(true); }}
+                onEditQuarterClick={(q) => { setEditingQuarter(q); setIsQuarterFormOpen(true); }}
+              />
+          )}
           {currentView === 'tickets' && (
             <>
               {selectedTicketIds.length > 0 && (
@@ -1996,6 +2084,17 @@ function App() {
             <ShopperForm onSave={handleSaveShopper} onClose={() => { setIsShopperFormOpen(false); setEditingShopper(null); }} shopperToEdit={editingShopper} allDealerships={dealerships} />
         </Modal>
       )}
+      
+      {isQuarterFormOpen && (
+          <Modal title={editingQuarter ? 'Edit Quarter Plan' : 'Create New Quarter Plan'} onClose={() => { setIsQuarterFormOpen(false); setEditingQuarter(null); }}>
+              <QuarterForm 
+                  onSave={handleSaveQuarterPlan}
+                  onClose={() => { setIsQuarterFormOpen(false); setEditingQuarter(null); }}
+                  quarterToEdit={editingQuarter}
+                  existingQuarters={quarters}
+              />
+          </Modal>
+      )}
 
       {isCreateChoiceModalOpen && (
           <Modal title="Create New Item" onClose={() => setIsCreateChoiceModalOpen(false)} size="lg">
@@ -2070,8 +2169,8 @@ function App() {
 
 
       <SideView 
-        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || selectedShopper?.customerName || ''}
-        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature || selectedShopper)}
+        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || selectedShopper?.customerName || selectedQuarter?.name || ''}
+        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature || selectedShopper || selectedQuarter)}
         onClose={closeAllSideViews}
       >
         {selectedTicket && (
@@ -2154,6 +2253,20 @@ function App() {
             {...allDataForLinking}
             onLink={(toType, toId) => handleLinkItem('shopper', selectedShopper.id, toType, toId)}
             onUnlink={(toType, toId) => handleUnlinkItem('shopper', selectedShopper.id, toType, toId)}
+            onSwitchView={handleSwitchToDetailView}
+        />}
+        {selectedQuarter && <QuarterDetailView
+            quarter={selectedQuarter}
+            onUpdate={handleUpdateQuarter}
+            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
+            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedQuarter.id, updatedUpdate)}
+            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedQuarter.id, updateId)}
+            allFeatures={features}
+            allTickets={tickets}
+            allMeetings={meetings}
+            allProjects={projects}
+            onLink={handleQuarterLink}
+            onUnlink={handleQuarterUnlink}
             onSwitchView={handleSwitchToDetailView}
         />}
       </SideView>
