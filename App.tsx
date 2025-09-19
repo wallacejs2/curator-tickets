@@ -28,8 +28,7 @@ import DealershipForm from './components/DealershipForm.tsx';
 import TaskList from './components/TaskList.tsx';
 import FeatureList from './components/FeatureList.tsx';
 import FeatureForm from './components/FeatureForm.tsx';
-import MeetingList from './components/MeetingList.tsx';
-import MeetingDetailView from './components/MeetingDetailView.tsx';
+import MeetingsView from './components/MeetingsView.tsx';
 import TicketDetailView from './components/TicketDetailView.tsx';
 import FeatureDetailView from './components/FeatureDetailView.tsx';
 import ExportModal from './components/ExportModal.tsx';
@@ -147,7 +146,6 @@ function App() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
-  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<FeatureAnnouncement | null>(null);
   const [selectedShopper, setSelectedShopper] = useState<Shopper | null>(null);
   const [selectedQuarter, setSelectedQuarter] = useState<QuarterPlan | null>(null);
@@ -188,8 +186,6 @@ function App() {
     status: 'all',
   });
   
-  const [meetingFilters, setMeetingFilters] = useState<MeetingFilterState>({ searchTerm: '' });
-  
   const [shopperFilters, setShopperFilters] = useState<ShopperFilterState>({ searchTerm: '' });
 
   const [featureFilters, setFeatureFilters] = useState<FeatureAnnouncementFilterState>({
@@ -227,13 +223,6 @@ function App() {
     }
   }, [dealerships]);
   
-  useEffect(() => {
-    if (selectedMeeting) {
-      const freshMeeting = meetings.find(m => m.id === selectedMeeting.id);
-      setSelectedMeeting(freshMeeting || null);
-    }
-  }, [meetings]);
-
   useEffect(() => {
     if (selectedFeature) {
       const freshFeature = features.find(f => f.id === selectedFeature.id);
@@ -354,13 +343,19 @@ function App() {
       showToast('Feature announcement added!', 'success');
   };
   
-  const handleMeetingSubmit = (newMeetingData: Omit<Meeting, 'id'>) => {
+  const handleSaveMeeting = (meetingData: Omit<Meeting, 'id'> | Meeting) => {
+    if ('id' in meetingData) {
+      setMeetings(prev => prev.map(m => m.id === meetingData.id ? meetingData : m));
+      showToast('Meeting note updated!', 'success');
+    } else {
       const newMeeting: Meeting = {
-          id: crypto.randomUUID(),
-          ...newMeetingData,
+        id: crypto.randomUUID(),
+        ...meetingData,
+        updates: [],
       };
       setMeetings(prev => [...prev, newMeeting]);
-      showToast('Meeting note saved!', 'success');
+      showToast('Meeting note created!', 'success');
+    }
   };
   
   const handleSaveShopper = (shopperData: Omit<Shopper, 'id'> | Shopper) => {
@@ -621,14 +616,6 @@ function App() {
       }
   };
   
-  const handleUpdateMeeting = (updatedMeeting: Meeting) => {
-      setMeetings(prev => prev.map(m => m.id === updatedMeeting.id ? updatedMeeting : m));
-      showToast('Meeting note updated!', 'success');
-      if (selectedMeeting?.id === updatedMeeting.id) {
-        setSelectedMeeting(updatedMeeting);
-      }
-  };
-
   const handleUpdateShopper = (updatedShopper: Shopper) => {
       setShoppers(prev => prev.map(s => s.id === updatedShopper.id ? updatedShopper : s));
       showToast('Shopper updated successfully!', 'success');
@@ -775,7 +762,6 @@ function App() {
 
       setMeetings(prev => prev.filter(m => m.id !== meetingId));
       showToast('Meeting note deleted successfully!', 'success');
-      setSelectedMeeting(null);
   };
 
   const handleDeleteShopper = (shopperId: string) => {
@@ -832,10 +818,6 @@ function App() {
         const updatedFeature = { ...selectedFeature, updates: [...(selectedFeature.updates || []), newUpdate] };
         setSelectedFeature(updatedFeature);
         setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
-    } else if (selectedMeeting && selectedMeeting.id === id) {
-        const updatedMeeting = { ...selectedMeeting, updates: [...(selectedMeeting.updates || []), newUpdate] };
-        setSelectedMeeting(updatedMeeting);
-        setMeetings(prevMeetings => prevMeetings.map(m => m.id === id ? updatedMeeting : m));
     } else if (selectedShopper && selectedShopper.id === id) {
         const updatedShopper = { ...selectedShopper, updates: [...(selectedShopper.updates || []), newUpdate] };
         setSelectedShopper(updatedShopper);
@@ -877,13 +859,6 @@ function App() {
         };
         setSelectedFeature(updatedFeature);
         setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
-    } else if (selectedMeeting && selectedMeeting.id === id) {
-        const updatedMeeting = { 
-            ...selectedMeeting, 
-            updates: (selectedMeeting.updates || []).map(u => u.id === updatedUpdate.id ? updatedUpdate : u)
-        };
-        setSelectedMeeting(updatedMeeting);
-        setMeetings(prevMeetings => prevMeetings.map(m => m.id === id ? updatedMeeting : m));
     } else if (selectedShopper && selectedShopper.id === id) {
         const updatedShopper = { 
             ...selectedShopper, 
@@ -931,13 +906,6 @@ function App() {
         };
         setSelectedFeature(updatedFeature);
         setFeatures(prevFeatures => prevFeatures.map(f => f.id === id ? updatedFeature : f));
-    } else if (selectedMeeting && selectedMeeting.id === id) {
-        const updatedMeeting = { 
-            ...selectedMeeting, 
-            updates: (selectedMeeting.updates || []).filter(u => u.id !== updateId)
-        };
-        setSelectedMeeting(updatedMeeting);
-        setMeetings(prevMeetings => prevMeetings.map(m => m.id === id ? updatedMeeting : m));
     } else if (selectedShopper && selectedShopper.id === id) {
         const updatedShopper = { 
             ...selectedShopper, 
@@ -1519,18 +1487,6 @@ function App() {
         }).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }, [dealerships, dealershipFilters]);
     
-    const filteredMeetings = useMemo(() => {
-      const searchLower = meetingFilters.searchTerm.toLowerCase();
-      const filtered = meetings.filter(m => 
-          !searchLower ||
-          m.name.toLowerCase().includes(searchLower) ||
-          m.attendees.some(a => a.toLowerCase().includes(searchLower)) ||
-          m.notes.toLowerCase().includes(searchLower) ||
-          new Date(m.meetingDate).toLocaleDateString().includes(searchLower)
-      );
-      return filtered.sort((a, b) => new Date(b.meetingDate).getTime() - new Date(a.meetingDate).getTime());
-  }, [meetings, meetingFilters]);
-
     const filteredFeatures = useMemo(() => {
         return features.filter(feature => {
             const searchLower = featureFilters.searchTerm.toLowerCase();
@@ -1627,7 +1583,7 @@ function App() {
             case 'projects': return <ProjectForm onSubmit={data => { handleProjectSubmit(data); setIsFormOpen(false); }} />;
             case 'dealerships': return <DealershipForm onSubmit={data => { handleDealershipSubmit(data); setIsFormOpen(false); }} onUpdate={handleUpdateDealership} onClose={() => setIsFormOpen(false)} allGroups={dealershipGroups}/>;
             case 'features': return <FeatureForm onSubmit={data => { handleFeatureSubmit(data); setIsFormOpen(false); }} onUpdate={() => {}} onClose={() => setIsFormOpen(false)} />;
-            case 'meetings': return <MeetingForm onSubmit={data => { handleMeetingSubmit(data); setIsFormOpen(false); }} onClose={() => setIsFormOpen(false)} />;
+            case 'meetings': return <MeetingForm onSave={handleSaveMeeting} onClose={() => setIsFormOpen(false)} />;
             case 'contacts': return <ContactForm onSave={handleSaveContact} onClose={() => setIsContactFormOpen(false)} contactToEdit={null} allGroups={contactGroups} />;
             default: return null;
         }
@@ -1679,7 +1635,7 @@ function App() {
             case 'projects': return 'New Project';
             case 'dealerships': return 'New Account';
             case 'features': return 'New Feature';
-            case 'meetings': return 'New Note';
+            case 'meetings': return '';
             case 'contacts': return 'New Contact';
             case 'shoppers': return 'New Shopper';
             case 'tasks': return ''; // No main "new" button for tasks view
@@ -1695,7 +1651,6 @@ function App() {
         setSelectedTicket(null);
         setSelectedProject(null);
         setSelectedDealership(null);
-        setSelectedMeeting(null);
         setSelectedFeature(null);
         setSelectedShopper(null);
         setSelectedQuarter(null);
@@ -1724,8 +1679,8 @@ function App() {
                     if (dealership) setSelectedDealership(dealership);
                     break;
                 case 'meeting':
-                    const meeting = meetings.find(m => m.id === id);
-                    if (meeting) setSelectedMeeting(meeting);
+                    // Meeting detail view is now part of MeetingsView, so just switch view.
+                    setCurrentView('meetings');
                     break;
                 case 'feature':
                     const feature = features.find(f => f.id === id);
@@ -2073,7 +2028,24 @@ function App() {
             </>
           )}
           {currentView === 'features' && <FeatureList features={filteredFeatures} onDelete={handleDeleteFeature} onFeatureClick={setSelectedFeature} filters={featureFilters} setFilters={setFeatureFilters} allCategories={[...new Set(features.flatMap(f => f.categories || []))]}/>}
-          {currentView === 'meetings' && <MeetingList meetings={filteredMeetings} onMeetingClick={setSelectedMeeting} meetingFilters={meetingFilters} setMeetingFilters={setMeetingFilters} />}
+          {currentView === 'meetings' && (
+            <MeetingsView
+                meetings={meetings}
+                onSave={handleSaveMeeting}
+                onDelete={handleDeleteMeeting}
+                onExport={handleExportMeeting}
+                showToast={showToast}
+                allTickets={tickets}
+                allProjects={projects}
+                allTasks={allTasks}
+                allMeetings={meetings}
+                allDealerships={dealerships}
+                allFeatures={features}
+                onLink={handleLinkItem}
+                onUnlink={handleUnlinkItem}
+                onSwitchView={handleSwitchToDetailView}
+            />
+          )}
           {currentView === 'contacts' && (
             <ContactsView 
                 contacts={contacts}
@@ -2207,8 +2179,8 @@ function App() {
 
 
       <SideView 
-        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedMeeting?.name || selectedFeature?.title || selectedShopper?.customerName || selectedQuarter?.name || ''}
-        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedMeeting || selectedFeature || selectedShopper || selectedQuarter)}
+        title={selectedTicket?.title || selectedProject?.name || selectedDealership?.name || selectedFeature?.title || selectedShopper?.customerName || selectedQuarter?.name || ''}
+        isOpen={!!(selectedTicket || selectedProject || selectedDealership || selectedFeature || selectedShopper || selectedQuarter)}
         onClose={closeAllSideViews}
       >
         {selectedTicket && (
@@ -2256,18 +2228,6 @@ function App() {
             onUnlink={(toType, toId) => handleUnlinkItem('dealership', selectedDealership.id, toType, toId)} onSwitchView={handleSwitchToDetailView}
             showToast={showToast}
             />}
-        {selectedMeeting && <MeetingDetailView 
-            meeting={selectedMeeting} 
-            onUpdate={handleUpdateMeeting} 
-            onDelete={handleDeleteMeeting} 
-            onExport={() => handleExportMeeting(selectedMeeting)} 
-            onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
-            onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedMeeting.id, updatedUpdate)}
-            onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedMeeting.id, updateId)}
-            showToast={showToast}
-            {...allDataForLinking}
-            onLink={(toType, toId) => handleLinkItem('meeting', selectedMeeting.id, toType, toId)} 
-            onUnlink={(toType, toId) => handleUnlinkItem('meeting', selectedMeeting.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
         {selectedFeature && <FeatureDetailView 
             feature={selectedFeature} 
             onUpdate={handleUpdateFeature} 
