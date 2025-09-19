@@ -1,11 +1,9 @@
-
 import React, { useState, useMemo } from 'react';
-import { Project, ProjectStatus, TaskStatus, Ticket, Task } from '../types.ts';
+import { Project, ProjectStatus, TaskStatus, Ticket, Task, ProjectSection } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
-import GanttChartView from './GanttChartView.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
@@ -24,46 +22,23 @@ const statusColors: Record<ProjectStatus, { bg: string; text: string; progress: 
   [ProjectStatus.Completed]: { bg: 'bg-green-200', text: 'text-green-900', progress: 'bg-green-500' },
 };
 
-const ExpandedProjectContent: React.FC<{ project: Project; tickets: Ticket[] }> = ({ project, tickets }) => {
-    const linkedTickets = tickets.filter(t => (t.projectIds || []).includes(project.id));
-    const mostRecentUpdate = project.updates && project.updates.length > 0
-        ? [...project.updates].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-        : null;
-    const projectTasks = project.tasks || [];
+const ExpandedProjectContent: React.FC<{ project: Project }> = ({ project }) => {
+    
+    const DetailSection: React.FC<{title: string, content?: string}> = ({ title, content }) => {
+        if (!content) return null;
+        return (
+            <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{title}</h4>
+                <div className="text-sm text-gray-700 rich-text-content" dangerouslySetInnerHTML={{ __html: content }} />
+            </div>
+        );
+    };
 
     return (
         <div className="p-5 bg-gray-50 space-y-6">
-            {/* Tasks */}
-            <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tasks</h4>
-                {projectTasks.length > 0 ? (
-                    <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                        {projectTasks.slice(0, 3).map(task => (
-                            <li key={task.id} className={task.status === TaskStatus.Done ? 'line-through text-gray-500' : ''}>{task.description}</li>
-                        ))}
-                        {projectTasks.length > 3 && <li>...and {projectTasks.length - 3} more.</li>}
-                    </ul>
-                ) : <p className="text-sm text-gray-500 italic">No tasks assigned.</p>}
-            </div>
-            {/* Linked Tickets */}
-            <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Linked Tickets</h4>
-                {linkedTickets.length > 0 ? (
-                     <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
-                        {linkedTickets.slice(0, 3).map(ticket => (
-                            <li key={ticket.id}>{ticket.title}</li>
-                        ))}
-                        {linkedTickets.length > 3 && <li>...and {linkedTickets.length - 3} more.</li>}
-                    </ul>
-                ) : <p className="text-sm text-gray-500 italic">No tickets linked.</p>}
-            </div>
-            {/* Updates */}
-            <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Most Recent Update</h4>
-                {mostRecentUpdate ? (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{new Date(mostRecentUpdate.date).toLocaleDateString()} - {mostRecentUpdate.author}:<br/>{mostRecentUpdate.comment}</p>
-                ) : <p className="text-sm text-gray-500 italic">No updates posted.</p>}
-            </div>
+            {(project.sections || []).map(section => (
+                <DetailSection key={section.id} title={section.title} content={section.content} />
+            ))}
         </div>
     );
 };
@@ -96,6 +71,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const statusColor = statusColors[project.status];
   const linkedProjectsCount = (project.linkedProjectIds || []).filter(id => id !== project.id).length;
+  const firstSectionContent = project.sections?.[0]?.content || '';
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 flex flex-col">
@@ -106,7 +82,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
             {project.status}
           </span>
         </div>
-        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{project.description || 'No description provided.'}</p>
+        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{firstSectionContent ? new DOMParser().parseFromString(firstSectionContent, 'text/html').body.textContent : 'No brief provided.'}</p>
 
         <div className="mt-3 flex items-center gap-3 flex-wrap">
             {linkedProjectsCount > 0 && <span title={`${linkedProjectsCount} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedProjectsCount}</span></span>}
@@ -139,11 +115,11 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
               className="w-full flex justify-between items-center p-2 text-sm font-medium text-gray-600 hover:bg-gray-100 focus:outline-none rounded-b-lg"
               aria-expanded={isExpanded}
           >
-              <span>View Summary</span>
+              <span>View Project Brief</span>
               <ChevronDownIcon className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </button>
           {isExpanded && (
-              <ExpandedProjectContent project={project} tickets={tickets} />
+              <ExpandedProjectContent project={project} />
           )}
       </div>
     </div>
@@ -153,7 +129,6 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void; tickets: Ti
 
 const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tickets }) => {
   const [projectView, setProjectView] = useState<'active' | 'completed'>('active');
-  const [listOrGantt, setListOrGantt] = useState<'list' | 'gantt'>('list');
 
   const { activeProjects, completedProjects } = useMemo(() => {
     return projects.reduce<{ activeProjects: Project[]; completedProjects: Project[] }>(
@@ -207,23 +182,13 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
             Completed ({completedProjects.length})
             </button>
         </div>
-        <div className="flex items-center">
-             <div className="bg-gray-200 p-0.5 rounded-md flex">
-                <button onClick={() => setListOrGantt('list')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'list' ? 'bg-white shadow' : 'text-gray-600'}`}>List</button>
-                <button onClick={() => setListOrGantt('gantt')} className={`px-3 py-1 text-sm rounded ${listOrGantt === 'gantt' ? 'bg-white shadow' : 'text-gray-600'}`}>Gantt</button>
-            </div>
-        </div>
       </div>
       
-      {listOrGantt === 'list' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {projectsToShow.map(project => (
-            <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
-          ))}
-        </div>
-      ) : (
-         <GanttChartView projects={projectsToShow} onProjectClick={onProjectClick} />
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {projectsToShow.map(project => (
+          <ProjectCard key={project.id} project={project} onClick={() => onProjectClick(project)} tickets={tickets} />
+        ))}
+      </div>
     </div>
   );
 };

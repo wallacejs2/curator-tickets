@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, CuratorArticle, QuarterPlan } from './types.ts';
+import { Ticket, FilterState, IssueTicket, FeatureRequestTicket, TicketType, Update, Status, Priority, ProductArea, Platform, Project, View, Dealership, DealershipStatus, ProjectStatus, DealershipFilterState, Task, FeatureAnnouncement, Meeting, MeetingFilterState, TaskStatus, FeatureStatus, TaskPriority, FeatureAnnouncementFilterState, SavedTicketView, Contact, ContactGroup, ContactFilterState, DealershipGroup, WidgetConfig, KnowledgeArticle, EnrichedTask, Shopper, ShopperFilterState, WebsiteLink, CuratorArticle, QuarterPlan, ProjectSection } from './types.ts';
 import TicketList from './components/TicketList.tsx';
 import TicketForm from './components/TicketForm.tsx';
 import LeftSidebar from './components/FilterBar.tsx';
@@ -314,11 +314,14 @@ function App() {
     }
   };
   
-  const handleProjectSubmit = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds'>) => {
+  const handleProjectSubmit = (newProjectData: Omit<Project, 'id' | 'creationDate' | 'tasks' | 'ticketIds' | 'sections'>) => {
       const newProject: Project = {
           ...newProjectData,
           id: crypto.randomUUID(),
           creationDate: new Date().toISOString(),
+          sections: [
+              { id: crypto.randomUUID(), title: 'Introduction', content: '<p>Project brief and goals...</p>' }
+          ],
           tasks: [],
           ticketIds: [],
           meetingIds: [],
@@ -652,6 +655,7 @@ function App() {
               featureIds: [],
               ticketIds: [],
               meetingIds: [],
+              projectIds: [],
           };
           setQuarters(prev => [...prev, newQuarter].sort((a,b) => a.id.localeCompare(b.id)));
           showToast('Quarter plan created!', 'success');
@@ -1103,17 +1107,23 @@ function App() {
         const appendSection = (title: string) => {
             content += `\n--- ${title.toUpperCase()} ---\n`;
         };
-        const appendTextArea = (label: string, value: any) => {
+        const appendRichText = (label: string, value: any) => {
              if (value) {
-                content += `${label}:\n${value}\n\n`;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = value;
+                content += `${label}:\n${tempDiv.textContent || tempDiv.innerText || ""}\n\n`;
             }
         };
 
         appendField('ID', project.id);
         appendField('Status', project.status);
         appendDateField('Creation Date', project.creationDate);
-        appendTextArea('Description', project.description);
         appendField('Involved People', (project.involvedPeople || []).join(', '));
+
+        appendSection('Project Brief');
+        (project.sections || []).forEach(section => {
+            appendRichText(section.title, section.content);
+        });
 
         if (project.tasks && project.tasks.length > 0) {
             appendSection(`Tasks (${project.tasks.length})`);
@@ -2082,7 +2092,7 @@ function App() {
                 setIsGroupFormOpen={setIsGroupFormOpen}
                 editingGroup={editingGroup}
                 setEditingGroup={setEditingGroup}
-                // FIX: Corrected typo from onSaveGroup to handleSaveGroup
+// FIX: Corrected typo from onSaveGroup to handleSaveGroup
                 onSaveGroup={handleSaveGroup}
             />
           )}
@@ -2271,6 +2281,7 @@ function App() {
             onLink={(toType, toId) => handleLinkItem('feature', selectedFeature.id, toType, toId)} 
             onUnlink={(toType, toId) => handleUnlinkItem('feature', selectedFeature.id, toType, toId)} onSwitchView={handleSwitchToDetailView} />}
         {selectedShopper && <ShopperDetailView
+// FIX: Corrected typo from `shopper` to `selectedShopper`.
             shopper={selectedShopper}
             onUpdate={handleUpdateShopper}
             onDelete={handleDeleteShopper}

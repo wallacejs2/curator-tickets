@@ -9,18 +9,15 @@ interface ProjectFormProps {
 
 const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit }) => {
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
       onSubmit({
         name: name.trim(),
-        description: description.trim(),
         status: ProjectStatus.NotStarted,
       });
       setName('');
-      setDescription('');
     }
   };
   
@@ -39,17 +36,6 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit }) => {
           required
           className={formElementClasses}
           placeholder="e.g., Q4 Marketing Campaign"
-        />
-      </div>
-      <div>
-        <label htmlFor="projectDescription" className={labelClasses}>Description</label>
-        <textarea
-          id="projectDescription"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={5}
-          className={formElementClasses}
-          placeholder="Provide a brief overview of the project's goals and scope."
         />
       </div>
       <div className="flex justify-end">

@@ -185,7 +185,15 @@ export const initialProjects: Project[] = [
   {
     id: 'proj-1',
     name: 'Q3 Feature Rollout: Dark Mode & Performance Boost',
-    description: 'Implement dark mode across the entire application and optimize key performance metrics before the end of Q3.',
+    sections: [
+      { id: 'proj-1-sec-1', title: 'Introduction', content: '<h3>Project Goal</h3><p>This project aims to deliver two key user-facing improvements in Q3: a full-application Dark Mode and a significant performance boost on the main dashboard.</p>' },
+      { id: 'proj-1-sec-2', title: 'Scope', content: '<h4>In Scope:</h4><ul><li>Complete UI/UX design for Dark Mode theme.</li><li>Implement theme-switching capabilities.</li><li>Refactor dashboard data-loading mechanisms.</li></ul><h4>Out of Scope:</h4><ul><li>Dark mode for public-facing pages.</li><li>Mobile-specific performance optimizations.</li></ul>' },
+      { id: 'proj-1-sec-3', title: 'As-Is State', content: '<p>The application currently only supports a light theme. The dashboard experiences a 3-5 second load time for users with large data sets, leading to user frustration.</p>' },
+      { id: 'proj-1-sec-4', title: 'Ideal End State', content: '<p>Users can seamlessly switch between light and dark themes. Dashboard load times are reduced to under 1 second for 95% of users.</p>' },
+      { id: 'proj-1-sec-5', title: 'Specifications & Requirements', content: '<p>All new UI components must support CSS variables for theming. API response times for dashboard widgets must be under 200ms.</p>' },
+      { id: 'proj-1-sec-6', title: 'Rollout Strategy', content: '<p><strong>Phase 1:</strong> Internal beta with all employees. <br><strong>Phase 2:</strong> Limited release to pilot dealerships. <br><strong>Phase 3:</strong> Full general availability.</p>' },
+      { id: 'proj-1-sec-7', title: 'Measures of Success', content: '<ul><li>50% Dark Mode adoption within 3 months of launch.</li><li>75% reduction in dashboard load time.</li><li>A decrease in support tickets related to performance.</li></ul>' },
+    ],
     status: ProjectStatus.InProgress,
     creationDate: new Date('2024-07-10T10:00:00Z').toISOString(),
     ticketIds: ['2'],
@@ -213,7 +221,9 @@ export const initialProjects: Project[] = [
   {
     id: 'proj-2',
     name: '2024 Compliance Audit Prep',
-    description: 'Prepare all necessary documentation and system reports for the upcoming annual compliance audit.',
+    sections: [
+        { id: 'proj-2-sec-1', title: 'Introduction', content: '<p>This project is to ensure all systems and documentation are prepared for the annual compliance and security audit scheduled for Q4.</p>' }
+    ],
     status: ProjectStatus.NotStarted,
     creationDate: new Date('2024-07-25T14:30:00Z').toISOString(),
     ticketIds: [],
@@ -232,7 +242,9 @@ export const initialProjects: Project[] = [
     {
     id: 'proj-3',
     name: 'Mobile App Launch Campaign',
-    description: 'Coordinate marketing efforts for the new mobile application launch in September.',
+    sections: [
+        { id: 'proj-3-sec-1', title: 'Introduction', content: '<p>A comprehensive marketing campaign to support the launch of the new mobile application in September.</p>' }
+    ],
     status: ProjectStatus.Completed,
     creationDate: new Date('2024-05-01T09:00:00Z').toISOString(),
     ticketIds: [],
