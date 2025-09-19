@@ -87,7 +87,7 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     // Available items for linking (filter out completed and already related items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(project.ticketIds || []).includes(item.id));
     const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && item.id !== project.id && !(project.linkedProjectIds || []).includes(item.id));
-    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && item.projectId !== project.id && !allRelatedLinkedTaskIds.includes(item.id));
+    const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !allRelatedLinkedTaskIds.includes(item.id));
     const availableMeetings = allMeetings.filter(item => !(project.meetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(project.dealershipIds || []).includes(item.id));
     const availableFeatures = allFeatures.filter(item => !(project.featureIds || []).includes(item.id));

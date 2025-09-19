@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState } from 'react';
 // FIX: Added ReleaseStatus to the import to support linking releases.
 import { Status, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus, ReleaseStatus } from '../../types.ts';

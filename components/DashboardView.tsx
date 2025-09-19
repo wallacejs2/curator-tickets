@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { Ticket, Task, Update, EnrichedTask, KnowledgeArticle } from '../types.ts';
 import { StarIcon } from './icons/StarIcon.tsx';
@@ -11,7 +12,7 @@ import { BrainCircuitIcon } from './icons/BrainCircuitIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'knowledge';
+type EntityType = 'ticket' | 'task' | 'meeting' | 'dealership' | 'feature' | 'knowledge';
 
 interface PerformanceInsightsProps {
     openTickets: number;
@@ -40,7 +41,6 @@ interface TaskInsightsProps {
 
 interface DashboardViewProps {
     performanceInsights: PerformanceInsightsProps;
-    projectInsights: ProjectInsightsProps;
     dealershipInsights: DealershipInsightsProps;
     taskInsights: TaskInsightsProps;
     upcomingDeadlines: any[];
@@ -72,7 +72,6 @@ const InsightCard: React.FC<{ label: string; value: string | number; description
 
 const DashboardView: React.FC<DashboardViewProps> = ({ 
     performanceInsights, 
-    projectInsights, 
     dealershipInsights, 
     taskInsights, 
     upcomingDeadlines, 
@@ -106,12 +105,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
             
             <div>
               <h2 className="text-xl font-semibold text-gray-800 mb-4">Overall Insights</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <InsightCard
-                  label="In Progress Projects"
-                  value={projectInsights.inProgressProjects}
-                  description={`out of ${projectInsights.totalProjects} total projects.`}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InsightCard
                   label="Live Dealerships"
                   value={dealershipInsights.liveAccounts}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Meeting, Project, Ticket, Task, Dealership, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update } from '../types.ts';
+import { Meeting, Ticket, Task, Dealership, FeatureAnnouncement, Status, TaskStatus, Update } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -7,7 +7,7 @@ import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import RichTextEditor from './common/RichTextEditor.tsx';
 
-type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
+type EntityType = 'ticket' | 'task' | 'meeting' | 'dealership' | 'feature';
 
 interface MeetingDetailViewProps {
     meeting: Meeting;
@@ -21,7 +21,6 @@ interface MeetingDetailViewProps {
     
     // All entities for linking
     allTickets: Ticket[];
-    allProjects: Project[];
     allTasks: (Task & { projectName?: string; projectId: string | null; })[];
     allMeetings: Meeting[];
     allDealerships: Dealership[];
@@ -49,7 +48,7 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     onEditUpdate,
     onDeleteUpdate,
     isReadOnly = false,
-    allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
+    allTickets, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -69,7 +68,6 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
 
     // Linked items
     const linkedTickets = allTickets.filter(item => (meeting.ticketIds || []).includes(item.id));
-    const linkedProjects = allProjects.filter(item => (meeting.projectIds || []).includes(item.id));
     const linkedTasks = allTasks.filter(item => (meeting.taskIds || []).includes(item.id));
     const linkedMeetings = allMeetings.filter(item => item.id !== meeting.id && (meeting.linkedMeetingIds || []).includes(item.id));
     const linkedDealerships = allDealerships.filter(item => (meeting.dealershipIds || []).includes(item.id));
@@ -77,7 +75,6 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     
     // Available items for linking (filter out completed items)
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(meeting.ticketIds || []).includes(item.id));
-    const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(meeting.projectIds || []).includes(item.id));
     const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !(meeting.taskIds || []).includes(item.id));
     const availableMeetings = allMeetings.filter(item => item.id !== meeting.id && !(meeting.linkedMeetingIds || []).includes(item.id));
     const availableDealerships = allDealerships.filter(item => !(meeting.dealershipIds || []).includes(item.id));
@@ -272,7 +269,6 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
                     </div>
 
                     <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
-                    <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
                     <LinkingSection title="Linked Tasks" itemTypeLabel="task" linkedItems={linkedTasks} availableItems={availableTasks} onLink={(id) => onLink('task', id)} onUnlink={(id) => onUnlink('task', id)} onItemClick={(id) => onSwitchView('task', id)} />
                     <LinkingSection title="Linked Meetings" itemTypeLabel="meeting" linkedItems={linkedMeetings} availableItems={availableMeetings} onLink={(id) => onLink('meeting', id)} onUnlink={(id) => onUnlink('meeting', id)} onItemClick={(id) => onSwitchView('meeting', id)} />
                     <LinkingSection title="Linked Dealerships" itemTypeLabel="dealership" linkedItems={linkedDealerships} availableItems={availableDealerships} onLink={(id) => onLink('dealership', id)} onUnlink={(id) => onUnlink('dealership', id)} onItemClick={(id) => onSwitchView('dealership', id)} />

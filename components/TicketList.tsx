@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
+import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
@@ -7,7 +7,6 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { StarIcon } from './icons/StarIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
-import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
 import { PersonIcon } from './icons/PersonIcon.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
@@ -18,7 +17,6 @@ interface TicketTableProps {
   tickets: Ticket[];
   onRowClick: (ticket: Ticket) => void;
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
-  projects: Project[];
   onToggleFavorite: (ticketId: string) => void;
   selectedTicketIds: string[];
   onToggleSelection: (ticketId: string) => void;
@@ -110,7 +108,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 type TicketView = 'active' | 'onHold' | 'completed' | 'favorites';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection, onExport }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, onToggleFavorite, selectedTicketIds, onToggleSelection, onExport }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -177,7 +175,7 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
     const startDate = new Date(ticket.startDate);
     const endDate = new Date();
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 3600 * 24)) + 1;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
   };
@@ -317,7 +315,6 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
 
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
                         {linkedTicketsCount > 0 && <span title={`${linkedTicketsCount} linked ticket(s)`} className="flex items-center gap-1 text-yellow-600"><ReceiptLongIcon className="w-4 h-4" /><span className="text-xs font-medium">{linkedTicketsCount}</span></span>}
-                        {(ticket.projectIds?.length || 0) > 0 && <span title={`${ticket.projectIds?.length} linked project(s)`} className="flex items-center gap-1 text-red-600"><WorkspaceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.projectIds?.length}</span></span>}
                         {(ticket.taskIds?.length || 0) > 0 && <span title={`${ticket.taskIds?.length} linked task(s)`} className="flex items-center gap-1 text-green-600"><ChecklistIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.taskIds?.length}</span></span>}
                         {(ticket.meetingIds?.length || 0) > 0 && <span title={`${ticket.meetingIds?.length} linked meeting(s)`} className="flex items-center gap-1 text-blue-600"><DocumentTextIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.meetingIds?.length}</span></span>}
                         {(ticket.dealershipIds?.length || 0) > 0 && <span title={`${ticket.dealershipIds?.length} linked dealership(s)`} className="flex items-center gap-1 text-gray-600"><AccountBalanceIcon className="w-4 h-4" /><span className="text-xs font-medium">{ticket.dealershipIds?.length}</span></span>}

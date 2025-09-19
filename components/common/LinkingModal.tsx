@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal.tsx';
 import { SearchIcon } from '../icons/SearchIcon.tsx';

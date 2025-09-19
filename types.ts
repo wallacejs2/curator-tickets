@@ -78,13 +78,14 @@ export interface FeatureAnnouncement {
   supportUrl?: string;
   updates?: Update[];
   ticketIds?: string[];
-  projectIds?: string[];
   meetingIds?: string[];
   taskIds?: string[];
   dealershipIds?: string[];
   linkedFeatureIds?: string[];
   releaseIds?: string[];
   roadmapLane?: RoadmapLane;
+  // FIX: Add projectIds property
+  projectIds?: string[];
 }
 
 export interface Update {
@@ -123,16 +124,15 @@ export interface Task {
   subTasks?: Task[];
   linkedTaskIds?: string[];
   ticketIds?: string[];
-  projectIds?: string[];
   meetingIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
   shopperIds?: string[];
+  // FIX: Add projectIds property
+  projectIds?: string[];
 }
 
 export interface EnrichedTask extends Task {
-  projectId: string | null;
-  projectName?: string;
   ticketId: string | null;
   ticketTitle?: string;
 }
@@ -162,7 +162,6 @@ export interface Ticket {
   completionNotes?: string;
   onHoldReason?: string;
   isFavorite?: boolean;
-  projectIds?: string[];
   linkedTicketIds?: string[];
   meetingIds?: string[];
   taskIds?: string[];
@@ -172,6 +171,8 @@ export interface Ticket {
   releaseIds?: string[];
   contactIds?: string[];
   roadmapLane?: RoadmapLane;
+  // FIX: Add projectIds property
+  projectIds?: string[];
 }
 
 export interface IssueTicket extends Ticket {
@@ -190,31 +191,6 @@ export interface FeatureRequestTicket extends Ticket {
   benefits: string;
   impact?: PrioritizationScore;
   effort?: PrioritizationScore;
-}
-
-export enum ProjectStatus {
-  NotStarted = 'NotStarted',
-  InProgress = 'InProgress',
-  OnHold = 'OnHold',
-  Completed = 'Completed',
-}
-
-export interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: ProjectStatus;
-  tasks: Task[];
-  creationDate: string;
-  updates?: Update[];
-  involvedPeople?: string[];
-  ticketIds: string[];
-  meetingIds?: string[];
-  linkedProjectIds?: string[];
-  taskIds?: string[];
-  dealershipIds?: string[];
-  featureIds?: string[];
-  roadmapLane?: RoadmapLane;
 }
 
 export enum DealershipStatus {
@@ -261,12 +237,13 @@ export interface Dealership {
   updates?: Update[];
   groupIds?: string[];
   ticketIds?: string[];
-  projectIds?: string[];
   meetingIds?: string[];
   taskIds?: string[];
   linkedDealershipIds?: string[];
   featureIds?: string[];
   shopperIds?: string[];
+  // FIX: Add projectIds property
+  projectIds?: string[];
 }
 
 export interface DealershipGroup {
@@ -282,13 +259,14 @@ export interface Meeting {
   meetingDate: string;
   attendees: string[];
   notes: string;
-  projectIds?: string[];
   ticketIds?: string[];
   linkedMeetingIds?: string[];
   taskIds?: string[];
   dealershipIds?: string[];
   featureIds?: string[];
   updates?: Update[];
+  // FIX: Add projectIds property
+  projectIds?: string[];
 }
 
 export enum ContactType {
@@ -370,10 +348,35 @@ export interface Release {
   ticketIds?: string[];
 }
 
+// FIX: Add ProjectStatus enum
+export enum ProjectStatus {
+  NotStarted = 'NotStarted',
+  InProgress = 'InProgress',
+  OnHold = 'OnHold',
+  Completed = 'Completed',
+}
+
+// FIX: Add Project interface
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  creationDate: string;
+  tasks?: Task[];
+  involvedPeople?: string[];
+  ticketIds?: string[];
+  linkedProjectIds?: string[];
+  meetingIds?: string[];
+  taskIds?: string[];
+  dealershipIds?: string[];
+  featureIds?: string[];
+  updates?: Update[];
+}
+
 export type View =
   | 'dashboard'
   | 'tickets'
-  | 'projects'
   | 'dealerships'
   | 'tasks'
   | 'features'
@@ -388,7 +391,6 @@ export type View =
  */
 export type EntityType =
   | 'ticket'
-  | 'project'
   | 'task'
   | 'meeting'
   | 'dealership'
@@ -396,7 +398,9 @@ export type EntityType =
   | 'contact'
   | 'knowledge'
   | 'shopper'
-  | 'release';
+  | 'release'
+  // FIX: Add 'project' to EntityType
+  | 'project';
 
 export interface FilterState {
   searchTerm: string;

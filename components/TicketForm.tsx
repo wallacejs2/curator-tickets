@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project, PrioritizationScore } from '../types.ts';
+import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, PrioritizationScore } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS, PRIORITIZATION_SCORE_OPTIONS } from '../constants.ts';
 import { formatDisplayName } from '../utils.ts';
 
@@ -8,7 +8,6 @@ type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate' | '
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
-  projects: Project[];
 }
 
 interface FormData {
@@ -36,7 +35,6 @@ interface FormData {
   benefits: string;
   completionNotes: string;
   onHoldReason: string;
-  selectedProjectId: string;
   impact: PrioritizationScore;
   effort: PrioritizationScore;
 }
@@ -67,7 +65,6 @@ const getInitialState = (): FormData => {
     benefits: '',
     completionNotes: '',
     onHoldReason: '',
-    selectedProjectId: '',
     impact: PrioritizationScore.M,
     effort: PrioritizationScore.M,
   };
@@ -85,7 +82,7 @@ const FormSection: React.FC<{ title: string; children: React.ReactNode, gridCols
 );
 
 
-const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
+const TicketForm: React.FC<TicketFormProps> = ({ onSubmit }) => {
   const [formData, setFormData] = useState<FormData>(getInitialState());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -106,12 +103,11 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { type, selectedProjectId, ...rest } = formData;
+    const { type, ...rest } = formData;
 
     const dataToSubmit: any = {
       ...rest,
       startDate: rest.startDate ? new Date(`${rest.startDate}T00:00:00`).toISOString() : undefined,
-      projectIds: selectedProjectId ? [selectedProjectId] : [],
     };
     
     // Clean up reason fields if status doesn't require them
@@ -258,13 +254,6 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
             <label className={labelClasses}>Priority</label>
             <select name="priority" value={formData.priority} onChange={handleChange} className={formElementClasses}>
               {(formData.type === TicketType.Issue ? ISSUE_PRIORITY_OPTIONS : FEATURE_REQUEST_PRIORITY_OPTIONS).map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-        </div>
-        <div className="col-span-2">
-            <label className={labelClasses}>Project</label>
-            <select name="selectedProjectId" value={formData.selectedProjectId} onChange={handleChange} className={formElementClasses}>
-                <option value="">None</option>
-                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
         </div>
         {currentStatusHasReason && (
