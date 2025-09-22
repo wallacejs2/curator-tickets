@@ -96,7 +96,8 @@ const QuarterCard: React.FC<{ quarter: QuarterPlan; onCardClick: () => void; onE
 const QuartersView: React.FC<QuartersViewProps> = ({ quarters, onQuarterClick, onNewQuarterClick, onEditQuarterClick, onDeleteQuarterClick }) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const years = Array.from(new Set(quarters.map(q => q.year))).sort((a, b) => b - a);
+  // FIX: Explicitly type sort callback parameters to fix arithmetic operation error.
+  const years = Array.from(new Set(quarters.map(q => q.year))).sort((a: number, b: number) => b - a);
   if (!years.includes(selectedYear) && years.length > 0) {
       setSelectedYear(years[0]);
   } else if (years.length === 0 && !years.includes(new Date().getFullYear())) {

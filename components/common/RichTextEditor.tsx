@@ -12,8 +12,57 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
     
     const handleInput = () => {
         if (editorRef.current) {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const node = range.startContainer;
+                const offset = range.startOffset;
+
+                const textContentBeforeCursor = node.textContent?.slice(0, offset);
+                if (node.nodeType === Node.TEXT_NODE && (textContentBeforeCursor?.endsWith('* ') || textContentBeforeCursor?.endsWith('*\u00A0'))) {
+                    
+                    const textBeforeStar = textContentBeforeCursor.slice(0, -2);
+                    if (textBeforeStar.trim() === '') {
+                        const textNode = node as Text;
+                        
+                        textNode.textContent = textBeforeStar + textNode.textContent!.slice(offset);
+                        
+                        range.setStart(textNode, offset - 2);
+                        range.setEnd(textNode, offset - 2);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        
+                        document.execCommand('insertUnorderedList', false, undefined);
+                    }
+                }
+            }
+
             onChange(editorRef.current.innerHTML);
-            setIsPlaceholderVisible(!editorRef.current.textContent?.trim());
+            const hasContent = !!editorRef.current.textContent?.trim() || !!editorRef.current.querySelector('li, ul, ol, img');
+            setIsPlaceholderVisible(!hasContent);
+        }
+    };
+
+     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === 'Tab') {
+            const selection = window.getSelection();
+            if (selection && selection.anchorNode) {
+                let node: Node | null = selection.anchorNode;
+                let inListItem = false;
+                while (node && node !== editorRef.current) {
+                    if (node.nodeName === 'LI') {
+                        inListItem = true;
+                        break;
+                    }
+                    node = node.parentNode;
+                }
+
+                if (inListItem) {
+                    e.preventDefault();
+                    const command = e.shiftKey ? 'outdent' : 'indent';
+                    document.execCommand(command, false, undefined);
+                }
+            }
         }
     };
     
@@ -38,7 +87,10 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
     useEffect(() => {
         if (editorRef.current && editorRef.current.innerHTML !== value) {
             editorRef.current.innerHTML = value;
-            setIsPlaceholderVisible(!editorRef.current.textContent?.trim());
+        }
+        if(editorRef.current) {
+            const hasContent = !!editorRef.current.textContent?.trim() || !!editorRef.current.querySelector('li, ul, ol, img');
+            setIsPlaceholderVisible(!hasContent);
         }
     }, [value]);
     
@@ -73,7 +125,9 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
                 </button>
                 <button type="button" onClick={() => handleFormat('insertOrderedList')} className={toolbarButtonClasses} aria-label="Numbered List">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16"><path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5"/><path d="M1.713 11.865v-.474H2c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.954.773 0 .448-.285.722-.885.722h-.342v.474z"/><path d="M3.652 7.332v-.474H4c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.954.773 0 .448-.285.722-.885.722h-.342v.474z"/><path d="M2.24 3.862v.428h.832v-.428h.633V5.1h-.633v.569h-.832v-.569H1.41V3.862z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                        <path fillRule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5"/><path d="M1.713 11.865v-.474H2c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.954.773 0 .448-.285.722-.885.722h-.342v.474z"/><path d="M3.652 7.332v-.474H4c.217 0 .363-.137.363-.317 0-.185-.158-.31-.361-.31-.223 0-.367.152-.373.31h-.59c.016-.467.373-.787.986-.787.588-.002.954.291.954.773 0 .448-.285.722-.885.722h-.342v.474z"/><path d="M2.24 3.862v.428h.832v-.428h.633V5.1h-.633v.569h-.832v-.569H1.41V3.862z"/>
+                    </svg>
                 </button>
                 <div className="h-6 w-px bg-gray-300 mx-1"></div>
                 <button type="button" onClick={handleLink} className={toolbarButtonClasses} aria-label="Create Link"><LinkIcon className="w-5 h-5"/></button>
@@ -86,6 +140,7 @@ const RichTextEditor: React.FC<{ value: string, onChange: (value: string) => voi
                 ref={editorRef}
                 contentEditable
                 onInput={handleInput}
+                onKeyDown={handleKeyDown}
                 className="w-full text-sm p-3 min-h-[250px] focus:outline-none rich-text-content text-gray-900"
                 role="textbox"
                 aria-multiline="true"

@@ -131,7 +131,8 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
   const [projectView, setProjectView] = useState<'active' | 'completed'>('active');
 
   const { activeProjects, completedProjects } = useMemo(() => {
-    return projects.reduce<{ activeProjects: Project[]; completedProjects: Project[] }>(
+    // FIX: Removed invalid generic type argument from reduce call.
+    return projects.reduce(
       (acc, project) => {
         if (project.status === ProjectStatus.Completed) {
           acc.completedProjects.push(project);
@@ -140,7 +141,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, onProjectClick, tic
         }
         return acc;
       },
-      { activeProjects: [], completedProjects: [] }
+      { activeProjects: [] as Project[], completedProjects: [] as Project[] }
     );
   }, [projects]);
   

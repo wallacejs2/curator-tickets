@@ -289,7 +289,8 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
   const [managingGroup, setManagingGroup] = useState<DealershipGroup | null>(null);
 
   const { activeDealerships, cancelledDealerships } = useMemo(() => {
-    return dealerships.reduce<{ activeDealerships: Dealership[]; cancelledDealerships: Dealership[] }>(
+    // FIX: Removed invalid generic type argument from reduce call.
+    return dealerships.reduce(
       (acc, dealership) => {
         if (dealership.status === DealershipStatus.Cancelled) {
           acc.cancelledDealerships.push(dealership);
@@ -298,7 +299,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
         }
         return acc;
       },
-      { activeDealerships: [], cancelledDealerships: [] }
+      { activeDealerships: [] as Dealership[], cancelledDealerships: [] as Dealership[] }
     );
   }, [dealerships]);
 
