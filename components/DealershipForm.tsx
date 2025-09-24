@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink } from '../types.ts';
 import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
@@ -41,6 +42,8 @@ const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
     eraSystemId: '',
     ppSysId: '',
     buId: '',
+    useCustomEquityProvider: false,
+    equityBookProvider: '',
     address: '',
     assignedSpecialist: '',
     sales: '',
@@ -165,6 +168,21 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
           <div><label className={labelClasses}>ERA System ID</label><input type="text" name="eraSystemId" value={formData.eraSystemId || ''} onChange={handleChange} className={formElementClasses} /></div>
           <div><label className={labelClasses}>PPSysID</label><input type="text" name="ppSysId" value={formData.ppSysId || ''} onChange={handleChange} className={formElementClasses} /></div>
           <div><label className={labelClasses}>BU-ID</label><input type="text" name="buId" value={formData.buId || ''} onChange={handleChange} className={formElementClasses} /></div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className="flex items-center text-sm mb-1 h-5">
+                <input type="checkbox" name="useCustomEquityProvider" checked={!!formData.useCustomEquityProvider} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/>
+                <span className="ml-2 text-gray-800">Use Custom Provider</span>
+            </label>
+            <input 
+              type="text" 
+              name="equityBookProvider" 
+              value={formData.equityBookProvider || ''} 
+              onChange={handleChange} 
+              className={`${formElementClasses} disabled:bg-gray-200 disabled:text-gray-500`}
+              disabled={!formData.useCustomEquityProvider}
+              placeholder={!formData.useCustomEquityProvider ? "Fullpath KBB (Default)" : "Provider name..."}
+            />
+          </div>
       </FormSection>
 
       <FormSection title="Website Links" gridCols={1}>

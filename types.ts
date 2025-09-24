@@ -222,6 +222,8 @@ export interface Dealership {
     eraSystemId?: string;
     ppSysId?: string;
     buId?: string;
+    useCustomEquityProvider?: boolean;
+    equityBookProvider?: string;
     address?: string;
     assignedSpecialist?: string;
     sales?: string;

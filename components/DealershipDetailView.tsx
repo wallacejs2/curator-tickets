@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -180,12 +181,13 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('ERA System ID', dealership.eraSystemId);
         appendField('PPSysID', dealership.ppSysId);
         appendField('BU-ID', dealership.buId);
+        appendField('Equity Book Provider', dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)');
 
         if (dealership.updates && dealership.updates.length > 0) {
             appendSection(`Updates (${dealership.updates.length})`);
             [...dealership.updates].reverse().forEach(update => {
                 const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n').trim();
-                content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n`;
+                content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
             });
         }
         
@@ -271,6 +273,10 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="ERA System ID" value={dealership.eraSystemId} />
                     <DetailField label="PPSysID" value={dealership.ppSysId} />
                     <DetailField label="BU-ID" value={dealership.buId} />
+                    <DetailField 
+                        label="Equity Book Provider" 
+                        value={dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)'} 
+                    />
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
