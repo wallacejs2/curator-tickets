@@ -1,6 +1,3 @@
-
-
-
 import React, { useState } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -148,6 +145,10 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
+        appendField('Old Price', dealership.oldPrice != null ? `$${dealership.oldPrice.toLocaleString()}` : undefined);
+        appendField('New Price', dealership.newPrice != null ? `$${dealership.newPrice.toLocaleString()}` : undefined);
+        appendField('Texting Price', dealership.textingPrice != null ? `$${dealership.textingPrice.toLocaleString()}` : undefined);
+        appendField('Managed Price', dealership.managedPrice != null ? `$${dealership.managedPrice.toLocaleString()}` : undefined);
         appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
@@ -246,6 +247,10 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="Account Name" value={dealership.name} />
                     <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
                     <DetailTag label="Status" value={dealership.status} />
+                    <DetailField label="Old Price" value={dealership.oldPrice != null ? `$${dealership.oldPrice.toLocaleString()}` : 'N/A'} />
+                    <DetailField label="New Price" value={dealership.newPrice != null ? `$${dealership.newPrice.toLocaleString()}` : 'N/A'} />
+                    <DetailField label="Texting Price" value={dealership.textingPrice != null ? `$${dealership.textingPrice.toLocaleString()}` : 'N/A'} />
+                    <DetailField label="Managed Price" value={dealership.managedPrice != null ? `$${dealership.managedPrice.toLocaleString()}` : 'N/A'} />
                     <DetailField label="Managed Solution" value={dealership.hasManagedSolution ? 'Yes' : 'No'} />
                     <DetailField label="Previously Fullpath Customer" value={dealership.wasFullpathCustomer ? 'Yes' : 'No'} />
                 </div>

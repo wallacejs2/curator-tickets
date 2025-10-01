@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink } from '../types.ts';
 import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
@@ -30,6 +28,10 @@ const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
     name: '',
     accountNumber: '',
     status: DealershipStatus.Prospect,
+    oldPrice: undefined,
+    newPrice: undefined,
+    textingPrice: undefined,
+    managedPrice: undefined,
     hasManagedSolution: false,
     wasFullpathCustomer: false,
     orderNumber: '',
@@ -116,6 +118,10 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     e.preventDefault();
     const submissionData = {
       ...formData,
+      oldPrice: formData.oldPrice === '' || formData.oldPrice == null ? undefined : parseFloat(String(formData.oldPrice)),
+      newPrice: formData.newPrice === '' || formData.newPrice == null ? undefined : parseFloat(String(formData.newPrice)),
+      textingPrice: formData.textingPrice === '' || formData.textingPrice == null ? undefined : parseFloat(String(formData.textingPrice)),
+      managedPrice: formData.managedPrice === '' || formData.managedPrice == null ? undefined : parseFloat(String(formData.managedPrice)),
       orderReceivedDate: formData.orderReceivedDate ? new Date(`${formData.orderReceivedDate}T00:00:00`).toISOString() : undefined,
       goLiveDate: formData.goLiveDate ? new Date(`${formData.goLiveDate}T00:00:00`).toISOString() : undefined,
       termDate: formData.termDate ? new Date(`${formData.termDate}T00:00:00`).toISOString() : undefined,
@@ -139,7 +145,59 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         <div><label className={labelClasses}>Dealership Name</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Account Number (CIF)</label><input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Status</label><select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>{DEALERSHIP_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
-        <div><label className={labelClasses}>Enterprise (Group)</label><input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div>
+            <label className={labelClasses}>Old Price ($)</label>
+            <input 
+                type="number" 
+                name="oldPrice" 
+                value={formData.oldPrice ?? ''} 
+                onChange={handleChange} 
+                className={formElementClasses} 
+                placeholder="e.g., 2000" 
+                min="0"
+                step="0.01"
+            />
+        </div>
+        <div>
+            <label className={labelClasses}>New Price ($)</label>
+            <input 
+                type="number" 
+                name="newPrice" 
+                value={formData.newPrice ?? ''} 
+                onChange={handleChange} 
+                className={formElementClasses} 
+                placeholder="e.g., 2500" 
+                min="0"
+                step="0.01"
+            />
+        </div>
+        <div>
+            <label className={labelClasses}>Texting Price ($)</label>
+            <input 
+                type="number" 
+                name="textingPrice" 
+                value={formData.textingPrice ?? ''} 
+                onChange={handleChange} 
+                className={formElementClasses} 
+                placeholder="e.g., 150" 
+                min="0"
+                step="0.01"
+            />
+        </div>
+        <div>
+            <label className={labelClasses}>Managed Price ($)</label>
+            <input 
+                type="number" 
+                name="managedPrice" 
+                value={formData.managedPrice ?? ''} 
+                onChange={handleChange} 
+                className={formElementClasses} 
+                placeholder="e.g., 500" 
+                min="0"
+                step="0.01"
+            />
+        </div>
+        <div className="col-span-2"><label className={labelClasses}>Enterprise (Group)</label><input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div className="col-span-2"><label className={labelClasses}>Address</label><input type="text" name="address" value={formData.address || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div className="col-span-2 flex items-center gap-6">
           <label className="flex items-center text-sm"><input type="checkbox" name="hasManagedSolution" checked={formData.hasManagedSolution} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Has Managed Solution</span></label>

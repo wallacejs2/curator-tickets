@@ -210,6 +210,10 @@ export interface Dealership {
     name: string;
     accountNumber: string;
     status: DealershipStatus;
+    oldPrice?: number;
+    newPrice?: number;
+    textingPrice?: number;
+    managedPrice?: number;
     hasManagedSolution?: boolean;
     wasFullpathCustomer?: boolean;
     orderNumber?: string;

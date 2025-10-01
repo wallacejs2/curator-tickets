@@ -1222,6 +1222,10 @@ function App() {
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
+        appendField('Old Price', dealership.oldPrice != null ? `$${dealership.oldPrice.toLocaleString()}` : undefined);
+        appendField('New Price', dealership.newPrice != null ? `$${dealership.newPrice.toLocaleString()}` : undefined);
+        appendField('Texting Price', dealership.textingPrice != null ? `$${dealership.textingPrice.toLocaleString()}` : undefined);
+        appendField('Managed Price', dealership.managedPrice != null ? `$${dealership.managedPrice.toLocaleString()}` : undefined);
         appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
