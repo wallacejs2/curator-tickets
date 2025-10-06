@@ -9,7 +9,7 @@ import PerformanceInsights from './components/PerformanceInsights.tsx';
 import { DownloadIcon } from './components/icons/DownloadIcon.tsx';
 import { PlusIcon } from './components/icons/PlusIcon.tsx';
 import { MenuIcon } from './components/icons/MenuIcon.tsx';
-import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, PLATFORM_OPTIONS, DEALERSHIP_STATUS_OPTIONS } from './constants.ts';
+import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, PLATFORM_OPTIONS, DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from './constants.ts';
 import { TrashIcon } from './components/icons/TrashIcon.tsx';
 import Modal from './components/common/Modal.tsx';
 import { EmailIcon } from './components/icons/EmailIcon.tsx';
@@ -1222,13 +1222,21 @@ function App() {
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
-        appendField('Old Price', dealership.oldPrice != null ? `$${dealership.oldPrice.toLocaleString()}` : undefined);
-        appendField('New Price', dealership.newPrice != null ? `$${dealership.newPrice.toLocaleString()}` : undefined);
-        appendField('Texting Price', dealership.textingPrice != null ? `$${dealership.textingPrice.toLocaleString()}` : undefined);
-        appendField('Managed Price', dealership.managedPrice != null ? `$${dealership.managedPrice.toLocaleString()}` : undefined);
         appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
+
+        if (dealership.products && dealership.products.length > 0) {
+            appendSection('Pricing');
+            dealership.products.forEach((p, index) => {
+                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
+                if (productInfo) {
+                    content += `Product ${index + 1}: ${productInfo.id} | ${productInfo.name}\n`;
+                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
+                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
+                }
+            });
+        }
 
         appendSection('Key Contacts');
         appendField('Assigned Specialist', dealership.assignedSpecialist);

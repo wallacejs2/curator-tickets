@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper } from '../types.ts';
+import React, { useState, useMemo } from 'react';
+import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper, ProductPricing } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -7,6 +7,7 @@ import DealershipForm from './DealershipForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
+import { PRODUCTS } from '../constants.ts';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
 
@@ -65,6 +66,21 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   </div>
 );
 
+const ProductPricingInfo: React.FC<{ productPricing: ProductPricing }> = ({ productPricing }) => {
+    const productInfo = PRODUCTS.find(p => p.id === productPricing.productId);
+    if (!productInfo) {
+        return <div className="p-3 bg-red-50 text-red-700 rounded-md">Unknown Product (ID: {productPricing.productId})</div>;
+    }
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-md border">
+            <div className="sm:col-span-1"><DetailField label="Product" value={`${productInfo.id} | ${productInfo.name}`} /></div>
+            <div className="sm:col-span-1"><DetailField label="Fixed Price" value={`$${productInfo.fixedPrice.toLocaleString()}`} /></div>
+            <div className="sm:col-span-1"><DetailField label="Selling Price" value={productPricing.sellingPrice != null ? `$${productPricing.sellingPrice.toLocaleString()}` : 'N/A'} /></div>
+        </div>
+    );
+};
+
+
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
     dealership, onUpdate, onDelete, onExport, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
@@ -80,6 +96,24 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const [editedComment, setEditedComment] = useState('');
     
     const MAX_COMMENT_LENGTH = 2000;
+
+    const { totalFixedPrice, totalSellingPrice } = useMemo(() => {
+        if (!dealership.products || dealership.products.length === 0) {
+            return { totalFixedPrice: 0, totalSellingPrice: 0 };
+        }
+    
+        return dealership.products.reduce(
+            (totals, productPricing) => {
+                const productInfo = PRODUCTS.find(p => p.id === productPricing.productId);
+                if (productInfo) {
+                    totals.totalFixedPrice += productInfo.fixedPrice;
+                    totals.totalSellingPrice += productPricing.sellingPrice ?? 0;
+                }
+                return totals;
+            },
+            { totalFixedPrice: 0, totalSellingPrice: 0 }
+        );
+    }, [dealership.products]);
 
     const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A';
     
@@ -145,13 +179,21 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
-        appendField('Old Price', dealership.oldPrice != null ? `$${dealership.oldPrice.toLocaleString()}` : undefined);
-        appendField('New Price', dealership.newPrice != null ? `$${dealership.newPrice.toLocaleString()}` : undefined);
-        appendField('Texting Price', dealership.textingPrice != null ? `$${dealership.textingPrice.toLocaleString()}` : undefined);
-        appendField('Managed Price', dealership.managedPrice != null ? `$${dealership.managedPrice.toLocaleString()}` : undefined);
         appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
+        
+        if (dealership.products && dealership.products.length > 0) {
+            appendSection('Pricing');
+            dealership.products.forEach((p, index) => {
+                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
+                if (productInfo) {
+                    content += `Product ${index + 1}: ${productInfo.id} | ${productInfo.name}\n`;
+                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
+                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
+                }
+            });
+        }
         
         appendSection('Key Contacts');
         appendField('Assigned Specialist', dealership.assignedSpecialist);
@@ -247,10 +289,31 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     <DetailField label="Account Name" value={dealership.name} />
                     <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
                     <DetailTag label="Status" value={dealership.status} />
-                    <DetailField label="Old Price" value={dealership.oldPrice != null ? `$${dealership.oldPrice.toLocaleString()}` : 'N/A'} />
-                    <DetailField label="New Price" value={dealership.newPrice != null ? `$${dealership.newPrice.toLocaleString()}` : 'N/A'} />
-                    <DetailField label="Texting Price" value={dealership.textingPrice != null ? `$${dealership.textingPrice.toLocaleString()}` : 'N/A'} />
-                    <DetailField label="Managed Price" value={dealership.managedPrice != null ? `$${dealership.managedPrice.toLocaleString()}` : 'N/A'} />
+                </div>
+                
+                <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Pricing</h3>
+                    <div className="space-y-3">
+                        {(dealership.products && dealership.products.length > 0) ? (
+                            <>
+                                {dealership.products.map(p => <ProductPricingInfo key={p.id} productPricing={p} />)}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 mt-4 border-t-2 border-gray-300">
+                                    <div className="sm:col-span-1 font-bold text-gray-800 text-lg flex items-end pb-1">Total</div>
+                                    <div className="sm:col-span-1">
+                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Fixed Price</h4>
+                                        <p className="text-lg font-bold text-gray-900 mt-1">{`$${totalFixedPrice.toLocaleString()}`}</p>
+                                    </div>
+                                    <div className="sm:col-span-1">
+                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Selling Price</h4>
+                                        <p className="text-lg font-bold text-gray-900 mt-1">{`$${totalSellingPrice.toLocaleString()}`}</p>
+                                    </div>
+                                </div>
+                            </>
+                        ) : <p className="text-sm text-gray-500 italic">No products added.</p>}
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <DetailField label="Managed Solution" value={dealership.hasManagedSolution ? 'Yes' : 'No'} />
                     <DetailField label="Previously Fullpath Customer" value={dealership.wasFullpathCustomer ? 'Yes' : 'No'} />
                 </div>

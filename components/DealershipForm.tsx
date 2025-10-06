@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink } from '../types.ts';
-import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink, ProductPricing, Product } from '../types.ts';
+import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 
@@ -28,10 +28,7 @@ const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
     name: '',
     accountNumber: '',
     status: DealershipStatus.Prospect,
-    oldPrice: undefined,
-    newPrice: undefined,
-    textingPrice: undefined,
-    managedPrice: undefined,
+    products: [],
     hasManagedSolution: false,
     wasFullpathCustomer: false,
     orderNumber: '',
@@ -61,6 +58,14 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
   const [formData, setFormData] = useState(getInitialState());
   const isEditing = !!dealershipToEdit;
 
+  const groupedProducts = useMemo(() => {
+    // FIX: Refactored reduce for better type safety to prevent potential type inference issues.
+    return PRODUCTS.reduce<Record<Product['category'], Product[]>>((acc, product) => {
+        (acc[product.category] = acc[product.category] || []).push(product);
+        return acc;
+    }, { New: [], Old: [] });
+  }, []);
+
   useEffect(() => {
     if (dealershipToEdit) {
       setFormData({
@@ -70,6 +75,7 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         goLiveDate: dealershipToEdit.goLiveDate?.split('T')[0] || '',
         termDate: dealershipToEdit.termDate?.split('T')[0] || '',
         websiteLinks: dealershipToEdit.websiteLinks?.length ? dealershipToEdit.websiteLinks : [{ url: '', clientId: '' }],
+        products: dealershipToEdit.products || [],
       });
     } else {
       setFormData(getInitialState());
@@ -82,6 +88,42 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleProductChange = (index: number, field: keyof ProductPricing, value: string) => {
+    const newProducts = [...(formData.products || [])];
+    const product = { ...newProducts[index] };
+    
+    if (field === 'productId') {
+        product.productId = value;
+        const selectedProduct = PRODUCTS.find(p => p.id === value);
+        product.sellingPrice = selectedProduct?.fixedPrice; // Default selling price to fixed price
+    } else if (field === 'sellingPrice') {
+        // Allow clearing the field
+        product.sellingPrice = value === '' ? undefined : parseFloat(value);
+    }
+
+    newProducts[index] = product;
+    setFormData(prev => ({ ...prev, products: newProducts }));
+  };
+
+  const addProduct = () => {
+    const newProduct: ProductPricing = {
+        id: crypto.randomUUID(),
+        productId: '',
+        sellingPrice: undefined,
+    };
+    setFormData(prev => ({
+        ...prev,
+        products: [...(prev.products || []), newProduct]
+    }));
+  };
+
+  const removeProduct = (id: string) => {
+    setFormData(prev => ({
+        ...prev,
+        products: (prev.products || []).filter(p => p.id !== id)
     }));
   };
   
@@ -118,10 +160,11 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     e.preventDefault();
     const submissionData = {
       ...formData,
-      oldPrice: formData.oldPrice === '' || formData.oldPrice == null ? undefined : parseFloat(String(formData.oldPrice)),
-      newPrice: formData.newPrice === '' || formData.newPrice == null ? undefined : parseFloat(String(formData.newPrice)),
-      textingPrice: formData.textingPrice === '' || formData.textingPrice == null ? undefined : parseFloat(String(formData.textingPrice)),
-      managedPrice: formData.managedPrice === '' || formData.managedPrice == null ? undefined : parseFloat(String(formData.managedPrice)),
+      products: (formData.products || []).filter(p => p.productId).map(p => ({
+        ...p,
+        // FIX: Removed incorrect type comparison. `p.sellingPrice` is `number | undefined`, so it can never be `''`. The `== null` check correctly handles `null` and `undefined`.
+        sellingPrice: p.sellingPrice == null ? undefined : parseFloat(String(p.sellingPrice))
+      })),
       orderReceivedDate: formData.orderReceivedDate ? new Date(`${formData.orderReceivedDate}T00:00:00`).toISOString() : undefined,
       goLiveDate: formData.goLiveDate ? new Date(`${formData.goLiveDate}T00:00:00`).toISOString() : undefined,
       termDate: formData.termDate ? new Date(`${formData.termDate}T00:00:00`).toISOString() : undefined,
@@ -145,65 +188,59 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         <div><label className={labelClasses}>Dealership Name</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Account Number (CIF)</label><input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Status</label><select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>{DEALERSHIP_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
-        <div>
-            <label className={labelClasses}>Old Price ($)</label>
-            <input 
-                type="number" 
-                name="oldPrice" 
-                value={formData.oldPrice ?? ''} 
-                onChange={handleChange} 
-                className={formElementClasses} 
-                placeholder="e.g., 2000" 
-                min="0"
-                step="0.01"
-            />
-        </div>
-        <div>
-            <label className={labelClasses}>New Price ($)</label>
-            <input 
-                type="number" 
-                name="newPrice" 
-                value={formData.newPrice ?? ''} 
-                onChange={handleChange} 
-                className={formElementClasses} 
-                placeholder="e.g., 2500" 
-                min="0"
-                step="0.01"
-            />
-        </div>
-        <div>
-            <label className={labelClasses}>Texting Price ($)</label>
-            <input 
-                type="number" 
-                name="textingPrice" 
-                value={formData.textingPrice ?? ''} 
-                onChange={handleChange} 
-                className={formElementClasses} 
-                placeholder="e.g., 150" 
-                min="0"
-                step="0.01"
-            />
-        </div>
-        <div>
-            <label className={labelClasses}>Managed Price ($)</label>
-            <input 
-                type="number" 
-                name="managedPrice" 
-                value={formData.managedPrice ?? ''} 
-                onChange={handleChange} 
-                className={formElementClasses} 
-                placeholder="e.g., 500" 
-                min="0"
-                step="0.01"
-            />
-        </div>
-        <div className="col-span-2"><label className={labelClasses}>Enterprise (Group)</label><input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div><label className={labelClasses}>Enterprise (Group)</label><input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div className="col-span-2"><label className={labelClasses}>Address</label><input type="text" name="address" value={formData.address || ''} onChange={handleChange} className={formElementClasses} /></div>
-        <div className="col-span-2 flex items-center gap-6">
-          <label className="flex items-center text-sm"><input type="checkbox" name="hasManagedSolution" checked={formData.hasManagedSolution} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Has Managed Solution</span></label>
-          <label className="flex items-center text-sm"><input type="checkbox" name="wasFullpathCustomer" checked={formData.wasFullpathCustomer} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Was Fullpath Customer</span></label>
+      </FormSection>
+
+      <FormSection title="Pricing" gridCols={1}>
+        <div className="space-y-4">
+            {(formData.products || []).map((product, index) => {
+                const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
+                return (
+                    <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
+                        <div>
+                            <label className={labelClasses}>Product</label>
+                            <select value={product.productId} onChange={(e) => handleProductChange(index, 'productId', e.target.value)} className={formElementClasses}>
+                                <option value="">-- Select a Product --</option>
+                                {Object.entries(groupedProducts).map(([category, products]) => (
+                                    <optgroup label={category} key={category}>
+                                        {products.map(p => <option key={p.id} value={p.id}>{p.id} | {p.name}</option>)}
+                                    </optgroup>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className={labelClasses}>Fixed Price</label>
+                            <div className="mt-1 h-9 flex items-center px-3 text-sm text-gray-600 bg-gray-200 rounded-sm border border-gray-300">
+                                {selectedProduct ? `$${selectedProduct.fixedPrice.toLocaleString()}` : 'N/A'}
+                            </div>
+                        </div>
+                         <div>
+                            <label className={labelClasses}>Selling Price ($)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={product.sellingPrice ?? ''}
+                                onChange={(e) => handleProductChange(index, 'sellingPrice', e.target.value)}
+                                className={formElementClasses}
+                                placeholder="e.g., 2500"
+                            />
+                        </div>
+                        <button type="button" onClick={() => removeProduct(product.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-1"><TrashIcon className="w-5 h-5"/></button>
+                    </div>
+                )
+            })}
+             <button type="button" onClick={addProduct} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 mt-2">
+                <PlusIcon className="w-4 h-4" /> Add Product
+            </button>
         </div>
       </FormSection>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5 mb-6">
+          <label className="flex items-center text-sm"><input type="checkbox" name="hasManagedSolution" checked={formData.hasManagedSolution} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Has Managed Solution</span></label>
+          <label className="flex items-center text-sm"><input type="checkbox" name="wasFullpathCustomer" checked={formData.wasFullpathCustomer} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Was Fullpath Customer</span></label>
+      </div>
 
       <FormSection title="Key Contacts">
           <div><label className={labelClasses}>Assigned Specialist</label><input type="text" name="assignedSpecialist" value={formData.assignedSpecialist || ''} onChange={handleChange} className={formElementClasses} /></div>

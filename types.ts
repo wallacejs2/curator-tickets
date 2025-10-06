@@ -205,15 +205,26 @@ export interface WebsiteLink {
   clientId?: string;
 }
 
+export interface Product {
+  id: string;
+  name: string;
+  fixedPrice: number;
+  category: 'Old' | 'New';
+}
+
+export interface ProductPricing {
+  id: string;
+  productId: string;
+  sellingPrice?: number;
+}
+
+
 export interface Dealership {
     id: string;
     name: string;
     accountNumber: string;
     status: DealershipStatus;
-    oldPrice?: number;
-    newPrice?: number;
-    textingPrice?: number;
-    managedPrice?: number;
+    products?: ProductPricing[];
     hasManagedSolution?: boolean;
     wasFullpathCustomer?: boolean;
     orderNumber?: string;
