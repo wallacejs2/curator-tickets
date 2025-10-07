@@ -55,7 +55,8 @@ const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
 
 
 const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onClose, dealershipToEdit, allGroups }) => {
-  const [formData, setFormData] = useState(getInitialState());
+  // FIX: Explicitly type the formData state with Partial<Dealership> to fix type inference issues.
+  const [formData, setFormData] = useState<Partial<Dealership>>(getInitialState());
   const isEditing = !!dealershipToEdit;
 
   const groupedProducts = useMemo(() => {

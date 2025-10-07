@@ -292,20 +292,19 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 </div>
                 
                 <div className="border-t border-gray-200 pt-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Pricing</h3>
                     <div className="space-y-3">
                         {(dealership.products && dealership.products.length > 0) ? (
                             <>
                                 {dealership.products.map(p => <ProductPricingInfo key={p.id} productPricing={p} />)}
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 mt-4 border-t-2 border-gray-300">
-                                    <div className="sm:col-span-1 font-bold text-gray-800 text-lg flex items-end pb-1">Total</div>
+                                    <div className="sm:col-span-1 font-bold text-gray-800 text-base flex items-end pb-1">Total</div>
                                     <div className="sm:col-span-1">
                                         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Fixed Price</h4>
-                                        <p className="text-lg font-bold text-gray-900 mt-1">{`$${totalFixedPrice.toLocaleString()}`}</p>
+                                        <p className="text-sm font-semibold text-gray-900 mt-1">{`$${totalFixedPrice.toLocaleString()}`}</p>
                                     </div>
                                     <div className="sm:col-span-1">
                                         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Selling Price</h4>
-                                        <p className="text-lg font-bold text-gray-900 mt-1">{`$${totalSellingPrice.toLocaleString()}`}</p>
+                                        <p className="text-sm font-semibold text-gray-900 mt-1">{`$${totalSellingPrice.toLocaleString()}`}</p>
                                     </div>
                                 </div>
                             </>
