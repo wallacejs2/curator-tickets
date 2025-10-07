@@ -114,6 +114,8 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
             { totalFixedPrice: 0, totalSellingPrice: 0 }
         );
     }, [dealership.products]);
+    
+    const dealershipMemberOfGroups = useMemo(() => allGroups.filter(g => (dealership.groupIds || []).includes(g.id)), [allGroups, dealership.groupIds]);
 
     const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A';
     
@@ -179,28 +181,16 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
-        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
+        
+        appendSection('Organization Details');
         appendField('Enterprise (Group)', dealership.enterprise);
+        appendField('Store Number', dealership.storeNumber);
+        appendField('Branch Number', dealership.branchNumber);
+        appendField('ERA System ID', dealership.eraSystemId);
+        appendField('PPSysID', dealership.ppSysId);
+        appendField('BU-ID', dealership.buId);
+        appendField('Equity Book Provider', dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)');
         appendField('Address', dealership.address);
-        
-        if (dealership.products && dealership.products.length > 0) {
-            appendSection('Pricing');
-            dealership.products.forEach((p, index) => {
-                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
-                if (productInfo) {
-                    content += `Product ${index + 1}: ${productInfo.id} | ${productInfo.name}\n`;
-                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
-                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
-                }
-            });
-        }
-        
-        appendSection('Key Contacts');
-        appendField('Assigned Specialist', dealership.assignedSpecialist);
-        appendField('Sales', dealership.sales);
-        appendField('POC Name', dealership.pocName);
-        appendField('POC Email', dealership.pocEmail);
-        appendField('POC Phone', dealership.pocPhone);
 
         if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
             appendSection('Website Links');
@@ -212,19 +202,33 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
             });
         }
         
-        appendSection('Order & Dates');
+        appendSection('Customer Status');
+        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
+        
+        appendSection('Team & Contacts');
+        appendField('Assigned Specialist', dealership.assignedSpecialist);
+        appendField('Sales', dealership.sales);
+        appendField('POC Name', dealership.pocName);
+        appendField('POC Email', dealership.pocEmail);
+        appendField('POC Phone', dealership.pocPhone);
+        
+        appendSection('Order Timeline');
         appendField('Order Number', dealership.orderNumber);
         appendDateField('Order Received Date', dealership.orderReceivedDate);
         appendDateField('Go-Live Date', dealership.goLiveDate);
         appendDateField('Term Date', dealership.termDate);
-        
-        appendSection('Identifiers');
-        appendField('Store Number', dealership.storeNumber);
-        appendField('Branch Number', dealership.branchNumber);
-        appendField('ERA System ID', dealership.eraSystemId);
-        appendField('PPSysID', dealership.ppSysId);
-        appendField('BU-ID', dealership.buId);
-        appendField('Equity Book Provider', dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)');
+
+        if (dealership.products && dealership.products.length > 0) {
+            appendSection('Pricing');
+            dealership.products.forEach((p, index) => {
+                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
+                if (productInfo) {
+                    content += `Product ${index + 1}: ${productInfo.id} | ${productInfo.name}\n`;
+                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
+                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
+                }
+            });
+        }
 
         if (dealership.updates && dealership.updates.length > 0) {
             appendSection(`Updates (${dealership.updates.length})`);
@@ -285,12 +289,75 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
             )}
 
             <div className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <DetailField label="Account Name" value={dealership.name} />
-                    <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
-                    <DetailTag label="Status" value={dealership.status} />
+                <div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <DetailField label="Account Name" value={dealership.name} />
+                        <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
+                        <DetailTag label="Status" value={dealership.status} />
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <DetailField label="Enterprise (Group)" value={dealership.enterprise} />
+                        <DetailField label="Store Number" value={dealership.storeNumber} />
+                        <DetailField label="Branch Number" value={dealership.branchNumber} />
+                        <DetailField label="ERA System ID" value={dealership.eraSystemId} />
+                        <DetailField label="PPSysID" value={dealership.ppSysId} />
+                        <DetailField label="BU-ID" value={dealership.buId} />
+                        <DetailField 
+                            label="Equity Book Provider" 
+                            value={dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)'} 
+                        />
+                        <div className="sm:col-span-3">
+                            <DetailField label="Address" value={dealership.address} />
+                        </div>
+                        <div className="sm:col-span-3">
+                            <DetailField label="Groups" value={dealershipMemberOfGroups.length > 0 ? dealershipMemberOfGroups.map(g => g.name).join(', ') : 'N/A'} />
+                        </div>
+                    </div>
                 </div>
                 
+                <div className="border-t border-gray-200 pt-6">
+                    {(dealership.websiteLinks && dealership.websiteLinks.length > 0) ? (
+                        <ul className="space-y-2">
+                            {dealership.websiteLinks.map((link, index) => (
+                                <li key={index} className="p-2 bg-gray-50 rounded-md border">
+                                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{link.url}</a>
+                                    {link.clientId && <p className="text-xs text-gray-600 mt-1">Client ID: <span className="font-medium">{link.clientId}</span></p>}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : <p className="text-sm text-gray-500 italic">No website links added.</p>}
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <DetailField label="Managed Solution" value={dealership.hasManagedSolution ? 'Yes' : 'No'} />
+                        <DetailField label="Previously Fullpath Customer" value={dealership.wasFullpathCustomer ? 'Yes' : 'No'} />
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <DetailField label="Assigned Specialist" value={dealership.assignedSpecialist} />
+                        <DetailField label="Sales" value={dealership.sales} />
+                        <div />
+                        <DetailField label="Point of Contact Name" value={dealership.pocName} />
+                        <DetailField label="Point of Contact Email" value={dealership.pocEmail} />
+                        <DetailField label="Point of Contact Phone" value={dealership.pocPhone} />
+                    </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <DetailField label="Order Number" value={dealership.orderNumber} />
+                        <DetailField label="Order Received Date" value={formatDate(dealership.orderReceivedDate)} />
+                        <DetailField label="Go-Live Date" value={formatDate(dealership.goLiveDate)} />
+                        <DetailField label="Term Date" value={formatDate(dealership.termDate)} />
+                    </div>
+                </div>
+
                 <div className="border-t border-gray-200 pt-6">
                     <div className="space-y-3">
                         {(dealership.products && dealership.products.length > 0) ? (
@@ -310,57 +377,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                             </>
                         ) : <p className="text-sm text-gray-500 italic">No products added.</p>}
                     </div>
-                </div>
-
-                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <DetailField label="Managed Solution" value={dealership.hasManagedSolution ? 'Yes' : 'No'} />
-                    <DetailField label="Previously Fullpath Customer" value={dealership.wasFullpathCustomer ? 'Yes' : 'No'} />
-                </div>
-
-                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <DetailField label="Assigned Specialist" value={dealership.assignedSpecialist} />
-                    <DetailField label="Sales" value={dealership.sales} />
-                    <div />
-                    <DetailField label="Point of Contact Name" value={dealership.pocName} />
-                    <DetailField label="Point of Contact Email" value={dealership.pocEmail} />
-                    <DetailField label="Point of Contact Phone" value={dealership.pocPhone} />
-                </div>
-
-                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <DetailField label="Order Number" value={dealership.orderNumber} />
-                    <DetailField label="Order Received Date" value={formatDate(dealership.orderReceivedDate)} />
-                    <DetailField label="Go-Live Date" value={formatDate(dealership.goLiveDate)} />
-                    <DetailField label="Term Date" value={formatDate(dealership.termDate)} />
-                </div>
-                
-                <div className="border-t border-gray-200 pt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <DetailField label="Enterprise (Group)" value={dealership.enterprise} />
-                    <DetailField label="Store Number" value={dealership.storeNumber} />
-                    <DetailField label="Branch Number" value={dealership.branchNumber} />
-                    <DetailField label="ERA System ID" value={dealership.eraSystemId} />
-                    <DetailField label="PPSysID" value={dealership.ppSysId} />
-                    <DetailField label="BU-ID" value={dealership.buId} />
-                    <DetailField 
-                        label="Equity Book Provider" 
-                        value={dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)'} 
-                    />
-                </div>
-
-                <div className="border-t border-gray-200 pt-6">
-                    <DetailField label="Address" value={dealership.address} />
-                    {(dealership.websiteLinks && dealership.websiteLinks.length > 0) && (
-                        <div className="mt-6">
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Website Links</h4>
-                            <ul className="mt-1 space-y-2">
-                                {dealership.websiteLinks.map((link, index) => (
-                                    <li key={index} className="p-2 bg-gray-50 rounded-md border">
-                                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline break-all">{link.url}</a>
-                                        {link.clientId && <p className="text-xs text-gray-600 mt-1">Client ID: <span className="font-medium">{link.clientId}</span></p>}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-gray-200">
