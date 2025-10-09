@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Ticket, TicketType, Status, Priority, IssueTicket, FeatureRequestTicket, ProductArea, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS, PLATFORM_OPTIONS, ISSUE_PRIORITY_OPTIONS, FEATURE_REQUEST_PRIORITY_OPTIONS } from '../constants.ts';
 
-// FIX: Update FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
-type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> | Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'>) => void;
+// FIX: Updated FormSubmitCallback to omit submissionDate and lastUpdatedDate as they are now handled by the parent.
+type FormSubmitCallback = (ticket: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate' | 'updates' | 'tasks'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate' | 'updates' | 'tasks'>) => void;
 
 interface TicketFormProps {
   onSubmit: FormSubmitCallback;
@@ -127,7 +127,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         ...issueData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...issueData };
+      const finalTicket: Omit<IssueTicket, 'id' | 'lastUpdatedDate' | 'submissionDate' | 'updates' | 'tasks'> = { type, ...issueData };
       onSubmit(finalTicket);
     } else {
       const {
@@ -138,7 +138,7 @@ const TicketForm: React.FC<TicketFormProps> = ({ onSubmit, projects }) => {
         ...featureData
       } = dataToSubmit;
       // FIX: Update type to match the new FormSubmitCallback.
-      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate'> = { type, ...featureData };
+      const finalTicket: Omit<FeatureRequestTicket, 'id' | 'lastUpdatedDate' | 'submissionDate' | 'updates' | 'tasks'> = { type, ...featureData };
       onSubmit(finalTicket);
     }
   };
