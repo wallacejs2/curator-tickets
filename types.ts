@@ -214,6 +214,8 @@ export interface Product {
 
 export interface ProductPricing {
   id: string;
+  orderReceivedDate?: string;
+  orderNumber?: string;
   productId: string;
   sellingPrice?: number;
 }
@@ -227,8 +229,6 @@ export interface Dealership {
     products?: ProductPricing[];
     hasManagedSolution?: boolean;
     wasFullpathCustomer?: boolean;
-    orderNumber?: string;
-    orderReceivedDate?: string;
     goLiveDate?: string;
     termDate?: string;
     enterprise?: string;

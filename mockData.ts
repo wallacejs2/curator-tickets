@@ -306,13 +306,11 @@ export const initialDealerships: Dealership[] = [
     accountNumber: 'CIF-1001',
     status: DealershipStatus.Live,
     products: [
-        { id: crypto.randomUUID(), productId: '15391', sellingPrice: 6500 },
-        { id: crypto.randomUUID(), productId: '15392', sellingPrice: 1750 },
+        { id: crypto.randomUUID(), productId: '15391', sellingPrice: 6500, orderNumber: 'ORD-2024-001', orderReceivedDate: new Date('2024-01-15T00:00:00Z').toISOString() },
+        { id: crypto.randomUUID(), productId: '15392', sellingPrice: 1750, orderNumber: 'ORD-2024-001', orderReceivedDate: new Date('2024-01-15T00:00:00Z').toISOString() },
     ],
     hasManagedSolution: true,
     wasFullpathCustomer: true,
-    orderNumber: 'ORD-2024-001',
-    orderReceivedDate: new Date('2024-01-15T00:00:00Z').toISOString(),
     goLiveDate: new Date('2024-02-01T00:00:00Z').toISOString(),
     enterprise: 'Luxury Auto Group',
     storeNumber: 'S-01',
@@ -361,12 +359,10 @@ export const initialDealerships: Dealership[] = [
     accountNumber: 'CIF-1002',
     status: DealershipStatus.Onboarding,
     products: [
-        { id: crypto.randomUUID(), productId: '15391', sellingPrice: 6000 }
+        { id: crypto.randomUUID(), productId: '15391', sellingPrice: 6000, orderNumber: 'ORD-2024-002', orderReceivedDate: new Date('2024-07-01T00:00:00Z').toISOString() }
     ],
     hasManagedSolution: true,
     wasFullpathCustomer: false,
-    orderNumber: 'ORD-2024-002',
-    orderReceivedDate: new Date('2024-07-01T00:00:00Z').toISOString(),
     goLiveDate: new Date('2024-08-01T00:00:00Z').toISOString(),
     enterprise: 'Urban Motors Inc.',
     storeNumber: 'S-05',
@@ -393,10 +389,11 @@ export const initialDealerships: Dealership[] = [
     name: 'Reliable Rides',
     accountNumber: 'CIF-1003',
     status: DealershipStatus.Cancelled,
+    products: [
+        { id: crypto.randomUUID(), productId: '15382', sellingPrice: 8275, orderNumber: 'ORD-2023-050', orderReceivedDate: new Date('2023-10-01T00:00:00Z').toISOString() }
+    ],
     hasManagedSolution: false,
     wasFullpathCustomer: true,
-    orderNumber: 'ORD-2023-050',
-    orderReceivedDate: new Date('2023-10-01T00:00:00Z').toISOString(),
     goLiveDate: new Date('2023-11-01T00:00:00Z').toISOString(),
     termDate: new Date('2024-06-30T00:00:00Z').toISOString(),
     enterprise: 'Value Vehicles',
@@ -419,10 +416,10 @@ export const initialDealerships: Dealership[] = [
     name: 'Future Fleet',
     accountNumber: 'CIF-1004',
     status: DealershipStatus.Pilot,
-    products: [],
+    products: [
+        { id: crypto.randomUUID(), productId: '19588', sellingPrice: 0, orderNumber: 'ORD-2024-004', orderReceivedDate: new Date('2024-07-15T00:00:00Z').toISOString() }
+    ],
     wasFullpathCustomer: false,
-    orderNumber: 'ORD-2024-004',
-    orderReceivedDate: new Date('2024-07-15T00:00:00Z').toISOString(),
     goLiveDate: new Date('2024-09-01T00:00:00Z').toISOString(),
     enterprise: 'NextGen Auto',
     useCustomEquityProvider: true,
@@ -446,9 +443,10 @@ export const initialDealerships: Dealership[] = [
     name: 'Focus Forward',
     accountNumber: 'CIF-1005',
     status: DealershipStatus.PendingFocus,
+    products: [
+        { id: crypto.randomUUID(), productId: '15391', orderNumber: 'ORD-2024-005', orderReceivedDate: new Date('2024-07-20T00:00:00Z').toISOString() }
+    ],
     wasFullpathCustomer: false,
-    orderNumber: 'ORD-2024-005',
-    orderReceivedDate: new Date('2024-07-20T00:00:00Z').toISOString(),
     enterprise: 'Urban Motors Inc.',
     address: '2 Tech Way, Anytown, USA 12345',
     assignedSpecialist: 'Jane Doe',
@@ -466,9 +464,10 @@ export const initialDealerships: Dealership[] = [
     name: 'DMT Dynamics',
     accountNumber: 'CIF-1006',
     status: DealershipStatus.PendingDmt,
+    products: [
+        { id: crypto.randomUUID(), productId: '15391', orderNumber: 'ORD-2024-006', orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString() }
+    ],
     wasFullpathCustomer: true,
-    orderNumber: 'ORD-2024-006',
-    orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString(),
     enterprise: 'Value Vehicles',
     address: '3 Integration Blvd, Thriftyville, TX 75001',
     assignedSpecialist: 'Peter Jones',
@@ -485,9 +484,10 @@ export const initialDealerships: Dealership[] = [
     name: 'Setup Solutions',
     accountNumber: 'CIF-1007',
     status: DealershipStatus.PendingSetup,
+    products: [
+        { id: crypto.randomUUID(), productId: '15391', orderNumber: 'ORD-2024-007', orderReceivedDate: new Date('2024-07-25T00:00:00Z').toISOString() }
+    ],
     wasFullpathCustomer: false,
-    orderNumber: 'ORD-2024-007',
-    orderReceivedDate: new Date('2024-07-25T00:00:00Z').toISOString(),
     enterprise: 'NextGen Auto',
     address: '4 Config Ct, Tech City, USA 54321',
     assignedSpecialist: 'Susan Storm',
@@ -504,6 +504,7 @@ export const initialDealerships: Dealership[] = [
     name: 'Future Horizons Automotive',
     accountNumber: 'CIF-1008',
     status: DealershipStatus.Prospect,
+    products: [],
     wasFullpathCustomer: false,
     enterprise: 'Visionary Motors',
     sales: 'Sarah Conner',

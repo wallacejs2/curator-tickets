@@ -1225,13 +1225,18 @@ function App() {
         appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        appendDateField('Term Date', dealership.termDate);
 
         if (dealership.products && dealership.products.length > 0) {
-            appendSection('Pricing');
+            appendSection('Pricing & Orders');
             dealership.products.forEach((p, index) => {
                 const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
                 if (productInfo) {
-                    content += `Product ${index + 1}: ${productInfo.id} | ${productInfo.name}\n`;
+                    content += `\n--- Product ${index + 1} ---\n`;
+                    appendDateField('Order Received', p.orderReceivedDate);
+                    appendField('Order #', p.orderNumber);
+                    content += `Product: ${productInfo.id} | ${productInfo.name}\n`;
                     content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
                     content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
                 }
@@ -1254,12 +1259,6 @@ function App() {
                 }
             });
         }
-
-        appendSection('Order & Dates');
-        appendField('Order Number', dealership.orderNumber);
-        appendDateField('Order Received Date', dealership.orderReceivedDate);
-        appendDateField('Go-Live Date', dealership.goLiveDate);
-        appendDateField('Term Date', dealership.termDate);
         
         appendSection('Identifiers');
         appendField('Store Number', dealership.storeNumber);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink, ProductPricing, Product } from '../types.ts';
 import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
@@ -31,8 +32,6 @@ const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
     products: [],
     hasManagedSolution: false,
     wasFullpathCustomer: false,
-    orderNumber: '',
-    orderReceivedDate: '',
     goLiveDate: '',
     termDate: '',
     enterprise: '',
@@ -72,11 +71,13 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
       setFormData({
         ...getInitialState(),
         ...dealershipToEdit,
-        orderReceivedDate: dealershipToEdit.orderReceivedDate?.split('T')[0] || '',
         goLiveDate: dealershipToEdit.goLiveDate?.split('T')[0] || '',
         termDate: dealershipToEdit.termDate?.split('T')[0] || '',
         websiteLinks: dealershipToEdit.websiteLinks?.length ? dealershipToEdit.websiteLinks : [{ url: '', clientId: '' }],
-        products: dealershipToEdit.products || [],
+        products: (dealershipToEdit.products || []).map(p => ({
+            ...p,
+            orderReceivedDate: p.orderReceivedDate?.split('T')[0] || ''
+        })),
       });
     } else {
       setFormData(getInitialState());
@@ -92,26 +93,36 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     }));
   };
 
+  // FIX: Refactor product change handler to use a functional update with .map for safer immutable state updates, which can resolve subtle type inference issues.
   const handleProductChange = (index: number, field: keyof ProductPricing, value: string) => {
-    const newProducts = [...(formData.products || [])];
-    const product = { ...newProducts[index] };
-    
-    if (field === 'productId') {
-        product.productId = value;
-        const selectedProduct = PRODUCTS.find(p => p.id === value);
-        product.sellingPrice = selectedProduct?.fixedPrice; // Default selling price to fixed price
-    } else if (field === 'sellingPrice') {
-        // Allow clearing the field
-        product.sellingPrice = value === '' ? undefined : parseFloat(value);
-    }
-
-    newProducts[index] = product;
-    setFormData(prev => ({ ...prev, products: newProducts }));
+    setFormData(prev => {
+        const newProducts = (prev.products || []).map((product, i) => {
+            if (i !== index) {
+                return product;
+            }
+            const updatedProduct = { ...product };
+            if (field === 'productId') {
+                updatedProduct.productId = value;
+                const selectedProduct = PRODUCTS.find(p => p.id === value);
+                updatedProduct.sellingPrice = selectedProduct?.fixedPrice;
+            } else if (field === 'sellingPrice') {
+                updatedProduct.sellingPrice = value === '' ? undefined : parseFloat(value);
+            } else if (field === 'orderNumber') {
+                updatedProduct.orderNumber = value;
+            } else if (field === 'orderReceivedDate') {
+                updatedProduct.orderReceivedDate = value;
+            }
+            return updatedProduct;
+        });
+        return { ...prev, products: newProducts };
+    });
   };
 
   const addProduct = () => {
     const newProduct: ProductPricing = {
         id: crypto.randomUUID(),
+        orderReceivedDate: '',
+        orderNumber: '',
         productId: '',
         sellingPrice: undefined,
     };
@@ -163,10 +174,9 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
       ...formData,
       products: (formData.products || []).filter(p => p.productId).map(p => ({
         ...p,
-        // FIX: Removed incorrect type comparison. `p.sellingPrice` is `number | undefined`, so it can never be `''`. The `== null` check correctly handles `null` and `undefined`.
-        sellingPrice: p.sellingPrice == null ? undefined : parseFloat(String(p.sellingPrice))
+        sellingPrice: p.sellingPrice == null ? undefined : parseFloat(String(p.sellingPrice)),
+        orderReceivedDate: p.orderReceivedDate ? new Date(`${p.orderReceivedDate}T00:00:00`).toISOString() : undefined
       })),
-      orderReceivedDate: formData.orderReceivedDate ? new Date(`${formData.orderReceivedDate}T00:00:00`).toISOString() : undefined,
       goLiveDate: formData.goLiveDate ? new Date(`${formData.goLiveDate}T00:00:00`).toISOString() : undefined,
       termDate: formData.termDate ? new Date(`${formData.termDate}T00:00:00`).toISOString() : undefined,
       websiteLinks: (formData.websiteLinks || []).filter(link => link.url.trim() !== ''),
@@ -189,6 +199,8 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         <div><label className={labelClasses}>Dealership Name</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Account Number (CIF)</label><input type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} required className={formElementClasses} /></div>
         <div><label className={labelClasses}>Status</label><select name="status" value={formData.status} onChange={handleChange} className={formElementClasses}>{DEALERSHIP_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}</select></div>
+        <div><label className={labelClasses}>Go-Live Date</label><input type="date" name="goLiveDate" value={formData.goLiveDate || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div><label className={labelClasses}>Term Date</label><input type="date" name="termDate" value={formData.termDate || ''} onChange={handleChange} className={formElementClasses} /></div>
       </FormSection>
 
       <FormSection title="Organization Details">
@@ -270,19 +282,20 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
           <div><label className={labelClasses}>POC Phone</label><input type="tel" name="pocPhone" value={formData.pocPhone || ''} onChange={handleChange} className={formElementClasses} /></div>
       </FormSection>
 
-      <FormSection title="Order Timeline">
-          <div><label className={labelClasses}>Order Number</label><input type="text" name="orderNumber" value={formData.orderNumber || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>Order Received</label><input type="date" name="orderReceivedDate" value={formData.orderReceivedDate || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>Go-Live Date</label><input type="date" name="goLiveDate" value={formData.goLiveDate || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>Term Date</label><input type="date" name="termDate" value={formData.termDate || ''} onChange={handleChange} className={formElementClasses} /></div>
-      </FormSection>
-
-      <FormSection title="Pricing" gridCols={1}>
+      <FormSection title="Products & Pricing" gridCols={1}>
         <div className="space-y-4">
             {(formData.products || []).map((product, index) => {
                 const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
                 return (
-                    <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
+                    <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
+                        <div>
+                            <label className={labelClasses}>Received</label>
+                            <input type="date" name="orderReceivedDate" value={product.orderReceivedDate || ''} onChange={(e) => handleProductChange(index, 'orderReceivedDate', e.target.value)} className={formElementClasses} />
+                        </div>
+                         <div>
+                            <label className={labelClasses}>Order Number</label>
+                            <input type="text" name="orderNumber" value={product.orderNumber || ''} onChange={(e) => handleProductChange(index, 'orderNumber', e.target.value)} className={formElementClasses} />
+                        </div>
                         <div>
                             <label className={labelClasses}>Product</label>
                             <select value={product.productId} onChange={(e) => handleProductChange(index, 'productId', e.target.value)} className={formElementClasses}>

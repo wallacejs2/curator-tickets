@@ -1,13 +1,19 @@
-import React, { useState, useMemo } from 'react';
-import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper, ProductPricing } from '../types.ts';
+
+import React, { useState, useMemo, useEffect } from 'react';
+import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper, ProductPricing, Product, WebsiteLink } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
-import DealershipForm from './DealershipForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
-import { PRODUCTS } from '../constants.ts';
+import { PRODUCTS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
+import EditableText from './common/inlineEdit/EditableText.tsx';
+import EditableSelect from './common/inlineEdit/EditableSelect.tsx';
+import EditableDate from './common/inlineEdit/EditableDate.tsx';
+import EditableCheckbox from './common/inlineEdit/EditableCheckbox.tsx';
+import EditableTextArea from './common/inlineEdit/EditableTextArea.tsx';
+import { PlusIcon } from './icons/PlusIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature' | 'shopper';
 
@@ -57,30 +63,6 @@ const statusColors: Record<DealershipStatus, string> = {
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
 };
 
-const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div>
-    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{label}</h4>
-    <span className={`mt-1 inline-block px-2 py-0.5 text-xs font-semibold rounded-full ${statusColors[value] || 'bg-gray-200 text-gray-800'}`}>
-      {value}
-    </span>
-  </div>
-);
-
-const ProductPricingInfo: React.FC<{ productPricing: ProductPricing }> = ({ productPricing }) => {
-    const productInfo = PRODUCTS.find(p => p.id === productPricing.productId);
-    if (!productInfo) {
-        return <div className="p-3 bg-red-50 text-red-700 rounded-md">Unknown Product (ID: {productPricing.productId})</div>;
-    }
-    return (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 bg-gray-50 rounded-md border">
-            <div className="sm:col-span-1"><DetailField label="Product" value={`${productInfo.id} | ${productInfo.name}`} /></div>
-            <div className="sm:col-span-1"><DetailField label="Fixed Price" value={`$${productInfo.fixedPrice.toLocaleString()}`} /></div>
-            <div className="sm:col-span-1"><DetailField label="Selling Price" value={productPricing.sellingPrice != null ? `$${productPricing.sellingPrice.toLocaleString()}` : 'N/A'} /></div>
-        </div>
-    );
-};
-
-
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
     dealership, onUpdate, onDelete, onExport, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
@@ -88,7 +70,9 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     onLink, onUnlink, onSwitchView
 }) => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedData, setEditedData] = useState<Partial<Dealership>>(dealership);
+
     const [newUpdate, setNewUpdate] = useState('');
     const [authorName, setAuthorName] = useState('');
     const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0]);
@@ -96,13 +80,20 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const [editedComment, setEditedComment] = useState('');
     
     const MAX_COMMENT_LENGTH = 2000;
+    
+    useEffect(() => {
+        if (!isEditing) {
+            setEditedData(dealership);
+        }
+    }, [dealership, isEditing]);
 
     const { totalFixedPrice, totalSellingPrice } = useMemo(() => {
-        if (!dealership.products || dealership.products.length === 0) {
+        const products = isEditing ? editedData.products : dealership.products;
+        if (!products || products.length === 0) {
             return { totalFixedPrice: 0, totalSellingPrice: 0 };
         }
     
-        return dealership.products.reduce(
+        return products.reduce(
             (totals, productPricing) => {
                 const productInfo = PRODUCTS.find(p => p.id === productPricing.productId);
                 if (productInfo) {
@@ -113,11 +104,102 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
             },
             { totalFixedPrice: 0, totalSellingPrice: 0 }
         );
-    }, [dealership.products]);
+    }, [isEditing, editedData.products, dealership.products]);
     
     const dealershipMemberOfGroups = useMemo(() => allGroups.filter(g => (dealership.groupIds || []).includes(g.id)), [allGroups, dealership.groupIds]);
 
-    const formatDate = (dateString?: string) => dateString ? new Date(dateString).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A';
+    const handleFieldSave = (field: keyof Dealership, value: any) => {
+      setEditedData(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleCancel = () => {
+        setEditedData(dealership);
+        setIsEditing(false);
+    };
+
+    const handleSave = () => {
+        const dataToSave = {
+            ...editedData,
+             products: (editedData.products || []).filter(p => p.productId).map(p => ({
+                ...p,
+                sellingPrice: p.sellingPrice == null ? undefined : parseFloat(String(p.sellingPrice)),
+                orderReceivedDate: p.orderReceivedDate ? new Date(`${p.orderReceivedDate}`).toISOString() : undefined
+            })),
+            goLiveDate: editedData.goLiveDate ? new Date(`${editedData.goLiveDate}`).toISOString() : undefined,
+            termDate: editedData.termDate ? new Date(`${editedData.termDate}`).toISOString() : undefined,
+            websiteLinks: (editedData.websiteLinks || []).filter(link => link.url.trim() !== ''),
+        }
+        onUpdate(dataToSave as Dealership);
+        setIsEditing(false);
+    };
+
+    // --- Handlers for multi-value fields in edit mode ---
+    const groupedProducts = useMemo(() => {
+        return PRODUCTS.reduce<Record<Product['category'], Product[]>>((acc, product) => {
+            (acc[product.category] = acc[product.category] || []).push(product);
+            return acc;
+        }, { New: [], Old: [] });
+    }, []);
+
+    // FIX: Refactor product change handler to use a functional update with .map for safer immutable state updates, which can resolve subtle type inference issues.
+    const handleProductChange = (index: number, field: keyof ProductPricing, value: string) => {
+        setEditedData(prev => {
+            const newProducts = (prev.products || []).map((product, i) => {
+                if (i !== index) {
+                    return product;
+                }
+                const updatedProduct = { ...product };
+                if (field === 'productId') {
+                    updatedProduct.productId = value;
+                    const selectedProduct = PRODUCTS.find(p => p.id === value);
+                    updatedProduct.sellingPrice = selectedProduct?.fixedPrice;
+                } else if (field === 'sellingPrice') {
+                    updatedProduct.sellingPrice = value === '' ? undefined : parseFloat(value);
+                } else if (field === 'orderNumber') {
+                    updatedProduct.orderNumber = value;
+                } else if (field === 'orderReceivedDate') {
+                    updatedProduct.orderReceivedDate = value;
+                }
+                return updatedProduct;
+            });
+            return { ...prev, products: newProducts };
+        });
+    };
+
+    const addProduct = () => {
+        const newProduct: ProductPricing = { id: crypto.randomUUID(), productId: '', sellingPrice: undefined };
+        setEditedData(prev => ({ ...prev, products: [...(prev.products || []), newProduct] }));
+    };
+
+    const removeProduct = (id: string) => {
+        setEditedData(prev => ({ ...prev, products: (prev.products || []).filter(p => p.id !== id) }));
+    };
+
+    const handleWebsiteLinkChange = (index: number, field: keyof WebsiteLink, value: string) => {
+        const newLinks = [...(editedData.websiteLinks || [])];
+        newLinks[index] = { ...newLinks[index], [field]: value };
+        setEditedData(prev => ({ ...prev, websiteLinks: newLinks }));
+    };
+    
+    const addWebsiteLink = () => {
+        setEditedData(prev => ({ ...prev, websiteLinks: [...(prev.websiteLinks || []), { url: '', clientId: '' }] }));
+    };
+
+    const removeWebsiteLink = (index: number) => {
+        const newLinks = [...(editedData.websiteLinks || [])];
+        newLinks.splice(index, 1);
+        setEditedData(prev => ({ ...prev, websiteLinks: newLinks }));
+    };
+
+    const handleGroupToggle = (groupId: string) => {
+        setEditedData(prev => {
+            const currentGroupIds = prev.groupIds || [];
+            const newGroupIds = currentGroupIds.includes(groupId)
+                ? currentGroupIds.filter(id => id !== groupId)
+                : [...currentGroupIds, groupId];
+            return { ...prev, groupIds: newGroupIds };
+        });
+    };
     
     // Linked items
     const linkedTickets = allTickets.filter(item => (dealership.ticketIds || []).includes(item.id));
@@ -126,18 +208,13 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const linkedDealerships = allDealerships.filter(item => item.id !== dealership.id && (dealership.linkedDealershipIds || []).includes(item.id));
     const linkedFeatures = allFeatures.filter(item => (dealership.featureIds || []).includes(item.id));
     const linkedShoppers = allShoppers.filter(item => (dealership.shopperIds || []).includes(item.id));
-
-    // Enhanced Task Linking Logic: Include tasks from linked tickets and projects
     const directlyLinkedTaskIds = dealership.taskIds || [];
     const taskIdsFromLinkedTickets = linkedTickets.flatMap(ticket => ticket.tasks?.map(task => task.id) || []);
-    const tasksFromLinkedProjects = allProjects
-        .filter(p => (dealership.projectIds || []).includes(p.id))
-        .flatMap(p => p.tasks?.map(t => t.id) || []);
-    
+    const tasksFromLinkedProjects = allProjects.filter(p => (dealership.projectIds || []).includes(p.id)).flatMap(p => p.tasks?.map(t => t.id) || []);
     const allRelatedTaskIds = [...new Set([...directlyLinkedTaskIds, ...taskIdsFromLinkedTickets, ...tasksFromLinkedProjects])];
     const linkedTasks = allTasks.filter(item => allRelatedTaskIds.includes(item.id));
 
-    // Available items for linking (filter out completed and already related items)
+    // Available items
     const availableTickets = allTickets.filter(item => item.status !== Status.Completed && !(dealership.ticketIds || []).includes(item.id));
     const availableProjects = allProjects.filter(item => item.status !== ProjectStatus.Completed && !(dealership.projectIds || []).includes(item.id));
     const availableTasks = allTasks.filter(item => item.status !== TaskStatus.Done && !allRelatedTaskIds.includes(item.id));
@@ -157,100 +234,11 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     };
 
     const handleCopyInfo = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
-        content += `==================================================\n\n`;
-        
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString('en-US', { timeZone: 'UTC' })}\n`;
-            }
-        };
-
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-
-        appendSection('Account Information');
-        appendField('ID', dealership.id);
-        appendField('Account Number (CIF)', dealership.accountNumber);
-        appendField('Status', dealership.status);
-        
-        appendSection('Organization Details');
-        appendField('Enterprise (Group)', dealership.enterprise);
-        appendField('Store Number', dealership.storeNumber);
-        appendField('Branch Number', dealership.branchNumber);
-        appendField('ERA System ID', dealership.eraSystemId);
-        appendField('PPSysID', dealership.ppSysId);
-        appendField('BU-ID', dealership.buId);
-        appendField('Equity Book Provider', dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)');
-        appendField('Address', dealership.address);
-
-        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
-            appendSection('Website Links');
-            dealership.websiteLinks.forEach(link => {
-                content += `- URL: ${link.url}\n`;
-                if (link.clientId) {
-                    content += `  Client ID: ${link.clientId}\n`;
-                }
-            });
-        }
-        
-        appendSection('Customer Status');
-        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
-        
-        appendSection('Team & Contacts');
-        appendField('Assigned Specialist', dealership.assignedSpecialist);
-        appendField('Sales', dealership.sales);
-        appendField('POC Name', dealership.pocName);
-        appendField('POC Email', dealership.pocEmail);
-        appendField('POC Phone', dealership.pocPhone);
-        
-        appendSection('Order Timeline');
-        appendField('Order Number', dealership.orderNumber);
-        appendDateField('Order Received Date', dealership.orderReceivedDate);
-        appendDateField('Go-Live Date', dealership.goLiveDate);
-        appendDateField('Term Date', dealership.termDate);
-
-        if (dealership.products && dealership.products.length > 0) {
-            appendSection('Pricing');
-            dealership.products.forEach((p, index) => {
-                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
-                if (productInfo) {
-                    content += `Product ${index + 1}: ${productInfo.id} | ${productInfo.name}\n`;
-                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
-                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
-                }
-            });
-        }
-
-        if (dealership.updates && dealership.updates.length > 0) {
-            appendSection(`Updates (${dealership.updates.length})`);
-            [...dealership.updates].reverse().forEach(update => {
-                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n').trim();
-                content += `[${new Date(update.date).toLocaleDateString('en-US', { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
-            });
-        }
-        
-        appendSection('Linked Item IDs');
-        appendField('Group IDs', (dealership.groupIds || []).join(', '));
-        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
-        appendField('Project IDs', (dealership.projectIds || []).join(', '));
-        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
-        appendField('Task IDs', (dealership.taskIds || []).join(', '));
-        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
-        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
-        appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
-
-        navigator.clipboard.writeText(content.trim());
+        onExport(); // The export function already does this text formatting
         showToast('Dealership info copied!', 'success');
     };
+    
+    const data = isEditing ? editedData : dealership;
 
     return (
         <div>
@@ -264,62 +252,74 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 </Modal>
             )}
 
-            {isEditingModalOpen && (
-                <Modal title={`Edit ${dealership.name}`} onClose={() => setIsEditingModalOpen(false)}>
-                    <DealershipForm 
-                        onSubmit={() => {}}
-                        onUpdate={onUpdate}
-                        dealershipToEdit={dealership}
-                        onClose={() => setIsEditingModalOpen(false)}
-                        allGroups={allGroups}
-                    />
-                </Modal>
-            )}
-
             {!isReadOnly && (
               <div className="flex justify-end items-center gap-3 mb-6">
-                  <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm"><ContentCopyIcon className="w-4 h-4"/><span>Copy Info</span></button>
-                  <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                      <DownloadIcon className="w-4 h-4"/>
-                      <span>Export</span>
-                  </button>
-                  <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
-                  <button onClick={() => setIsEditingModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+                  {isEditing ? (
+                      <>
+                        <button onClick={handleCancel} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 text-sm">Cancel</button>
+                        <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm">Save Changes</button>
+                      </>
+                  ) : (
+                      <>
+                        <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm"><ContentCopyIcon className="w-4 h-4"/><span>Copy Info</span></button>
+                        <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
+                        <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
+                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
+                      </>
+                  )}
               </div>
             )}
 
             <div className="space-y-8">
                 <div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <DetailField label="Account Name" value={dealership.name} />
-                        <DetailField label="Account Number (CIF)" value={dealership.accountNumber} />
-                        <DetailTag label="Status" value={dealership.status} />
+                        <EditableText label="Account Name" value={data.name} onSave={(v) => handleFieldSave('name', v)} isReadOnly={!isEditing} />
+                        <EditableText label="Account Number (CIF)" value={data.accountNumber} onSave={(v) => handleFieldSave('accountNumber', v)} isReadOnly={!isEditing} />
+                        <EditableSelect label="Status" value={data.status || ''} onSave={(v) => handleFieldSave('status', v)} options={DEALERSHIP_STATUS_OPTIONS} isReadOnly={!isEditing} tagColors={statusColors} />
+                        <EditableDate label="Go-Live Date" value={data.goLiveDate} onSave={(v) => handleFieldSave('goLiveDate', v)} isReadOnly={!isEditing} />
+                        <EditableDate label="Term Date" value={data.termDate} onSave={(v) => handleFieldSave('termDate', v)} isReadOnly={!isEditing} />
                     </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <DetailField label="Enterprise (Group)" value={dealership.enterprise} />
-                        <DetailField label="Store Number" value={dealership.storeNumber} />
-                        <DetailField label="Branch Number" value={dealership.branchNumber} />
-                        <DetailField label="ERA System ID" value={dealership.eraSystemId} />
-                        <DetailField label="PPSysID" value={dealership.ppSysId} />
-                        <DetailField label="BU-ID" value={dealership.buId} />
-                        <DetailField 
-                            label="Equity Book Provider" 
-                            value={dealership.useCustomEquityProvider ? dealership.equityBookProvider : 'Fullpath KBB (Default)'} 
-                        />
+                        <EditableText label="Enterprise (Group)" value={data.enterprise} onSave={(v) => handleFieldSave('enterprise', v)} isReadOnly={!isEditing} />
+                        <EditableText label="Store Number" value={data.storeNumber} onSave={(v) => handleFieldSave('storeNumber', v)} isReadOnly={!isEditing} />
+                        <EditableText label="Branch Number" value={data.branchNumber} onSave={(v) => handleFieldSave('branchNumber', v)} isReadOnly={!isEditing} />
+                        <EditableText label="ERA System ID" value={data.eraSystemId} onSave={(v) => handleFieldSave('eraSystemId', v)} isReadOnly={!isEditing} />
+                        <EditableText label="PPSysID" value={data.ppSysId} onSave={(v) => handleFieldSave('ppSysId', v)} isReadOnly={!isEditing} />
+                        <EditableText label="BU-ID" value={data.buId} onSave={(v) => handleFieldSave('buId', v)} isReadOnly={!isEditing} />
+                         <div className="sm:col-span-3"><EditableText label="Address" value={data.address} onSave={(v) => handleFieldSave('address', v)} isReadOnly={!isEditing} /></div>
+                        
                         <div className="sm:col-span-3">
-                            <DetailField label="Address" value={dealership.address} />
-                        </div>
-                        <div className="sm:col-span-3">
-                            <DetailField label="Groups" value={dealershipMemberOfGroups.length > 0 ? dealershipMemberOfGroups.map(g => g.name).join(', ') : 'N/A'} />
+                             <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Groups</h4>
+                            {isEditing ? (
+                                 <div className="space-y-2 max-h-40 overflow-y-auto border p-3 rounded-md bg-gray-50">
+                                    {allGroups.map(group => (
+                                        <label key={group.id} className="flex items-center text-sm cursor-pointer"><input type="checkbox" checked={(editedData.groupIds || []).includes(group.id)} onChange={() => handleGroupToggle(group.id)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">{group.name}</span></label>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-800 mt-1">{dealershipMemberOfGroups.length > 0 ? dealershipMemberOfGroups.map(g => g.name).join(', ') : 'N/A'}</p>
+                            )}
                         </div>
                     </div>
                 </div>
                 
                 <div className="border-t border-gray-200 pt-6">
-                    {(dealership.websiteLinks && dealership.websiteLinks.length > 0) ? (
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Website Links</h4>
+                    {isEditing ? (
+                         <div className="space-y-4">
+                            {(editedData.websiteLinks || []).map((link, index) => (
+                                <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] gap-3 items-end">
+                                    <EditableText label={index === 0 ? "URL" : ""} value={link.url} onSave={(v) => handleWebsiteLinkChange(index, 'url', v)} isReadOnly={!isEditing} isUrl={true} placeholder="https://example.com"/>
+                                    <EditableText label={index === 0 ? "Client ID" : ""} value={link.clientId} onSave={(v) => handleWebsiteLinkChange(index, 'clientId', v)} isReadOnly={!isEditing} placeholder="e.g., AB-1234"/>
+                                    <button type="button" onClick={() => removeWebsiteLink(index)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-1"><TrashIcon className="w-5 h-5"/></button>
+                                </div>
+                            ))}
+                            <button type="button" onClick={addWebsiteLink} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4" /> Add Link</button>
+                        </div>
+                    ) : ((dealership.websiteLinks && dealership.websiteLinks.length > 0) ? (
                         <ul className="space-y-2">
                             {dealership.websiteLinks.map((link, index) => (
                                 <li key={index} className="p-2 bg-gray-50 rounded-md border">
@@ -328,82 +328,69 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                                 </li>
                             ))}
                         </ul>
-                    ) : <p className="text-sm text-gray-500 italic">No website links added.</p>}
+                    ) : <p className="text-sm text-gray-500 italic">No website links added.</p>)}
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <DetailField label="Managed Solution" value={dealership.hasManagedSolution ? 'Yes' : 'No'} />
-                        <DetailField label="Previously Fullpath Customer" value={dealership.wasFullpathCustomer ? 'Yes' : 'No'} />
+                       <EditableCheckbox label="Has Managed Solution" value={data.hasManagedSolution} onSave={(v) => handleFieldSave('hasManagedSolution', v)} isReadOnly={!isEditing} />
+                       <EditableCheckbox label="Previously Fullpath Customer" value={data.wasFullpathCustomer} onSave={(v) => handleFieldSave('wasFullpathCustomer', v)} isReadOnly={!isEditing} />
                     </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <DetailField label="Assigned Specialist" value={dealership.assignedSpecialist} />
-                        <DetailField label="Sales" value={dealership.sales} />
+                        <EditableText label="Assigned Specialist" value={data.assignedSpecialist} onSave={(v) => handleFieldSave('assignedSpecialist', v)} isReadOnly={!isEditing} />
+                        <EditableText label="Sales" value={data.sales} onSave={(v) => handleFieldSave('sales', v)} isReadOnly={!isEditing} />
                         <div />
-                        <DetailField label="Point of Contact Name" value={dealership.pocName} />
-                        <DetailField label="Point of Contact Email" value={dealership.pocEmail} />
-                        <DetailField label="Point of Contact Phone" value={dealership.pocPhone} />
+                        <EditableText label="Point of Contact Name" value={data.pocName} onSave={(v) => handleFieldSave('pocName', v)} isReadOnly={!isEditing} />
+                        <EditableText label="Point of Contact Email" value={data.pocEmail} onSave={(v) => handleFieldSave('pocEmail', v)} isReadOnly={!isEditing} />
+                        <EditableText label="Point of Contact Phone" value={data.pocPhone} onSave={(v) => handleFieldSave('pocPhone', v)} isReadOnly={!isEditing} />
                     </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <DetailField label="Order Number" value={dealership.orderNumber} />
-                        <DetailField label="Order Received Date" value={formatDate(dealership.orderReceivedDate)} />
-                        <DetailField label="Go-Live Date" value={formatDate(dealership.goLiveDate)} />
-                        <DetailField label="Term Date" value={formatDate(dealership.termDate)} />
-                    </div>
-                </div>
-
-                <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Products &amp; Pricing</h3>
                     <div className="space-y-3">
-                        {(dealership.products && dealership.products.length > 0) ? (
-                            <>
-                                {dealership.products.map(p => <ProductPricingInfo key={p.id} productPricing={p} />)}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 mt-4 border-t-2 border-gray-300">
-                                    <div className="sm:col-span-1 font-bold text-gray-800 text-base flex items-end pb-1">Total</div>
-                                    <div className="sm:col-span-1">
-                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Fixed Price</h4>
-                                        <p className="text-sm font-semibold text-gray-900 mt-1">{`$${totalFixedPrice.toLocaleString()}`}</p>
-                                    </div>
-                                    <div className="sm:col-span-1">
-                                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Selling Price</h4>
-                                        <p className="text-sm font-semibold text-gray-900 mt-1">{`$${totalSellingPrice.toLocaleString()}`}</p>
-                                    </div>
+                        {(isEditing ? editedData.products : dealership.products)?.map((product, index) => {
+                            const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
+                            return isEditing ? (
+                                <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
+                                    <div><label className="text-xs font-semibold text-gray-500">Received</label><input type="date" value={product.orderReceivedDate?.split('T')[0] || ''} onChange={(e) => handleProductChange(index, 'orderReceivedDate', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
+                                    <div><label className="text-xs font-semibold text-gray-500">Order #</label><input type="text" value={product.orderNumber || ''} onChange={(e) => handleProductChange(index, 'orderNumber', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
+                                    <div><label className="text-xs font-semibold text-gray-500">Product</label><select value={product.productId} onChange={(e) => handleProductChange(index, 'productId', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm"><option value="">-- Select --</option>{Object.entries(groupedProducts).map(([cat, prods]) => (<optgroup label={cat} key={cat}>{prods.map(p => <option key={p.id} value={p.id}>{p.id} | {p.name}</option>)}</optgroup>))}</select></div>
+                                    <div><label className="text-xs font-semibold text-gray-500">Fixed</label><div className="mt-1 h-[34px] flex items-center px-3 text-sm text-gray-600 bg-gray-200 rounded-sm border">{selectedProduct ? `$${selectedProduct.fixedPrice.toLocaleString()}` : 'N/A'}</div></div>
+                                    <div><label className="text-xs font-semibold text-gray-500">Selling</label><input type="number" min="0" step="0.01" value={product.sellingPrice ?? ''} onChange={(e) => handleProductChange(index, 'sellingPrice', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
+                                    <button type="button" onClick={() => removeProduct(product.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-0"><TrashIcon className="w-5 h-5"/></button>
                                 </div>
-                            </>
-                        ) : <p className="text-sm text-gray-500 italic">No products added.</p>}
+                            ) : (
+                                <div key={product.id} className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-3 bg-gray-50 rounded-md border">
+                                    <div><DetailField label="Received" value={product.orderReceivedDate ? new Date(product.orderReceivedDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} /></div>
+                                    <div><DetailField label="Order Number" value={product.orderNumber} /></div>
+                                    <div className="sm:col-span-1"><DetailField label="Product" value={`${selectedProduct?.id} | ${selectedProduct?.name}`} /></div>
+                                    <div className="sm:col-span-1"><DetailField label="Fixed Price" value={selectedProduct ? `$${selectedProduct.fixedPrice.toLocaleString()}` : 'N/A'} /></div>
+                                    <div className="sm:col-span-1"><DetailField label="Selling Price" value={product.sellingPrice != null ? `$${product.sellingPrice.toLocaleString()}` : 'N/A'} /></div>
+                                </div>
+                            )
+                        })}
+                        {isEditing && <button type="button" onClick={addProduct} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 mt-2"><PlusIcon className="w-4 h-4" /> Add Product</button>}
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 pt-4 mt-4 border-t-2 border-gray-300">
+                            <div className="sm:col-span-3 font-bold text-gray-800 text-base flex items-end pb-1">Total</div>
+                            <div className="sm:col-span-1"><h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Fixed</h4><p className="text-sm font-semibold text-gray-900 mt-1">{`$${totalFixedPrice.toLocaleString()}`}</p></div>
+                            <div className="sm:col-span-1"><h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Selling</h4><p className="text-sm font-semibold text-gray-900 mt-1">{`$${totalSellingPrice.toLocaleString()}`}</p></div>
+                        </div>
                     </div>
                 </div>
 
                 <div className="pt-6 mt-6 border-t border-gray-200">
                     <h3 className="text-md font-semibold text-gray-800 mb-4">Updates ({dealership.updates?.length || 0})</h3>
-                    {!isReadOnly && (
+                    {!isReadOnly && !isEditing && (
                       <form onSubmit={handleUpdateSubmit} className="p-4 border border-gray-200 rounded-md mb-6 space-y-3">
                           <h4 className="text-sm font-semibold text-gray-700">Add a new update</h4>
                           <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Your Name" required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
                           <input type="date" value={updateDate} onChange={(e) => setUpdateDate(e.target.value)} required className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
-                          <textarea 
-                            value={newUpdate} 
-                            onChange={e => setNewUpdate(e.target.value)}
-                            placeholder="Type your comment here..."
-                            required
-                            rows={4}
-                            className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            maxLength={MAX_COMMENT_LENGTH}
-                          />
-                          <div className="flex justify-between items-center">
-                              <p id="char-count" className="text-xs text-gray-500">{newUpdate.length} / {MAX_COMMENT_LENGTH}</p>
-                              <button 
-                                type="submit" 
-                                disabled={!newUpdate.trim() || !authorName.trim() || newUpdate.length > MAX_COMMENT_LENGTH} 
-                                className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-sm">
-                                  Add Update
-                              </button>
-                          </div>
+                          <textarea value={newUpdate} onChange={e => setNewUpdate(e.target.value)} placeholder="Type your comment here..." required rows={4} className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white" maxLength={MAX_COMMENT_LENGTH} />
+                          <div className="flex justify-between items-center"><p className="text-xs text-gray-500">{newUpdate.length}/{MAX_COMMENT_LENGTH}</p><button type="submit" disabled={!newUpdate.trim()||!authorName.trim()} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 text-sm">Add Update</button></div>
                       </form>
                     )}
                     <div className="space-y-4">
@@ -411,60 +398,13 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                             <div key={update.id} className="p-4 bg-gray-50 border border-gray-200 rounded-md">
                                 {editingUpdateId === update.id && !isReadOnly ? (
                                     <div>
-                                        <textarea
-                                        value={editedComment}
-                                        onChange={(e) => setEditedComment(e.target.value)}
-                                        rows={4}
-                                        className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"
-                                        />
-                                        <div className="flex justify-end gap-2 mt-2">
-                                            <button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button>
-                                            <button
-                                                onClick={() => {
-                                                    const commentAsHtml = editedComment.replace(/\n/g, '<br />');
-                                                    onEditUpdate({ ...update, comment: commentAsHtml });
-                                                    setEditingUpdateId(null);
-                                                }}
-                                                className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm"
-                                            >
-                                                Save
-                                            </button>
-                                        </div>
+                                        <textarea value={editedComment} onChange={(e) => setEditedComment(e.target.value)} rows={4} className="w-full text-sm p-2 border border-gray-300 rounded-md bg-white"/>
+                                        <div className="flex justify-end gap-2 mt-2"><button onClick={() => setEditingUpdateId(null)} className="bg-white text-gray-700 font-semibold px-3 py-1 rounded-md border border-gray-300 text-sm">Cancel</button><button onClick={() => {onEditUpdate({ ...update, comment: editedComment.replace(/\n/g, '<br />') }); setEditingUpdateId(null);}} className="bg-blue-600 text-white font-semibold px-3 py-1 rounded-md text-sm">Save</button></div>
                                     </div>
                                 ) : (
                                     <div className="group">
-                                        <div className="flex justify-between items-start">
-                                            <p className="text-xs text-gray-500 font-medium">
-                                                <span className="font-semibold text-gray-700">{update.author}</span>
-                                                <span className="mx-1.5">•</span>
-                                                <span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span>
-                                            </p>
-                                            {!isReadOnly && (
-                                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                  <button
-                                                      onClick={() => {
-                                                          setEditingUpdateId(update.id);
-                                                          const commentForEditing = update.comment.replace(/<br\s*\/?>/gi, '\n');
-                                                          setEditedComment(commentForEditing);
-                                                      }}
-                                                      className="p-1 text-gray-400 hover:text-blue-600"
-                                                      aria-label="Edit update"
-                                                  >
-                                                      <PencilIcon className="w-4 h-4" />
-                                                  </button>
-                                                  <button
-                                                      onClick={() => {
-                                                          if (window.confirm('Are you sure you want to delete this update?')) {
-                                                          onDeleteUpdate(update.id);
-                                                          }
-                                                      }}
-                                                      className="p-1 text-gray-400 hover:text-red-600"
-                                                      aria-label="Delete update"
-                                                  >
-                                                      <TrashIcon className="w-4 h-4" />
-                                                  </button>
-                                              </div>
-                                            )}
+                                        <div className="flex justify-between items-start"><p className="text-xs text-gray-500 font-medium"><span className="font-semibold text-gray-700">{update.author}</span><span className="mx-1.5">•</span><span>{new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</span></p>
+                                            {!isReadOnly && !isEditing && (<div className="flex items-center gap-2 opacity-0 group-hover:opacity-100"><button onClick={() => {setEditingUpdateId(update.id); setEditedComment(update.comment.replace(/<br\s*\/?>/gi, '\n'));}} className="p-1 text-gray-400 hover:text-blue-600"><PencilIcon className="w-4 h-4" /></button><button onClick={() => {if(window.confirm('Are you sure?')){onDeleteUpdate(update.id)}}} className="p-1 text-gray-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button></div>)}
                                         </div>
                                         <div className="mt-2 text-sm text-gray-800 rich-text-content" dangerouslySetInnerHTML={{ __html: update.comment }}></div>
                                     </div>
@@ -474,7 +414,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                     </div>
                 </div>
 
-                {!isReadOnly && (
+                {!isReadOnly && !isEditing && (
                   <>
                     <LinkingSection title="Linked Tickets" itemTypeLabel="ticket" linkedItems={linkedTickets} availableItems={availableTickets} onLink={(id) => onLink('ticket', id)} onUnlink={(id) => onUnlink('ticket', id)} onItemClick={(id) => onSwitchView('ticket', id)} />
                     <LinkingSection title="Linked Projects" itemTypeLabel="project" linkedItems={linkedProjects} availableItems={availableProjects} onLink={(id) => onLink('project', id)} onUnlink={(id) => onUnlink('project', id)} onItemClick={(id) => onSwitchView('project', id)} />
