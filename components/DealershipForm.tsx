@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink, ProductPricing, Product } from '../types.ts';
 import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
@@ -28,7 +30,7 @@ interface DealershipFormProps {
 const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
     name: '',
     accountNumber: '',
-    status: DealershipStatus.Prospect,
+    status: DealershipStatus.Pending,
     products: [],
     hasManagedSolution: false,
     wasFullpathCustomer: false,
@@ -284,7 +286,8 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
 
       <FormSection title="Products & Pricing" gridCols={1}>
         <div className="space-y-4">
-            {(formData.products || []).map((product, index) => {
+            {/* FIX: Use Array.isArray as a type guard to prevent runtime errors if formData.products is not an array. */}
+            {(Array.isArray(formData.products) ? formData.products : []).map((product, index) => {
                 const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
                 return (
                     <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">

@@ -415,7 +415,7 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-4',
     name: 'Future Fleet',
     accountNumber: 'CIF-1004',
-    status: DealershipStatus.Pilot,
+    status: DealershipStatus.Live,
     products: [
         { id: crypto.randomUUID(), productId: '19588', sellingPrice: 0, orderNumber: 'ORD-2024-004', orderReceivedDate: new Date('2024-07-15T00:00:00Z').toISOString() }
     ],
@@ -442,7 +442,7 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-5',
     name: 'Focus Forward',
     accountNumber: 'CIF-1005',
-    status: DealershipStatus.PendingFocus,
+    status: DealershipStatus.Pending,
     products: [
         { id: crypto.randomUUID(), productId: '15391', orderNumber: 'ORD-2024-005', orderReceivedDate: new Date('2024-07-20T00:00:00Z').toISOString() }
     ],
@@ -463,7 +463,7 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-6',
     name: 'DMT Dynamics',
     accountNumber: 'CIF-1006',
-    status: DealershipStatus.PendingDmt,
+    status: DealershipStatus.Pending,
     products: [
         { id: crypto.randomUUID(), productId: '15391', orderNumber: 'ORD-2024-006', orderReceivedDate: new Date('2024-07-22T00:00:00Z').toISOString() }
     ],
@@ -483,7 +483,7 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-7',
     name: 'Setup Solutions',
     accountNumber: 'CIF-1007',
-    status: DealershipStatus.PendingSetup,
+    status: DealershipStatus.Pending,
     products: [
         { id: crypto.randomUUID(), productId: '15391', orderNumber: 'ORD-2024-007', orderReceivedDate: new Date('2024-07-25T00:00:00Z').toISOString() }
     ],
@@ -503,7 +503,7 @@ export const initialDealerships: Dealership[] = [
     id: 'dealership-8',
     name: 'Future Horizons Automotive',
     accountNumber: 'CIF-1008',
-    status: DealershipStatus.Prospect,
+    status: DealershipStatus.Pending,
     products: [],
     wasFullpathCustomer: false,
     enterprise: 'Visionary Motors',

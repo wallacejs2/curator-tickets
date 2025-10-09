@@ -13,21 +13,15 @@ const InsightCard: React.FC<{ label: string; value: string | number; description
 
 
 interface DealershipInsightsProps {
-  totalDealerships: number;
   liveAccounts: number;
   pendingAccounts: number;
 }
 
-const DealershipInsights: React.FC<DealershipInsightsProps> = ({ totalDealerships, liveAccounts, pendingAccounts }) => {
+const DealershipInsights: React.FC<DealershipInsightsProps> = ({ liveAccounts, pendingAccounts }) => {
   return (
     <div className="mb-8">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Dealership Insights</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <InsightCard
-          label="Total Active Accounts"
-          value={totalDealerships}
-          description="All dealership accounts excluding 'Cancelled'."
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <InsightCard
           label="Live Accounts"
           value={liveAccounts}
@@ -36,7 +30,7 @@ const DealershipInsights: React.FC<DealershipInsightsProps> = ({ totalDealership
         <InsightCard
           label="Pending Statuses"
           value={pendingAccounts}
-          description="Pending FOCUS, Pending DMT, & Pending Setup."
+          description="Accounts in Pending or Onboarding status."
         />
       </div>
     </div>

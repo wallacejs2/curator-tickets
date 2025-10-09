@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import { Status, ProjectStatus, TaskStatus, DealershipStatus, FeatureStatus } from '../../types.ts';
 import LinkingModal from './LinkingModal.tsx';
@@ -21,13 +22,11 @@ const tagColorStyles: Record<string, string> = {
   // Statuses from types.ts TaskStatus enum
   [TaskStatus.ToDo]: 'bg-gray-200 text-gray-800',
   [TaskStatus.Done]: 'bg-green-200 text-green-800',
+  // FIX: Removed invalid DealershipStatus enum members and added the correct 'Pending' status.
   // Statuses from types.ts DealershipStatus enum
-  [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
-  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
-  [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
+  [DealershipStatus.Pending]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
-  [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
   // Statuses from types.ts FeatureStatus enum
   [FeatureStatus.Backlog]: 'bg-gray-200 text-gray-800',
@@ -157,5 +156,4 @@ const LinkingSection = <T extends LinkableItem>({
   );
 };
 
-// FIX: Added default export to resolve module import errors.
 export default LinkingSection;

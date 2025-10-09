@@ -36,14 +36,9 @@ export enum Platform {
 }
 
 export enum DealershipStatus {
-  Prospect = 'Prospect',
-  PendingDmt = 'Pending DMT',
-  PendingFocus = 'Pending FOCUS',
-  PendingSetup = 'Pending Setup',
+  Pending = 'Pending',
   Onboarding = 'Onboarding',
-  Enrollment = 'Enrollment',
   Live = 'Live',
-  Pilot = 'Pilot',
   Cancelled = 'Cancelled',
 }
 

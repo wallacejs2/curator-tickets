@@ -1553,11 +1553,9 @@ function App() {
     }, [tickets]);
 
     const dealershipInsights = useMemo(() => {
-        const pendingStatuses = [DealershipStatus.PendingDmt, DealershipStatus.PendingFocus, DealershipStatus.PendingSetup];
         return {
-            totalDealerships: dealerships.filter(d => d.status !== DealershipStatus.Cancelled && d.status !== DealershipStatus.Prospect).length,
             liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
-            pendingAccounts: dealerships.filter(d => pendingStatuses.includes(d.status)).length,
+            pendingAccounts: dealerships.filter(d => d.status === DealershipStatus.Pending || d.status === DealershipStatus.Onboarding).length,
         }
     }, [dealerships]);
 

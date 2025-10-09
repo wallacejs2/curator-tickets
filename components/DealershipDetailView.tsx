@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper, ProductPricing, Product, WebsiteLink } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -52,14 +54,9 @@ const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ lab
 );
 
 const statusColors: Record<DealershipStatus, string> = {
-  [DealershipStatus.Prospect]: 'bg-indigo-200 text-indigo-800',
-  [DealershipStatus.PendingDmt]: 'bg-purple-200 text-purple-800',
-  [DealershipStatus.PendingFocus]: 'bg-sky-200 text-sky-800',
-  [DealershipStatus.PendingSetup]: 'bg-yellow-200 text-yellow-800',
+  [DealershipStatus.Pending]: 'bg-purple-200 text-purple-800',
   [DealershipStatus.Onboarding]: 'bg-orange-200 text-orange-800',
-  [DealershipStatus.Enrollment]: 'bg-teal-200 text-teal-800',
   [DealershipStatus.Live]: 'bg-green-200 text-green-800',
-  [DealershipStatus.Pilot]: 'bg-pink-200 text-pink-800',
   [DealershipStatus.Cancelled]: 'bg-red-200 text-red-800',
 };
 
@@ -352,7 +349,8 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Products &amp; Pricing</h3>
                     <div className="space-y-3">
-                        {(isEditing ? editedData.products : dealership.products)?.map((product, index) => {
+                        {/* FIX: Use Array.isArray as a type guard to prevent runtime errors if data.products is not an array. */}
+                        {(Array.isArray(data.products) ? data.products : []).map((product, index) => {
                             const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
                             return isEditing ? (
                                 <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
