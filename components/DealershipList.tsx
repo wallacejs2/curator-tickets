@@ -1,6 +1,5 @@
-
-
 import React, { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Dealership, DealershipStatus, DealershipGroup } from '../types.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
 import { ChecklistIcon } from './icons/ChecklistIcon.tsx';
@@ -14,10 +13,12 @@ import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
-import { DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
+import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
+import { DownloadIcon } from './icons/DownloadIcon.tsx';
 
 interface DealershipListProps {
   dealerships: Dealership[];
+  allDealerships: Dealership[];
   dealershipGroups: DealershipGroup[];
   onDealershipClick: (dealership: Dealership) => void;
   onStatusChange: (dealershipId: string, newStatus: DealershipStatus) => void;
@@ -284,13 +285,12 @@ const ManageGroupMembersModal: React.FC<{
 type DealershipView = 'active' | 'cancelled';
 type DisplayMode = 'all' | 'groups';
 
-const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick }) => {
+const DealershipList: React.FC<DealershipListProps> = ({ dealerships, allDealerships, dealershipGroups, onDealershipClick, onStatusChange, onUpdateGroup, onDeleteGroup, showToast, onNewGroupClick, onEditGroupClick }) => {
   const [dealershipView, setDealershipView] = useState<DealershipView>('active');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('all');
   const [managingGroup, setManagingGroup] = useState<DealershipGroup | null>(null);
 
   const { activeDealerships, cancelledDealerships } = useMemo(() => {
-    // FIX: Removed invalid generic type argument from reduce call.
     return dealerships.reduce(
       (acc, dealership) => {
         if (dealership.status === DealershipStatus.Cancelled) {
@@ -310,6 +310,72 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
       if (!managingGroup) return;
       onUpdateGroup({ ...managingGroup, dealershipIds: updatedDealershipIds });
       setManagingGroup(null);
+  };
+  
+  const handleExportAll = () => {
+    const productHeaders = PRODUCTS.map(p => p.name);
+
+    const dataToExport = allDealerships.map(d => {
+        const row: any = {};
+
+        row.status = d.status;
+        row.accountNumber = d.accountNumber;
+        row.name = d.name;
+        row.enterprise = d.enterprise;
+        row.storeNumber = d.storeNumber;
+        row.branchNumber = d.branchNumber;
+        row.address = d.address;
+        row.wasFullpathCustomer = d.wasFullpathCustomer ? 'Yes' : 'No';
+        row.hasManagedSolution = d.hasManagedSolution ? 'Yes' : 'No';
+
+        const firstProduct = d.products && d.products[0];
+        row.orderReceivedDate = firstProduct?.orderReceivedDate ? new Date(firstProduct.orderReceivedDate).toLocaleDateString() : '';
+        row.orderNumber = firstProduct?.orderNumber || '';
+
+        row.goLiveDate = d.goLiveDate ? new Date(d.goLiveDate).toLocaleDateString() : '';
+        row.termDate = d.termDate ? new Date(d.termDate).toLocaleDateString() : '';
+
+        row.eraSystemId = d.eraSystemId;
+        row.ppSysId = d.ppSysId;
+        row.buId = d.buId;
+
+        row.assignedSpecialist = d.assignedSpecialist;
+        row.sales = d.sales;
+        row.pocName = d.pocName;
+        row.pocEmail = d.pocEmail;
+        row.pocPhone = d.pocPhone;
+        
+        row.clientID1 = d.websiteLinks?.[0]?.clientId || '';
+        row.websiteLink1 = d.websiteLinks?.[0]?.url || '';
+        row.clientID2 = d.websiteLinks?.[1]?.clientId || '';
+        row.websiteLink2 = d.websiteLinks?.[1]?.url || '';
+
+        row.updates = (d.updates || [])
+            .map(u => `[${new Date(u.date).toLocaleDateString()}] ${u.author}: ${u.comment.replace(/<br\s*\/?>/gi, ' ')}`)
+            .join('\n');
+            
+        const dealershipProducts = new Map( (d.products || []).map(p => [p.productId, p.sellingPrice]) );
+        PRODUCTS.forEach(product => {
+            const sellingPrice = dealershipProducts.get(product.id);
+            row[product.name] = sellingPrice !== undefined ? sellingPrice : '';
+        });
+
+        return row;
+    });
+
+    const finalHeaders = [
+        'status', 'accountNumber', 'name', 'enterprise', 'storeNumber', 'branchNumber', 'address', 'wasFullpathCustomer', 
+        'hasManagedSolution', 'orderReceivedDate', 'orderNumber', 'goLiveDate', 'termDate', 'eraSystemId', 'ppSysId', 
+        'buId', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'clientID1', 'websiteLink1', 
+        'clientID2', 'websiteLink2', 'updates',
+        ...productHeaders
+    ];
+    
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport, { header: finalHeaders });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Dealerships");
+    XLSX.writeFile(workbook, "Dealerships_Export.xlsx");
+    showToast('Dealership data exported successfully!', 'success');
   };
 
   return (
@@ -333,6 +399,9 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, dealership
                 <button onClick={() => setDisplayMode('groups')} className={`px-3 py-1 text-sm rounded ${displayMode === 'groups' ? 'bg-white shadow' : 'text-gray-600'}`}>Groups</button>
             </div>
             <button onClick={onNewGroupClick} className="flex items-center gap-2 bg-gray-100 text-gray-700 font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-gray-200"><PlusIcon className="w-4 h-4" /> New Group</button>
+            <button onClick={handleExportAll} className="flex items-center gap-2 bg-green-100 text-green-800 font-semibold px-3 py-1.5 rounded-md text-sm hover:bg-green-200">
+                <DownloadIcon className="w-4 h-4" /> Export All
+            </button>
         </div>
       </div>
       

@@ -1604,6 +1604,7 @@ function App() {
                 <DealershipInsights {...dealershipInsights} />
                 <DealershipList 
                   dealerships={filteredDealerships} 
+                  allDealerships={dealerships}
                   onDealershipClick={setSelectedDealership} 
                   onStatusChange={handleDealershipStatusChange}
                   dealershipGroups={dealershipGroups}
