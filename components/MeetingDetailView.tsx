@@ -4,8 +4,8 @@ import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import RichTextEditor from './common/RichTextEditor.tsx';
+import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
@@ -13,7 +13,6 @@ interface MeetingDetailViewProps {
     meeting: Meeting;
     onUpdate: (meeting: Meeting) => void;
     onDelete: (meetingId: string) => void;
-    onExport: () => void;
     onAddUpdate: (meetingId: string, comment: string, author: string, date: string) => void;
     onEditUpdate: (updatedUpdate: Update) => void;
     onDeleteUpdate: (updateId: string) => void;
@@ -45,10 +44,10 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
     meeting, 
     onUpdate, 
     onDelete,
-    onExport,
     onAddUpdate,
     onEditUpdate,
     onDeleteUpdate,
+    showToast,
     isReadOnly = false,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
@@ -107,6 +106,46 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
         }
     };
 
+    const handleCopyInfo = () => {
+        let content = `MEETING DETAILS: ${meeting.name}\n`;
+        content += `==================================================\n\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        
+        appendField('ID', meeting.id);
+        appendDateField('Date', meeting.meetingDate);
+        appendField('Attendees', meeting.attendees.join(', '));
+
+        appendSection('Notes');
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = meeting.notes;
+        const notesText = tempDiv.textContent || tempDiv.innerText || "";
+        content += `${notesText}\n`;
+        
+        appendSection('Linked Item IDs');
+        appendField('Project IDs', (meeting.projectIds || []).join(', '));
+        appendField('Ticket IDs', (meeting.ticketIds || []).join(', '));
+        appendField('Linked Meeting IDs', (meeting.linkedMeetingIds || []).join(', '));
+        appendField('Task IDs', (meeting.taskIds || []).join(', '));
+        appendField('Dealership IDs', (meeting.dealershipIds || []).join(', '));
+        appendField('Feature IDs', (meeting.featureIds || []).join(', '));
+
+        navigator.clipboard.writeText(content.trim());
+        showToast('Meeting info copied!', 'success');
+    };
+
     const labelClasses = "block text-sm font-medium text-gray-700";
     const formElementClasses = "mt-1 block w-full bg-gray-50 text-gray-900 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm";
 
@@ -157,9 +196,9 @@ const MeetingDetailView: React.FC<MeetingDetailViewProps> = ({
 
             {!isReadOnly && (
               <div className="flex justify-end items-center gap-3 mb-6">
-                  <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                      <DownloadIcon className="w-4 h-4"/>
-                      <span>Export</span>
+                  <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm">
+                      <ContentCopyIcon className="w-4 h-4"/>
+                      <span>Copy Info</span>
                   </button>
                   <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
                   <button onClick={() => { setEditableMeeting(meeting); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>

@@ -1,11 +1,8 @@
-
-
 import React, { useState, useEffect } from 'react';
 // FIX: Add Shopper to imports to support linking shoppers to tasks.
 import { Task, TaskPriority, TaskStatus, Ticket, Project, Meeting, Dealership, FeatureAnnouncement, Status, ProjectStatus, Shopper } from '../../types.ts';
 import { XIcon } from '../icons/XIcon.tsx';
 import LinkingSection from './LinkingSection.tsx';
-import { DownloadIcon } from '../icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from '../icons/ContentCopyIcon.tsx';
 
 // FIX: Add 'shopper' as a valid entity type for linking.
@@ -15,7 +12,6 @@ interface EditTaskFormProps {
   task: Task & { projectId: string | null; ticketId: string | null; };
   onSave: (task: Task) => void;
   onClose: () => void;
-  onExport: () => void;
   showToast: (message: string, type: 'success' | 'error') => void;
   allTasks: (Task & { projectName?: string; projectId: string | null; })[];
   // Add all other entities for linking
@@ -35,7 +31,6 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
     task, 
     onSave, 
     onClose,
-    onExport,
     showToast,
     allTasks,
     allTickets,
@@ -203,14 +198,6 @@ const EditTaskForm: React.FC<EditTaskFormProps> = ({
                     >
                         <ContentCopyIcon className="w-4 h-4" />
                         <span>Copy Info</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onExport}
-                        className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                    >
-                        <DownloadIcon className="w-4 h-4" />
-                        <span>Export</span>
                     </button>
                 </div>
                 <div className="flex gap-3">

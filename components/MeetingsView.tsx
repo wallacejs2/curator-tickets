@@ -8,8 +8,8 @@ import Modal from './common/Modal.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
 import SideView from './common/SideView.tsx';
 import MeetingForm from './MeetingForm.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
+import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
@@ -17,7 +17,6 @@ interface MeetingsViewProps {
   meetings: Meeting[];
   onSave: (meeting: Omit<Meeting, 'id'> | Meeting) => void;
   onDelete: (meetingId: string) => void;
-  onExport: (meeting: Meeting) => void;
   showToast: (message: string, type: 'success' | 'error') => void;
 
   allTickets: Ticket[];
@@ -33,7 +32,7 @@ interface MeetingsViewProps {
 }
 
 const MeetingsView: React.FC<MeetingsViewProps> = ({ 
-    meetings, onSave, onDelete, onExport, showToast,
+    meetings, onSave, onDelete, showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
  }) => {
@@ -74,6 +73,46 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({
             setSelectedMeeting(null);
         }
     }
+
+    const handleCopyInfo = (meeting: Meeting) => {
+        let content = `MEETING DETAILS: ${meeting.name}\n`;
+        content += `==================================================\n\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+        
+        appendField('ID', meeting.id);
+        appendDateField('Date', meeting.meetingDate);
+        appendField('Attendees', meeting.attendees.join(', '));
+
+        appendSection('Notes');
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = meeting.notes;
+        const notesText = tempDiv.textContent || tempDiv.innerText || "";
+        content += `${notesText}\n`;
+        
+        appendSection('Linked Item IDs');
+        appendField('Project IDs', (meeting.projectIds || []).join(', '));
+        appendField('Ticket IDs', (meeting.ticketIds || []).join(', '));
+        appendField('Linked Meeting IDs', (meeting.linkedMeetingIds || []).join(', '));
+        appendField('Task IDs', (meeting.taskIds || []).join(', '));
+        appendField('Dealership IDs', (meeting.dealershipIds || []).join(', '));
+        appendField('Feature IDs', (meeting.featureIds || []).join(', '));
+
+        navigator.clipboard.writeText(content.trim());
+        showToast('Meeting info copied!', 'success');
+    };
 
     const DetailField: React.FC<{ label: string; value?: React.ReactNode }> = ({ label, value }) => (
         <div>
@@ -147,7 +186,7 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({
                                 <h2 className="text-2xl font-bold text-gray-900">{selectedMeeting.name}</h2>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button onClick={() => onExport(selectedMeeting)} className="p-2 text-gray-400 hover:text-green-600 rounded-full" title="Export Note"><DownloadIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleCopyInfo(selectedMeeting)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full" title="Copy Info"><ContentCopyIcon className="w-5 h-5"/></button>
                                 <button onClick={() => { setEditingMeeting(selectedMeeting); setIsFormOpen(true); }} className="p-2 text-gray-400 hover:text-blue-600 rounded-full" title="Edit Note"><PencilIcon className="w-5 h-5"/></button>
                                 <button onClick={handleDelete} className="p-2 text-gray-400 hover:text-red-600 rounded-full" title="Delete Note"><TrashIcon className="w-5 h-5"/></button>
                             </div>

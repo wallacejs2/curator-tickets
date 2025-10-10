@@ -5,7 +5,6 @@ import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { LinkIcon } from './icons/LinkIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
@@ -79,7 +78,6 @@ interface TicketDetailViewProps {
     onAddUpdate: (comment: string, author: string, date: string) => void, 
     onEditUpdate: (updatedUpdate: Update) => void;
     onDeleteUpdate: (updateId: string) => void;
-    onExport: () => void, 
     onEmail: () => void, 
     onDelete: (ticketId: string) => void, 
     isReadOnly?: boolean;
@@ -101,7 +99,7 @@ interface TicketDetailViewProps {
 }
 
 const TicketDetailView = ({ 
-    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onExport, onEmail, onDelete, isReadOnly = false,
+    ticket, onUpdate, onAddUpdate, onEditUpdate, onDeleteUpdate, onEmail, onDelete, isReadOnly = false,
     showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allShoppers,
     onLink, onUnlink, onSwitchView
@@ -607,10 +605,6 @@ const TicketDetailView = ({
                 <span>Copy Info</span>
             </button>
             <button onClick={onEmail} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 text-sm"><span>Email</span></button>
-            <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                <DownloadIcon className="w-4 h-4"/>
-                <span>Export</span>
-            </button>
             <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
             <button onClick={() => { setEditableTicket(ticket); setIsEditing(true); }} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
         </div>

@@ -8,7 +8,6 @@ import Modal from './common/Modal.tsx';
 import { ArrowPathIcon } from './icons/ArrowPathIcon.tsx';
 import { SparklesIcon } from './icons/SparklesIcon.tsx';
 import { DocumentTextIcon } from './icons/DocumentTextIcon.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { DashboardIcon } from './icons/DashboardIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
@@ -30,7 +29,6 @@ interface LeftSidebarProps {
   onClose: () => void;
   currentView: View;
   onViewChange: (view: View) => void;
-  onExportClick: () => void;
 }
 
 const NavItem: React.FC<{ icon: React.ReactNode; label: string; isActive: boolean; onClick: () => void }> = ({ icon, label, isActive, onClick }) => (
@@ -59,7 +57,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onClose, 
   currentView, 
   onViewChange,
-  onExportClick,
 }) => {
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
@@ -252,13 +249,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           )}
           
           <div className="mt-auto pt-4 border-t border-gray-700 space-y-2">
-            <button
-                onClick={onExportClick}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-300 hover:bg-gray-700/50 hover:text-white"
-            >
-                <DownloadIcon className="w-5 h-5" />
-                <span>Export Data</span>
-            </button>
             <button
                 onClick={() => setIsResetModalOpen(true)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-gray-300 hover:bg-red-800/50 hover:text-white"

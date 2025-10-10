@@ -1,13 +1,10 @@
 
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper, ProductPricing, Product, WebsiteLink } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 import { PRODUCTS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
 import EditableText from './common/inlineEdit/EditableText.tsx';
@@ -23,7 +20,6 @@ interface DealershipDetailViewProps {
   dealership: Dealership;
   onUpdate: (dealership: Dealership) => void;
   onDelete: (dealershipId: string) => void;
-  onExport: () => void;
   onAddUpdate: (dealershipId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
@@ -61,7 +57,7 @@ const statusColors: Record<DealershipStatus, string> = {
 };
 
 const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({ 
-    dealership, onUpdate, onDelete, onExport, isReadOnly = false,
+    dealership, onUpdate, onDelete, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures, allGroups, allShoppers,
     onLink, onUnlink, onSwitchView
@@ -230,8 +226,92 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         }
     };
 
-    const handleCopyInfo = (e: React.MouseEvent) => {
-        onExport(); // The export function already does this text formatting
+    const handleCopyInfo = () => {
+        let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
+        content += `==================================================\n\n`;
+        
+        const appendField = (label: string, value: any) => {
+            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
+                content += `${label}: ${value}\n`;
+            }
+        };
+        const appendDateField = (label: string, value: any) => {
+            if (value) {
+                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
+            }
+        };
+        const appendSection = (title: string) => {
+            content += `\n--- ${title.toUpperCase()} ---\n`;
+        };
+
+        appendSection('Account Information');
+        appendField('ID', dealership.id);
+        appendField('Account Number (CIF)', dealership.accountNumber);
+        appendField('Status', dealership.status);
+        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
+        appendField('Enterprise (Group)', dealership.enterprise);
+        appendField('Address', dealership.address);
+        appendDateField('Go-Live Date', dealership.goLiveDate);
+        appendDateField('Term Date', dealership.termDate);
+
+        if (dealership.products && dealership.products.length > 0) {
+            appendSection('Pricing & Orders');
+            dealership.products.forEach((p, index) => {
+                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
+                if (productInfo) {
+                    content += `\n--- Product ${index + 1} ---\n`;
+                    appendDateField('Order Received', p.orderReceivedDate);
+                    appendField('Order #', p.orderNumber);
+                    content += `Product: ${productInfo.id} | ${productInfo.name}\n`;
+                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
+                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
+                }
+            });
+        }
+
+        appendSection('Key Contacts');
+        appendField('Assigned Specialist', dealership.assignedSpecialist);
+        appendField('Sales', dealership.sales);
+        appendField('POC Name', dealership.pocName);
+        appendField('POC Email', dealership.pocEmail);
+        appendField('POC Phone', dealership.pocPhone);
+        
+        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
+            appendSection('Website Links');
+            dealership.websiteLinks.forEach(link => {
+                content += `- URL: ${link.url}\n`;
+                if (link.clientId) {
+                    content += `  Client ID: ${link.clientId}\n`;
+                }
+            });
+        }
+        
+        appendSection('Identifiers');
+        appendField('Store Number', dealership.storeNumber);
+        appendField('Branch Number', dealership.branchNumber);
+        appendField('ERA System ID', dealership.eraSystemId);
+        appendField('PPSysID', dealership.ppSysId);
+        appendField('BU-ID', dealership.buId);
+
+        if (dealership.updates && dealership.updates.length > 0) {
+            appendSection(`Updates (${dealership.updates.length})`);
+            [...dealership.updates].reverse().forEach(update => {
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
+                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+            });
+        }
+        
+        appendSection('Linked Item IDs');
+        appendField('Group IDs', (dealership.groupIds || []).join(', '));
+        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
+        appendField('Project IDs', (dealership.projectIds || []).join(', '));
+        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
+        appendField('Task IDs', (dealership.taskIds || []).join(', '));
+        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
+        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
+        appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
+
+        navigator.clipboard.writeText(content.trim());
         showToast('Dealership info copied!', 'success');
     };
     
@@ -259,7 +339,6 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                   ) : (
                       <>
                         <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm"><ContentCopyIcon className="w-4 h-4"/><span>Copy Info</span></button>
-                        <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 text-sm"><DownloadIcon className="w-4 h-4"/><span>Export</span></button>
                         <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
                         <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
                       </>
@@ -349,7 +428,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Products &amp; Pricing</h3>
                     <div className="space-y-3">
-                        {/* FIX: Use Array.isArray as a type guard to prevent runtime errors if data.products is not an array. */}
+                        {/* FIX: Use Array.isArray as a type guard to ensure 'data.products' is an array before calling .map, preventing potential runtime errors if it is undefined. */}
                         {(Array.isArray(data.products) ? data.products : []).map((product, index) => {
                             const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
                             return isEditing ? (

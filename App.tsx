@@ -6,7 +6,6 @@ import LeftSidebar from './components/FilterBar.tsx';
 import SideView from './components/common/SideView.tsx';
 import { PencilIcon } from './components/icons/PencilIcon.tsx';
 import PerformanceInsights from './components/PerformanceInsights.tsx';
-import { DownloadIcon } from './components/icons/DownloadIcon.tsx';
 import { PlusIcon } from './components/icons/PlusIcon.tsx';
 import { MenuIcon } from './components/icons/MenuIcon.tsx';
 import { STATUS_OPTIONS, PRIORITY_OPTIONS, TICKET_TYPE_OPTIONS, PRODUCT_AREA_OPTIONS, PLATFORM_OPTIONS, DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from './constants.ts';
@@ -31,7 +30,6 @@ import FeatureForm from './components/FeatureForm.tsx';
 import MeetingsView from './components/MeetingsView.tsx';
 import TicketDetailView from './components/TicketDetailView.tsx';
 import FeatureDetailView from './components/FeatureDetailView.tsx';
-import ExportModal from './components/ExportModal.tsx';
 import ProjectInsights from './components/ProjectInsights.tsx';
 import TaskInsights from './components/TaskInsights.tsx';
 import EditTaskForm from './components/common/EditTaskForm.tsx';
@@ -171,7 +169,6 @@ function App() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isCreateChoiceModalOpen, setIsCreateChoiceModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const [ticketFilters, setTicketFilters] = useState<FilterState>({
     searchTerm: '',
@@ -953,387 +950,6 @@ function App() {
             );
         }
     };
-    
-    const createTxtFileDownloader = (content: string, filename: string) => {
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${filename.replace(/[\s/\\?%*:|"<>]/g, '_')}.txt`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    };
-
-    const handleExportTicket = (ticket: Ticket) => {
-        let content = `TICKET DETAILS: ${ticket.title}\n`;
-        content += `==================================================\n\n`;
-        
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
-            }
-        };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-        const appendTextArea = (label: string, value: any) => {
-             if (value) {
-                content += `${label}:\n${value}\n\n`;
-            }
-        };
-
-        appendField('ID', ticket.id);
-        appendField('Type', ticket.type);
-        appendField('Status', ticket.status);
-        appendField('Priority', ticket.priority);
-
-        appendSection('Core Information');
-        appendField('Product Area', ticket.productArea);
-        appendField('Platform', ticket.platform);
-        appendField('Location', ticket.location);
-        appendTextArea('On Hold Reason', ticket.onHoldReason);
-        appendTextArea('Completion Notes', ticket.completionNotes);
-        
-        appendSection('Tracking & Ownership');
-        appendField('Submitter', ticket.submitterName);
-        appendField('Client', ticket.client);
-        appendField('PMR Number', ticket.pmrNumber);
-        appendField('PMR Link', ticket.pmrLink);
-        appendField('FP Ticket Number', ticket.fpTicketNumber);
-        appendField('Ticket Thread ID', ticket.ticketThreadId);
-
-        appendSection('Dates');
-        appendDateField('Submission Date', ticket.submissionDate);
-        appendDateField('Start Date', ticket.startDate);
-        appendDateField('Est. Completion Date', ticket.estimatedCompletionDate);
-        appendDateField('Completion Date', ticket.completionDate);
-
-        if (ticket.type === TicketType.Issue) {
-            const issue = ticket as IssueTicket;
-            appendSection('Issue Details');
-            appendTextArea('Problem', issue.problem);
-            appendTextArea('Duplication Steps', issue.duplicationSteps);
-            appendTextArea('Workaround', issue.workaround);
-            appendTextArea('Frequency', issue.frequency);
-        } else {
-            const feature = ticket as FeatureRequestTicket;
-            appendSection('Feature Request Details');
-            appendTextArea('Improvement', feature.improvement);
-            appendTextArea('Current Functionality', feature.currentFunctionality);
-            appendTextArea('Suggested Solution', feature.suggestedSolution);
-            appendTextArea('Benefits', feature.benefits);
-        }
-        
-        if (ticket.tasks && ticket.tasks.length > 0) {
-            appendSection(`Tasks (${ticket.tasks.length})`);
-            ticket.tasks.forEach(task => {
-                content += `- ${task.description} (Assigned: ${task.assignedUser}, Status: ${task.status}, Priority: ${task.priority})\n`;
-            });
-            content += '\n';
-        }
-
-        if (ticket.updates && ticket.updates.length > 0) {
-            appendSection(`Updates (${ticket.updates.length})`);
-            [...ticket.updates].reverse().forEach(update => {
-                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
-                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
-            });
-        }
-
-        appendSection('Linked Item IDs');
-        appendField('Project IDs', (ticket.projectIds || []).join(', '));
-        appendField('Linked Ticket IDs', (ticket.linkedTicketIds || []).join(', '));
-        appendField('Meeting IDs', (ticket.meetingIds || []).join(', '));
-        appendField('Task IDs', (ticket.taskIds || []).join(', '));
-        appendField('Dealership IDs', (ticket.dealershipIds || []).join(', '));
-        appendField('Feature IDs', (ticket.featureIds || []).join(', '));
-        
-        createTxtFileDownloader(content, `Ticket_${ticket.id}_${ticket.title}`);
-    };
-
-    const handleExportProject = (project: Project) => {
-        let content = `PROJECT DETAILS: ${project.name}\n`;
-        content += `==================================================\n\n`;
-        
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
-            }
-        };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-        const appendRichText = (label: string, value: any) => {
-             if (value) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = value;
-                content += `${label}:\n${tempDiv.textContent || tempDiv.innerText || ""}\n\n`;
-            }
-        };
-
-        appendField('ID', project.id);
-        appendField('Status', project.status);
-        appendDateField('Creation Date', project.creationDate);
-        appendField('Involved People', (project.involvedPeople || []).join(', '));
-
-        appendSection('Project Brief');
-        (project.sections || []).forEach(section => {
-            appendRichText(section.title, section.content);
-        });
-
-        if (project.tasks && project.tasks.length > 0) {
-            appendSection(`Tasks (${project.tasks.length})`);
-            project.tasks.forEach(task => {
-                content += `- ${task.description}\n`;
-                content += `  (Assigned: ${task.assignedUser}, Status: ${task.status}, Priority: ${task.priority}, Type: ${task.type})\n`;
-                if(task.dueDate) content += `  (Due: ${new Date(task.dueDate).toLocaleDateString(undefined, { timeZone: 'UTC' })})\n`;
-            });
-            content += '\n';
-        }
-
-        if (project.updates && project.updates.length > 0) {
-            appendSection(`Updates (${project.updates.length})`);
-            [...project.updates].reverse().forEach(update => {
-                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
-                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
-            });
-        }
-
-        appendSection('Linked Item IDs');
-        appendField('Ticket IDs', (project.ticketIds || []).join(', '));
-        appendField('Linked Project IDs', (project.linkedProjectIds || []).join(', '));
-        appendField('Meeting IDs', (project.meetingIds || []).join(', '));
-        appendField('Task IDs', (project.taskIds || []).join(', '));
-        appendField('Dealership IDs', (project.dealershipIds || []).join(', '));
-        appendField('Feature IDs', (project.featureIds || []).join(', '));
-
-        createTxtFileDownloader(content, `Project_${project.id}_${project.name}`);
-    };
-
-    const handleExportTask = (task: Task) => {
-        let content = `TASK DETAILS: ${task.description.substring(0, 50)}...\n`;
-        content += `==================================================\n\n`;
-
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
-            }
-        };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-
-        appendField('ID', task.id);
-        appendField('Description', task.description);
-        appendField('Status', task.status);
-        appendField('Priority', task.priority);
-        appendField('Assigned to', task.assignedUser);
-        appendField('Type', task.type);
-        appendDateField('Creation Date', task.creationDate);
-        appendDateField('Due Date', task.dueDate);
-        appendField('Notify on Completion', task.notifyOnCompletion);
-
-        appendSection('Linked Item IDs');
-        appendField('Linked Task IDs', (task.linkedTaskIds || []).join(', '));
-        appendField('Ticket IDs', (task.ticketIds || []).join(', '));
-        appendField('Project IDs', (task.projectIds || []).join(', '));
-        appendField('Meeting IDs', (task.meetingIds || []).join(', '));
-        appendField('Dealership IDs', (task.dealershipIds || []).join(', '));
-        appendField('Feature IDs', (task.featureIds || []).join(', '));
-        
-        createTxtFileDownloader(content, `Task_${task.id}_${task.description.substring(0, 30)}`);
-    };
-
-    const handleExportMeeting = (meeting: Meeting) => {
-        let content = `MEETING DETAILS: ${meeting.name}\n`;
-        content += `==================================================\n\n`;
-        
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
-            }
-        };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-        
-        appendField('ID', meeting.id);
-        appendDateField('Date', meeting.meetingDate);
-        appendField('Attendees', meeting.attendees.join(', '));
-
-        appendSection('Notes');
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = meeting.notes;
-        const notesText = tempDiv.textContent || tempDiv.innerText || "";
-        content += `${notesText}\n`;
-        
-        appendSection('Linked Item IDs');
-        appendField('Project IDs', (meeting.projectIds || []).join(', '));
-        appendField('Ticket IDs', (meeting.ticketIds || []).join(', '));
-        appendField('Linked Meeting IDs', (meeting.linkedMeetingIds || []).join(', '));
-        appendField('Task IDs', (meeting.taskIds || []).join(', '));
-        appendField('Dealership IDs', (meeting.dealershipIds || []).join(', '));
-        appendField('Feature IDs', (meeting.featureIds || []).join(', '));
-
-        createTxtFileDownloader(content, `Meeting_${meeting.id}_${meeting.name}`);
-    };
-
-    const handleExportDealership = (dealership: Dealership) => {
-        let content = `DEALERSHIP DETAILS: ${dealership.name}\n`;
-        content += `==================================================\n\n`;
-        
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
-            }
-        };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-
-        appendSection('Account Information');
-        appendField('ID', dealership.id);
-        appendField('Account Number (CIF)', dealership.accountNumber);
-        appendField('Status', dealership.status);
-        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
-        appendField('Enterprise (Group)', dealership.enterprise);
-        appendField('Address', dealership.address);
-        appendDateField('Go-Live Date', dealership.goLiveDate);
-        appendDateField('Term Date', dealership.termDate);
-
-        if (dealership.products && dealership.products.length > 0) {
-            appendSection('Pricing & Orders');
-            dealership.products.forEach((p, index) => {
-                const productInfo = PRODUCTS.find(prod => prod.id === p.productId);
-                if (productInfo) {
-                    content += `\n--- Product ${index + 1} ---\n`;
-                    appendDateField('Order Received', p.orderReceivedDate);
-                    appendField('Order #', p.orderNumber);
-                    content += `Product: ${productInfo.id} | ${productInfo.name}\n`;
-                    content += `  Fixed Price: $${productInfo.fixedPrice.toLocaleString()}\n`;
-                    content += `  Selling Price: ${p.sellingPrice != null ? `$${p.sellingPrice.toLocaleString()}` : 'N/A'}\n`;
-                }
-            });
-        }
-
-        appendSection('Key Contacts');
-        appendField('Assigned Specialist', dealership.assignedSpecialist);
-        appendField('Sales', dealership.sales);
-        appendField('POC Name', dealership.pocName);
-        appendField('POC Email', dealership.pocEmail);
-        appendField('POC Phone', dealership.pocPhone);
-        
-        if (dealership.websiteLinks && dealership.websiteLinks.length > 0) {
-            appendSection('Website Links');
-            dealership.websiteLinks.forEach(link => {
-                content += `- URL: ${link.url}\n`;
-                if (link.clientId) {
-                    content += `  Client ID: ${link.clientId}\n`;
-                }
-            });
-        }
-        
-        appendSection('Identifiers');
-        appendField('Store Number', dealership.storeNumber);
-        appendField('Branch Number', dealership.branchNumber);
-        appendField('ERA System ID', dealership.eraSystemId);
-        appendField('PPSysID', dealership.ppSysId);
-        appendField('BU-ID', dealership.buId);
-
-        if (dealership.updates && dealership.updates.length > 0) {
-            appendSection(`Updates (${dealership.updates.length})`);
-            [...dealership.updates].reverse().forEach(update => {
-                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
-                content += `[${new Date(update.date).toLocaleString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
-            });
-        }
-        
-        appendSection('Linked Item IDs');
-        appendField('Group IDs', (dealership.groupIds || []).join(', '));
-        appendField('Ticket IDs', (dealership.ticketIds || []).join(', '));
-        appendField('Project IDs', (dealership.projectIds || []).join(', '));
-        appendField('Meeting IDs', (dealership.meetingIds || []).join(', '));
-        appendField('Task IDs', (dealership.taskIds || []).join(', '));
-        appendField('Linked Dealership IDs', (dealership.linkedDealershipIds || []).join(', '));
-        appendField('Feature IDs', (dealership.featureIds || []).join(', '));
-        appendField('Shopper IDs', (dealership.shopperIds || []).join(', '));
-
-        createTxtFileDownloader(content, `Dealership_${dealership.id}_${dealership.name}`);
-    };
-
-    const handleExportFeature = (feature: FeatureAnnouncement) => {
-        let content = `FEATURE DETAILS: ${feature.title}\n`;
-        content += `==================================================\n\n`;
-        
-        const appendField = (label: string, value: any) => {
-            if (value !== undefined && value !== null && value !== '' && (!Array.isArray(value) || value.length > 0)) {
-                content += `${label}: ${value}\n`;
-            }
-        };
-        const appendDateField = (label: string, value: any) => {
-            if (value) {
-                content += `${label}: ${new Date(value).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n`;
-            }
-        };
-        const appendSection = (title: string) => {
-            content += `\n--- ${title.toUpperCase()} ---\n`;
-        };
-        const appendTextArea = (label: string, value: any) => {
-             if (value) {
-                content += `${label}:\n${value}\n\n`;
-            }
-        };
-
-        appendField('ID', feature.id);
-        appendField('Status', feature.status);
-        appendField('Platform', feature.platform);
-        appendField('Location', feature.location);
-        appendDateField('Launch Date', feature.launchDate);
-        appendField('Version', feature.version);
-        appendField('Categories', (feature.categories || []).join(', '));
-
-        appendSection('Details');
-        appendTextArea('Description', feature.description);
-        appendTextArea('Target Audience', feature.targetAudience);
-        appendTextArea('Success Metrics', feature.successMetrics);
-
-        appendSection('Linked Item IDs');
-        appendField('Ticket IDs', (feature.ticketIds || []).join(', '));
-        appendField('Project IDs', (feature.projectIds || []).join(', '));
-        appendField('Meeting IDs', (feature.meetingIds || []).join(', '));
-        appendField('Task IDs', (feature.taskIds || []).join(', '));
-        appendField('Dealership IDs', (feature.dealershipIds || []).join(', '));
-        appendField('Linked Feature IDs', (feature.linkedFeatureIds || []).join(', '));
-
-        createTxtFileDownloader(content, `Feature_${feature.id}_${feature.title}`);
-    };
 
     const handleEmailTicket = (ticket: Ticket) => {
         const subject = encodeURIComponent(`Ticket Details: ${ticket.title}`);
@@ -1719,19 +1335,6 @@ function App() {
         closeAllSideViews();
     }
 
-    const dataSourcesForExport = [
-      { title: 'Tickets', data: tickets },
-      { title: 'Projects', data: projects },
-      { title: 'Dealerships', data: dealerships },
-      { title: 'Standalone Tasks', data: tasks },
-      { title: 'Features', data: features },
-      { title: 'Meetings', data: meetings },
-      { title: 'Shoppers', data: shoppers },
-      { title: 'Knowledge Articles', data: knowledgeArticles },
-      { title: 'Curator Articles', data: curatorArticles },
-      { title: 'Quarters', data: quarters },
-    ];
-
     // Data for Dashboard
     const upcomingDeadlines = useMemo(() => {
         const sevenDaysFromNow = new Date();
@@ -1900,7 +1503,6 @@ function App() {
         onClose={() => setIsSidebarOpen(false)}
         currentView={currentView}
         onViewChange={handleViewChange}
-        onExportClick={() => setIsExportModalOpen(true)}
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200">
@@ -2042,7 +1644,6 @@ function App() {
                 meetings={meetings}
                 onSave={handleSaveMeeting}
                 onDelete={handleDeleteMeeting}
-                onExport={handleExportMeeting}
                 showToast={showToast}
                 allTickets={tickets}
                 allProjects={projects}
@@ -2156,7 +1757,6 @@ function App() {
                 task={editingTask} 
                 onSave={handleUpdateTask} 
                 onClose={() => setEditingTask(null)}
-                onExport={() => handleExportTask(editingTask)}
                 allTasks={allTasks}
                 allTickets={tickets}
                 allProjects={projects}
@@ -2170,14 +1770,6 @@ function App() {
                 showToast={showToast}
             />
         </Modal>
-      )}
-
-      {isExportModalOpen && (
-        <ExportModal
-          onClose={() => setIsExportModalOpen(false)}
-          dataSources={dataSourcesForExport}
-          showToast={showToast}
-        />
       )}
 
       {isDealershipGroupFormOpen && (
@@ -2199,7 +1791,6 @@ function App() {
             onAddUpdate={(comment, author, date) => handleAddUpdate(selectedTicket.id, comment, author, date)}
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedTicket.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedTicket.id, updateId)}
-            onExport={() => handleExportTicket(selectedTicket)}
             onEmail={() => handleEmailTicket(selectedTicket)}
             onDelete={handleDeleteTicket}
             {...allDataForLinking}
@@ -2213,7 +1804,6 @@ function App() {
             project={selectedProject} 
             onUpdate={handleUpdateProject} 
             onDelete={handleDeleteProject}
-            onExport={() => handleExportProject(selectedProject)}
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)} 
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedProject.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedProject.id, updateId)}
@@ -2227,7 +1817,6 @@ function App() {
             dealership={selectedDealership} 
             onUpdate={handleUpdateDealership} 
             onDelete={handleDeleteDealership} 
-            onExport={() => handleExportDealership(selectedDealership)} 
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedDealership.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedDealership.id, updateId)}
@@ -2241,7 +1830,6 @@ function App() {
             feature={selectedFeature} 
             onUpdate={handleUpdateFeature} 
             onDelete={handleDeleteFeature} 
-            onExport={() => handleExportFeature(selectedFeature)}
             onAddUpdate={(id, comment, author, date) => handleAddUpdate(id, comment, author, date)}
             onEditUpdate={(updatedUpdate) => handleEditUpdate(selectedFeature.id, updatedUpdate)}
             onDeleteUpdate={(updateId) => handleDeleteUpdate(selectedFeature.id, updateId)}

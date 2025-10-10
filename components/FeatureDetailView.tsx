@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FeatureAnnouncement, FeatureStatus, Platform, Ticket, Project, Task, Meeting, Dealership, Status, ProjectStatus, TaskStatus, Update } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -6,7 +5,6 @@ import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import FeatureForm from './FeatureForm.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
@@ -15,7 +13,6 @@ interface FeatureDetailViewProps {
   feature: FeatureAnnouncement;
   onUpdate: (feature: FeatureAnnouncement) => void;
   onDelete: (featureId: string) => void;
-  onExport: () => void;
   onAddUpdate: (featureId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
@@ -62,7 +59,7 @@ const DetailTag: React.FC<{ label: string; value: string }> = ({ label, value })
   );
 
 const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({ 
-    feature, onUpdate, onDelete, onExport, isReadOnly = false,
+    feature, onUpdate, onDelete, isReadOnly = false,
     onAddUpdate, onEditUpdate, onDeleteUpdate, showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
@@ -178,10 +175,6 @@ const FeatureDetailView: React.FC<FeatureDetailViewProps> = ({
             {!isReadOnly && (
               <div className="flex justify-end items-center gap-3 mb-6">
                   <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm"><ContentCopyIcon className="w-4 h-4"/><span>Copy Info</span></button>
-                  <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                      <DownloadIcon className="w-4 h-4"/>
-                      <span>Export</span>
-                  </button>
                   <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
                   <button onClick={() => setIsEditingModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 text-sm"><PencilIcon className="w-4 h-4"/><span>Edit</span></button>
               </div>

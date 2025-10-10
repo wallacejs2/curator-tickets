@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink, ProductPricing, Product } from '../types.ts';
 import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
@@ -286,7 +284,7 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
 
       <FormSection title="Products & Pricing" gridCols={1}>
         <div className="space-y-4">
-            {/* FIX: Use Array.isArray as a type guard to prevent runtime errors if formData.products is not an array. */}
+            {/* FIX: Use Array.isArray as a type guard to ensure 'formData.products' is an array before calling .map, preventing potential runtime errors if it is undefined. */}
             {(Array.isArray(formData.products) ? formData.products : []).map((product, index) => {
                 const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
                 return (

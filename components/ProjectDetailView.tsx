@@ -5,9 +5,9 @@ import { TrashIcon } from './icons/TrashIcon.tsx';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
-import { DownloadIcon } from './icons/DownloadIcon.tsx';
 import EditableRichText from './common/inlineEdit/EditableRichText.tsx';
 import EditableText from './common/inlineEdit/EditableText.tsx';
+import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 
 type EntityType = 'ticket' | 'project' | 'task' | 'meeting' | 'dealership' | 'feature';
 
@@ -15,7 +15,6 @@ interface ProjectDetailViewProps {
   project: Project;
   onUpdate: (project: Project) => void;
   onDelete: (projectId: string) => void;
-  onExport: () => void;
   onAddUpdate: (projectId: string, comment: string, author: string, date: string) => void;
   onEditUpdate: (updatedUpdate: Update) => void;
   onDeleteUpdate: (updateId: string) => void;
@@ -35,7 +34,7 @@ interface ProjectDetailViewProps {
 }
 
 const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({ 
-    project, onUpdate, onDelete, onExport, onAddUpdate, onEditUpdate, onDeleteUpdate, isReadOnly = false, showToast,
+    project, onUpdate, onDelete, onAddUpdate, onEditUpdate, onDeleteUpdate, isReadOnly = false, showToast,
     allTickets, allProjects, allTasks, allMeetings, allDealerships, allFeatures,
     onLink, onUnlink, onSwitchView
 }) => {
@@ -202,6 +201,46 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
         handleUpdateSections(newSections);
     };
 
+    const handleCopyInfo = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        let content = `PROJECT DETAILS: ${project.name}\n`;
+        content += `=================================\n`;
+        content += `Status: ${project.status}\n`;
+        content += `Created: ${new Date(project.creationDate).toLocaleDateString(undefined, { timeZone: 'UTC' })}\n\n`;
+
+        if (project.involvedPeople && project.involvedPeople.length > 0) {
+            content += `INVOLVED PEOPLE:\n- ${project.involvedPeople.join('\n- ')}\n\n`;
+        }
+
+        if (project.sections && project.sections.length > 0) {
+            project.sections.forEach(section => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = section.content;
+                const sectionText = tempDiv.textContent || tempDiv.innerText || "";
+                content += `--- ${section.title.toUpperCase()} ---\n${sectionText}\n\n`;
+            });
+        }
+
+        if (project.tasks && project.tasks.length > 0) {
+            content += `--- TASKS (${project.tasks.length}) ---\n`;
+            project.tasks.forEach(task => {
+                content += `- [${task.status}] ${task.description} (To: ${task.assignedUser})\n`;
+            });
+            content += '\n';
+        }
+
+        if (project.updates && project.updates.length > 0) {
+            content += `--- UPDATES (${project.updates.length}) ---\n`;
+            [...project.updates].reverse().forEach(update => {
+                const updateComment = (update.comment || '').replace(/<br\s*\/?>/gi, '\n');
+                content += `[${new Date(update.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}] ${update.author}:\n${updateComment}\n\n`;
+            });
+        }
+
+        navigator.clipboard.writeText(content.trim());
+        showToast('Project info copied!', 'success');
+    };
+
     const TaskItem: React.FC<{ task: Task, level: number }> = ({ task, level }) => (
         <div style={{ marginLeft: `${level * 20}px` }}>
             <div
@@ -251,9 +290,9 @@ const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
 
             {!isReadOnly && (
               <div className="flex justify-end items-center gap-3 mb-6">
-                  <button onClick={onExport} className="flex items-center gap-2 bg-green-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm">
-                      <DownloadIcon className="w-4 h-4"/>
-                      <span>Export</span>
+                  <button onClick={handleCopyInfo} className="flex items-center gap-2 bg-gray-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-gray-700 text-sm">
+                        <ContentCopyIcon className="w-4 h-4"/>
+                        <span>Copy Info</span>
                   </button>
                   <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 bg-red-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 text-sm"><TrashIcon className="w-4 h-4"/><span>Delete</span></button>
               </div>
