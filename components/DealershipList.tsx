@@ -313,7 +313,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, allDealers
   };
   
   const handleExportAll = () => {
-    const productHeaders = PRODUCTS.map(p => p.name);
+    const productHeaders = PRODUCTS.map(p => `${p.id} | ${p.name}`);
 
     const dataToExport = allDealerships.map(d => {
         const row: any = {};
@@ -357,7 +357,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, allDealers
         const dealershipProducts = new Map( (d.products || []).map(p => [p.productId, p.sellingPrice]) );
         PRODUCTS.forEach(product => {
             const sellingPrice = dealershipProducts.get(product.id);
-            row[product.name] = sellingPrice !== undefined ? sellingPrice : '';
+            row[`${product.id} | ${product.name}`] = sellingPrice !== undefined ? sellingPrice : '';
         });
 
         return row;
