@@ -277,7 +277,7 @@ function App() {
   }, [projects, tickets, tasks]);
   
   // FIX: Updated handleTicketSubmit signature and logic to correctly set submissionDate and lastUpdatedDate.
-  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate'>) => {
+  const handleTicketSubmit = (newTicketData: Omit<IssueTicket, 'id' | 'submissionDate' | 'lastUpdatedDate' | 'updates' | 'tasks'> | Omit<FeatureRequestTicket, 'id' | 'submissionDate' | 'lastUpdatedDate' | 'updates' | 'tasks'>) => {
     const submissionDate = new Date().toISOString();
     const newTicket = {
       ...newTicketData,
@@ -1169,9 +1169,11 @@ function App() {
     }, [tickets]);
 
     const dealershipInsights = useMemo(() => {
+        const activeDealerships = dealerships.filter(d => d.status !== DealershipStatus.Cancelled);
         return {
             liveAccounts: dealerships.filter(d => d.status === DealershipStatus.Live).length,
             pendingAccounts: dealerships.filter(d => d.status === DealershipStatus.Pending || d.status === DealershipStatus.Onboarding).length,
+            totalDealerships: activeDealerships.length
         }
     }, [dealerships]);
 
@@ -1581,6 +1583,7 @@ function App() {
               <PerformanceInsights {...performanceInsights} />
               <TicketList 
                 tickets={filteredTickets} 
+                allTickets={tickets}
                 onRowClick={setSelectedTicket} 
                 onStatusChange={handleStatusChange}
                 projects={projects}

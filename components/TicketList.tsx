@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Ticket, Status, Priority, TicketType, ProductArea, IssueTicket, FeatureRequestTicket, Platform, Project } from '../types.ts';
 import { STATUS_OPTIONS } from '../constants.ts';
 import { ChevronDownIcon } from './icons/ChevronDownIcon.tsx';
@@ -14,6 +15,7 @@ import { PersonIcon } from './icons/PersonIcon.tsx';
 
 interface TicketTableProps {
   tickets: Ticket[];
+  allTickets: Ticket[];
   onRowClick: (ticket: Ticket) => void;
   onStatusChange: (ticketId: string, newStatus: Status, onHoldReason?: string) => void;
   projects: Project[];
@@ -107,7 +109,7 @@ const ExpandedSummaryContent: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
 
 type TicketView = 'active' | 'onHold' | 'completed' | 'favorites';
 
-const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection }) => {
+const TicketTable: React.FC<TicketTableProps> = ({ tickets, allTickets, onRowClick, onStatusChange, projects, onToggleFavorite, selectedTicketIds, onToggleSelection }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [ticketView, setTicketView] = useState<TicketView>('active');
 
@@ -178,6 +180,77 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
     
     return `${diffDays} day${diffDays !== 1 ? 's' : ''} active`;
   };
+
+  const handleExportFeatureRequests = () => {
+    const featureRequests = allTickets.filter(t => t.type === TicketType.FeatureRequest) as FeatureRequestTicket[];
+    
+    const ticketIdToTitleMap = new Map(allTickets.map(t => [t.id, t.title]));
+
+    const dataToExport = featureRequests.map(ticket => ({
+        type: ticket.type,
+        title: ticket.title,
+        productArea: ticket.productArea,
+        platform: ticket.platform,
+        location: ticket.location,
+        client: ticket.client,
+        pmrNumber: ticket.pmrNumber,
+        fpTicketNumber: ticket.fpTicketNumber,
+        ticketThreadId: ticket.ticketThreadId,
+        startDate: ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : '',
+        priority: ticket.priority,
+        status: ticket.status,
+        onHoldReason: ticket.onHoldReason,
+        completionDate: ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : '',
+        completionNotes: ticket.completionNotes,
+        linkedTicketNames: (ticket.linkedTicketIds || []).map(id => ticketIdToTitleMap.get(id) || id).join('; '),
+        improvement: ticket.improvement,
+        currentFunctionality: ticket.currentFunctionality,
+        suggestedSolution: ticket.suggestedSolution,
+        benefits: ticket.benefits,
+        updates: (ticket.updates || []).map(u => `[${new Date(u.date).toLocaleDateString()}] ${u.author}: ${u.comment.replace(/<br\s*\/?>/gi, ' ')}`).join('\n'),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Feature Requests");
+    XLSX.writeFile(workbook, "Feature_Requests_Export.xlsx");
+  };
+
+  const handleExportIssues = () => {
+      const issues = allTickets.filter(t => t.type === TicketType.Issue) as IssueTicket[];
+
+      const ticketIdToTitleMap = new Map(allTickets.map(t => [t.id, t.title]));
+
+      const dataToExport = issues.map(ticket => ({
+          type: ticket.type,
+          title: ticket.title,
+          productArea: ticket.productArea,
+          platform: ticket.platform,
+          location: ticket.location,
+          pmrNumber: ticket.pmrNumber,
+          fpTicketNumber: ticket.fpTicketNumber,
+          ticketThreadId: ticket.ticketThreadId,
+          startDate: ticket.startDate ? new Date(ticket.startDate).toLocaleDateString() : '',
+          priority: ticket.priority,
+          submitterName: ticket.submitterName,
+          client: ticket.client,
+          status: ticket.status,
+          completionDate: ticket.completionDate ? new Date(ticket.completionDate).toLocaleDateString() : '',
+          completionNotes: ticket.completionNotes,
+          problem: ticket.problem,
+          duplicationSteps: ticket.duplicationSteps,
+          workaround: ticket.workaround,
+          frequency: ticket.frequency,
+          updates: (ticket.updates || []).map(u => `[${new Date(u.date).toLocaleDateString()}] ${u.author}: ${u.comment.replace(/<br\s*\/?>/gi, ' ')}`).join('\n'),
+          linkedTicketNames: (ticket.linkedTicketIds || []).map(id => ticketIdToTitleMap.get(id) || id).join('; '),
+          lastUpdatedDate: new Date(ticket.lastUpdatedDate).toLocaleString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Issues and Bugs");
+      XLSX.writeFile(workbook, "Issues_Bugs_Export.xlsx");
+  };
   
   return (
     <div>
@@ -228,18 +301,32 @@ const TicketTable: React.FC<TicketTableProps> = ({ tickets, onRowClick, onStatus
             Favorites ({favoriteTickets.length})
             </button>
         </div>
-        {ticketsToShow.length > 0 && (
-            <div className="flex items-center gap-2 pr-4">
-                 <input
-                    type="checkbox"
-                    checked={areAllShownTicketsSelected}
-                    onChange={handleToggleAll}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    aria-label="Select all visible tickets"
-                />
-                <label className="text-sm text-gray-600">Select All</label>
-            </div>
-        )}
+        <div className="flex items-center gap-4">
+            <button
+                onClick={handleExportFeatureRequests}
+                className="text-sm font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md border border-blue-200"
+            >
+                Export Feature Requests
+            </button>
+            <button
+                onClick={handleExportIssues}
+                className="text-sm font-medium text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-md border border-green-200"
+            >
+                Export Issues/Bugs
+            </button>
+            {ticketsToShow.length > 0 && (
+                <div className="flex items-center gap-2 pl-4 border-l ml-2 border-gray-300">
+                    <input
+                        type="checkbox"
+                        checked={areAllShownTicketsSelected}
+                        onChange={handleToggleAll}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        aria-label="Select all visible tickets"
+                    />
+                    <label className="text-sm text-gray-600">Select All</label>
+                </div>
+            )}
+        </div>
       </div>
 
       {ticketsToShow.length === 0 ? (

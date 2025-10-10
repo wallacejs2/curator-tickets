@@ -85,8 +85,12 @@ const DealershipCard: React.FC<{
         }
         
         content += '\n--- ORDER & DATES ---\n';
-        appendField('Order Number', dealership.orderNumber);
-        appendDateField('Order Received Date', dealership.orderReceivedDate);
+// FIX: Correctly access orderNumber from the products array.
+        if (dealership.products && dealership.products.length > 0) {
+// FIX: Correctly access orderReceivedDate from the products array.
+          appendField('Primary Order #', dealership.products[0].orderNumber);
+          appendDateField('Primary Order Received Date', dealership.products[0].orderReceivedDate);
+        }
         appendDateField('Go-Live Date', dealership.goLiveDate);
         
         content += '\n--- KEY CONTACTS ---\n';
@@ -118,7 +122,8 @@ const DealershipCard: React.FC<{
     const ExpandedContent = () => (
       <div className="px-5 py-4 bg-gray-50">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <DetailItem label="Order #" value={dealership.orderNumber} />
+              <DetailItem label="Primary Order #" value={dealership.products?.[0]?.orderNumber} />
+              <DetailItem label="Order Received" value={dealership.products?.[0]?.orderReceivedDate ? new Date(dealership.products[0].orderReceivedDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'N/A'} />
               <DetailItem label="Go-Live" value={dealership.goLiveDate ? new Date(dealership.goLiveDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : 'TBD'} />
               <DetailItem label="Store/Branch" value={`${dealership.storeNumber || 'N/A'} / ${dealership.branchNumber || 'N/A'}`} />
               <DetailItem label="ERA ID" value={dealership.eraSystemId} />
