@@ -83,6 +83,11 @@ export enum TaskPriority {
   P4 = 'P4 - Lowest',
 }
 
+export enum CustomerType {
+    ReynoldsClient = 'ReynoldsClient',
+    FullPathKnownShopper = 'FullPathKnownShopper',
+}
+
 // Interfaces and Types
 export type View = 'dashboard' | 'tickets' | 'projects' | 'dealerships' | 'shoppers' | 'tasks' | 'meetings' | 'features' | 'contacts' | 'knowledge' | 'curator' | 'quarters' | 'releases' | 'reports';
 
@@ -347,7 +352,12 @@ export interface RecentActivity {
     date: string;
     time: string;
     activity: string;
-    action?: string;
+}
+
+export interface AssociatedCdpId {
+    id: string;
+    customerType: CustomerType;
+    cdpId: string;
 }
 
 export interface Shopper {
@@ -366,6 +376,7 @@ export interface Shopper {
     ticketIds: string[];
     taskIds?: string[];
     isFavorite?: boolean;
+    associatedCdpIds?: AssociatedCdpId[];
 }
 
 export interface QuarterPlan {

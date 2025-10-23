@@ -59,11 +59,11 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
   const isEditing = !!dealershipToEdit;
 
   const groupedProducts = useMemo(() => {
-    // FIX: Refactored reduce for better type safety to prevent potential type inference issues.
-    return PRODUCTS.reduce<Record<Product['category'], Product[]>>((acc, product) => {
+    // FIX: Refactored reduce for better type safety by casting the initial value, preventing potential type inference issues with never[].
+    return PRODUCTS.reduce((acc, product) => {
         (acc[product.category] = acc[product.category] || []).push(product);
         return acc;
-    }, { New: [], Old: [] });
+    }, {} as Record<Product['category'], Product[]>);
   }, []);
 
   useEffect(() => {
@@ -93,13 +93,15 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     }));
   };
 
-  // FIX: Refactor product change handler to use a functional update with .map for safer immutable state updates, which can resolve subtle type inference issues.
+  // FIX: Refactored product change handler to use a functional update with .map for safer immutable state updates. This resolves subtle type inference issues that caused formData.products to become 'unknown'.
   const handleProductChange = (index: number, field: keyof ProductPricing, value: string) => {
     setFormData(prev => {
-        const newProducts = (prev.products || []).map((product, i) => {
+        const products = Array.isArray(prev.products) ? prev.products : [];
+        const newProducts = products.map((product, i) => {
             if (i !== index) {
                 return product;
             }
+            
             const updatedProduct = { ...product };
             if (field === 'productId') {
                 updatedProduct.productId = value;
@@ -210,135 +212,70 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         <div><label className={labelClasses}>ERA System ID</label><input type="text" name="eraSystemId" value={formData.eraSystemId || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div><label className={labelClasses}>PPSysID</label><input type="text" name="ppSysId" value={formData.ppSysId || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div><label className={labelClasses}>BU-ID</label><input type="text" name="buId" value={formData.buId || ''} onChange={handleChange} className={formElementClasses} /></div>
-        <div className="col-span-2 sm:col-span-1">
-          <label className="flex items-center text-sm mb-1 h-5">
-              <input type="checkbox" name="useCustomEquityProvider" checked={!!formData.useCustomEquityProvider} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/>
-              <span className="ml-2 text-gray-800">Use Custom Provider</span>
-          </label>
-          <input 
-            type="text" 
-            name="equityBookProvider" 
-            value={formData.equityBookProvider || ''} 
-            onChange={handleChange} 
-            className={`${formElementClasses} disabled:bg-gray-200 disabled:text-gray-500`}
-            disabled={!formData.useCustomEquityProvider}
-            placeholder={!formData.useCustomEquityProvider ? "Fullpath KBB (Default)" : "Provider name..."}
-          />
-        </div>
         <div className="col-span-2"><label className={labelClasses}>Address</label><input type="text" name="address" value={formData.address || ''} onChange={handleChange} className={formElementClasses} /></div>
-         <div className="col-span-2">
-            <label className={labelClasses}>Dealership Groups</label>
-            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border p-3 rounded-md bg-gray-50">
-              {allGroups.length > 0 ? allGroups.map(group => (
-                <label key={group.id} className="flex items-center text-sm cursor-pointer">
-                  <input 
-                    type="checkbox"
-                    checked={(formData.groupIds || []).includes(group.id)}
-                    onChange={() => handleGroupToggle(group.id)}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-gray-800">{group.name}</span>
-                </label>
-              )) : (
-                <p className="text-gray-500 italic text-sm">No groups created yet.</p>
-              )}
-            </div>
-        </div>
+      </FormSection>
+
+      <FormSection title="Flags & Providers" gridCols={2}>
+        <div className="flex items-center"><input type="checkbox" name="hasManagedSolution" checked={!!formData.hasManagedSolution} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><label className="ml-2 text-sm font-medium text-gray-700">Has Managed Solution</label></div>
+        <div className="flex items-center"><input type="checkbox" name="wasFullpathCustomer" checked={!!formData.wasFullpathCustomer} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><label className="ml-2 text-sm font-medium text-gray-700">Was Fullpath Customer</label></div>
+        <div className="col-span-2 flex items-center"><input type="checkbox" name="useCustomEquityProvider" checked={!!formData.useCustomEquityProvider} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><label className="ml-2 text-sm font-medium text-gray-700">Use Custom Equity Provider</label></div>
+        {formData.useCustomEquityProvider && (<div><label className={labelClasses}>Equity Book Provider</label><input type="text" name="equityBookProvider" value={formData.equityBookProvider || ''} onChange={handleChange} className={formElementClasses} /></div>)}
+      </FormSection>
+      
+      <FormSection title="Key Contacts">
+        <div><label className={labelClasses}>Assigned Specialist</label><input type="text" name="assignedSpecialist" value={formData.assignedSpecialist || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div><label className={labelClasses}>Sales</label><input type="text" name="sales" value={formData.sales || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div><label className={labelClasses}>POC Name</label><input type="text" name="pocName" value={formData.pocName || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div><label className={labelClasses}>POC Email</label><input type="email" name="pocEmail" value={formData.pocEmail || ''} onChange={handleChange} className={formElementClasses} /></div>
+        <div><label className={labelClasses}>POC Phone</label><input type="tel" name="pocPhone" value={formData.pocPhone || ''} onChange={handleChange} className={formElementClasses} /></div>
       </FormSection>
 
       <FormSection title="Website Links" gridCols={1}>
-        <div className="space-y-4">
-            {(formData.websiteLinks || []).map((link, index) => (
-                <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] gap-3 items-end">
-                    <div>
-                        {index === 0 && <label className={labelClasses}>URL</label>}
-                        <input type="url" placeholder="https://example.com" value={link.url} onChange={(e) => handleWebsiteLinkChange(index, 'url', e.target.value)} className={formElementClasses} />
-                    </div>
-                     <div>
-                        {index === 0 && <label className={labelClasses}>Client ID (Optional)</label>}
-                        <input type="text" placeholder="e.g., AB-1234" value={link.clientId || ''} onChange={(e) => handleWebsiteLinkChange(index, 'clientId', e.target.value)} className={formElementClasses} />
-                    </div>
-                    <button type="button" onClick={() => removeWebsiteLink(index)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-1"><TrashIcon className="w-5 h-5"/></button>
-                </div>
-            ))}
-            <button type="button" onClick={addWebsiteLink} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800">
-                <PlusIcon className="w-4 h-4" /> Add Link
-            </button>
-        </div>
-      </FormSection>
-      
-      <FormSection title="Customer Status" gridCols={1}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-            <label className="flex items-center text-sm"><input type="checkbox" name="hasManagedSolution" checked={formData.hasManagedSolution} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Has Managed Solution</span></label>
-            <label className="flex items-center text-sm"><input type="checkbox" name="wasFullpathCustomer" checked={formData.wasFullpathCustomer} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><span className="ml-2 text-gray-800">Was Fullpath Customer</span></label>
-        </div>
-      </FormSection>
-
-      <FormSection title="Team & Contacts">
-          <div><label className={labelClasses}>Assigned Specialist</label><input type="text" name="assignedSpecialist" value={formData.assignedSpecialist || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>Sales</label><input type="text" name="sales" value={formData.sales || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>POC Name</label><input type="text" name="pocName" value={formData.pocName || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>POC Email</label><input type="email" name="pocEmail" value={formData.pocEmail || ''} onChange={handleChange} className={formElementClasses} /></div>
-          <div><label className={labelClasses}>POC Phone</label><input type="tel" name="pocPhone" value={formData.pocPhone || ''} onChange={handleChange} className={formElementClasses} /></div>
+        {(formData.websiteLinks || []).map((link, index) => (
+          <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] gap-3 items-end">
+            <div><label className={index === 0 ? labelClasses : 'sr-only'}>URL</label><input type="url" value={link.url} onChange={(e) => handleWebsiteLinkChange(index, 'url', e.target.value)} placeholder="https://example.com" className={formElementClasses} /></div>
+            <div><label className={index === 0 ? labelClasses : 'sr-only'}>Client ID</label><input type="text" value={link.clientId || ''} onChange={(e) => handleWebsiteLinkChange(index, 'clientId', e.target.value)} placeholder="Client ID" className={formElementClasses} /></div>
+            <button type="button" onClick={() => removeWebsiteLink(index)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-1"><TrashIcon className="w-5 h-5"/></button>
+          </div>
+        ))}
+        <button type="button" onClick={addWebsiteLink} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4"/> Add Link</button>
       </FormSection>
 
       <FormSection title="Products & Pricing" gridCols={1}>
-        <div className="space-y-4">
-            {/* FIX: Use Array.isArray as a type guard to ensure 'formData.products' is an array before calling .map, preventing potential runtime errors if it is undefined. */}
-            {(Array.isArray(formData.products) ? formData.products : []).map((product, index) => {
-                const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
-                return (
-                    <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
-                        <div>
-                            <label className={labelClasses}>Received</label>
-                            <input type="date" name="orderReceivedDate" value={product.orderReceivedDate || ''} onChange={(e) => handleProductChange(index, 'orderReceivedDate', e.target.value)} className={formElementClasses} />
-                        </div>
-                         <div>
-                            <label className={labelClasses}>Order Number</label>
-                            <input type="text" name="orderNumber" value={product.orderNumber || ''} onChange={(e) => handleProductChange(index, 'orderNumber', e.target.value)} className={formElementClasses} />
-                        </div>
-                        <div>
-                            <label className={labelClasses}>Product</label>
-                            <select value={product.productId} onChange={(e) => handleProductChange(index, 'productId', e.target.value)} className={formElementClasses}>
-                                <option value="">-- Select a Product --</option>
-                                {Object.entries(groupedProducts).map(([category, products]) => (
-                                    <optgroup label={category} key={category}>
-                                        {products.map(p => <option key={p.id} value={p.id}>{p.id} | {p.name}</option>)}
-                                    </optgroup>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className={labelClasses}>Fixed Price</label>
-                            <div className="mt-1 h-9 flex items-center px-3 text-sm text-gray-600 bg-gray-200 rounded-sm border border-gray-300">
-                                {selectedProduct ? `$${selectedProduct.fixedPrice.toLocaleString()}` : 'N/A'}
-                            </div>
-                        </div>
-                         <div>
-                            <label className={labelClasses}>Selling Price ($)</label>
-                            <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={product.sellingPrice ?? ''}
-                                onChange={(e) => handleProductChange(index, 'sellingPrice', e.target.value)}
-                                className={formElementClasses}
-                                placeholder="e.g., 2500"
-                            />
-                        </div>
-                        <button type="button" onClick={() => removeProduct(product.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-1"><TrashIcon className="w-5 h-5"/></button>
-                    </div>
-                )
-            })}
-             <button type="button" onClick={addProduct} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 mt-2">
-                <PlusIcon className="w-4 h-4" /> Add Product
-            </button>
+        <div className="space-y-3">
+          {(formData.products || []).map((product, index) => (
+              <div key={product.id} className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,2fr,1fr,1fr,auto] gap-3 items-end p-3 bg-gray-50 rounded-md border">
+                  <div><label className="text-xs font-semibold text-gray-500">Received</label><input type="date" value={product.orderReceivedDate?.split('T')[0] || ''} onChange={(e) => handleProductChange(index, 'orderReceivedDate', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
+                  <div><label className="text-xs font-semibold text-gray-500">Order #</label><input type="text" value={product.orderNumber || ''} onChange={(e) => handleProductChange(index, 'orderNumber', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
+                  <div><label className="text-xs font-semibold text-gray-500">Product</label><select value={product.productId} onChange={(e) => handleProductChange(index, 'productId', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm"><option value="">-- Select --</option>{Object.entries(groupedProducts).map(([cat, prods]) => (<optgroup label={cat} key={cat}>{prods.map(p => <option key={p.id} value={p.id}>{p.id} | {p.name}</option>)}</optgroup>))}</select></div>
+                  <div><label className="text-xs font-semibold text-gray-500">Fixed</label><div className="mt-1 h-[34px] flex items-center px-3 text-sm text-gray-600 bg-gray-200 rounded-sm border">{PRODUCTS.find(p => p.id === product.productId)?.fixedPrice ? `$${PRODUCTS.find(p => p.id === product.productId)?.fixedPrice.toLocaleString()}` : 'N/A'}</div></div>
+                  <div><label className="text-xs font-semibold text-gray-500">Selling</label><input type="number" min="0" step="0.01" value={product.sellingPrice ?? ''} onChange={(e) => handleProductChange(index, 'sellingPrice', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
+                  <button type="button" onClick={() => removeProduct(product.id!)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-0"><TrashIcon className="w-5 h-5"/></button>
+              </div>
+          ))}
+          <button type="button" onClick={addProduct} className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-800 mt-2"><PlusIcon className="w-4 h-4"/> Add Product</button>
+        </div>
+      </FormSection>
+
+      <FormSection title="Groups" gridCols={1}>
+        <div className="space-y-2 max-h-40 overflow-y-auto border p-3 rounded-md bg-gray-50">
+          {allGroups.length > 0 ? allGroups.map(group => (
+            <label key={group.id} className="flex items-center text-sm cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={(formData.groupIds || []).includes(group.id)}
+                onChange={() => handleGroupToggle(group.id)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="ml-2 text-gray-800">{group.name}</span>
+            </label>
+          )) : <p className="text-gray-500 italic text-sm">No groups created yet.</p>}
         </div>
       </FormSection>
 
       <div className="mt-8 flex justify-end gap-3">
         <button type="button" onClick={onClose} className="bg-white text-gray-700 font-semibold px-4 py-2 rounded-md border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</button>
-        <button type="submit" className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+        <button type="submit" className="bg-blue-600 text-white font-semibold px-6 py-2 rounded-md shadow-sm hover:bg-blue-700">
           {isEditing ? 'Save Changes' : 'Create Account'}
         </button>
       </div>

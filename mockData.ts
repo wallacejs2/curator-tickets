@@ -1,4 +1,4 @@
-import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, CuratorArticle, QuarterPlan } from './types.ts';
+import { Ticket, TicketType, Status, Priority, ProductArea, Platform, Project, ProjectStatus, TaskStatus, Dealership, DealershipStatus, TaskPriority, Task, FeatureAnnouncement, FeatureStatus, Meeting, Contact, ContactType, ContactGroup, DealershipGroup, KnowledgeArticle, Shopper, RecentActivity, IssueTicket, FeatureRequestTicket, Update, CuratorArticle, QuarterPlan, CustomerType } from './types.ts';
 
 export const initialTickets: Ticket[] = [
   {
@@ -776,19 +776,20 @@ export const initialShoppers: Shopper[] = [
         date: '2024-07-28',
         time: '10:30 AM',
         activity: 'Visited VDP for 2024 Ford F-150',
-        action: 'Clicked on "Get E-Price", no price displayed',
       },
       {
         id: 'act-1-2',
         date: '2024-07-28',
         time: '10:32 AM',
         activity: 'Navigated to inventory search',
-        action: 'Performed search for "Ford"',
       }
     ],
     dealershipIds: ['dealership-1'],
     ticketIds: ['1'],
     isFavorite: true,
+    associatedCdpIds: [
+        { id: 'cdp-assoc-1', cdpId: 'CDP-XYZ-789', customerType: CustomerType.FullPathKnownShopper }
+    ]
   },
   {
     id: 'shopper-2',
@@ -800,6 +801,7 @@ export const initialShoppers: Shopper[] = [
     ticketIds: [],
     taskIds: ['task-1'],
     isFavorite: false,
+    associatedCdpIds: [],
   }
 ];
 

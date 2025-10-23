@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Shopper, Ticket, Dealership, RecentActivity, Status, Task, TaskStatus, Update } from '../types.ts';
+import React, { useState, useMemo } from 'react';
+import { Shopper, Ticket, Dealership, RecentActivity, Status, Task, TaskStatus, Update, AssociatedCdpId, CustomerType } from '../types.ts';
 import Modal from './common/Modal.tsx';
 import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -45,7 +45,6 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
       date: new Date().toISOString().split('T')[0],
       time: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }),
       activity: '',
-      action: ''
   });
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editedActivity, setEditedActivity] = useState<RecentActivity | null>(null);
@@ -56,7 +55,19 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
   const [editedComment, setEditedComment] = useState('');
 
+  const [newAssociatedCdpId, setNewAssociatedCdpId] = useState({
+    customerType: CustomerType.ReynoldsClient,
+    cdpId: ''
+  });
+
   const MAX_COMMENT_LENGTH = 2000;
+
+  const associatedDealership = useMemo(() => {
+    if (shopper.dealershipIds && shopper.dealershipIds.length > 0) {
+        return allDealerships.find(d => d.id === shopper.dealershipIds[0]);
+    }
+    return undefined;
+  }, [shopper.dealershipIds, allDealerships]);
 
   const linkedTickets = allTickets.filter(item => (shopper.ticketIds || []).includes(item.id));
   const linkedDealerships = allDealerships.filter(item => (shopper.dealershipIds || []).includes(item.id));
@@ -69,16 +80,22 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
   const handleCopyInfo = () => {
     let content = `SHOPPER DETAILS\n`;
     content += `================================\n`;
-    const dealershipName = linkedDealerships.length > 0 ? linkedDealerships[0].name : undefined;
-
+    
     const appendField = (label: string, value: any) => {
         if (value) {
             content += `${label}: ${value}\n`;
         }
     };
 
-    // Section 1
-    appendField('Dealership', dealershipName);
+    if (associatedDealership) {
+        appendField('Dealership Name', associatedDealership.name);
+        appendField('Enterprise (Group)', associatedDealership.enterprise);
+        appendField('PPSysID', associatedDealership.ppSysId);
+        appendField('Store Number', associatedDealership.storeNumber);
+        appendField('Branch Number', associatedDealership.branchNumber);
+        content += '\n';
+    }
+
     appendField('Customer Name', shopper.customerName);
     appendField('Email', shopper.email);
     appendField('Phone', shopper.phone);
@@ -91,6 +108,14 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
     appendField('CDP-ID', shopper.cdpId);
     appendField('DMS-ID', shopper.dmsId);
 
+    if (shopper.associatedCdpIds && shopper.associatedCdpIds.length > 0) {
+        content += `\n\n--- ASSOCIATED CDP-IDS (${shopper.associatedCdpIds.length}) ---\n`;
+        shopper.associatedCdpIds.forEach(cdp => {
+            const customerTypeLabel = cdp.customerType === CustomerType.ReynoldsClient ? 'Reynolds Client' : 'FullPath Known Shopper';
+            content += `${customerTypeLabel}: ${cdp.cdpId}\n`;
+        });
+    }
+
     content += `\n\nUNIQUE ISSUE:\n${shopper.uniqueIssue}\n`;
 
     if (shopper.recentActivity && shopper.recentActivity.length > 0) {
@@ -98,9 +123,6 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
         shopper.recentActivity.forEach((act, index) => {
             const activityDate = new Date(act.date).toLocaleDateString('en-US', { timeZone: 'UTC' });
             content += `[${activityDate}] ${act.time}: ${act.activity}\n`;
-            if (act.action) {
-                content += `Action: ${act.action}\n`;
-            }
             if (index < shopper.recentActivity.length - 1) {
                 content += '\n';
             }
@@ -131,7 +153,6 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }),
         activity: '',
-        action: ''
     });
     showToast('Activity logged successfully!', 'success');
   };
@@ -182,6 +203,41 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
     }
   };
   
+  const handleNewAssociatedCdpIdChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewAssociatedCdpId(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddAssociatedCdpId = () => {
+    if (!newAssociatedCdpId.cdpId.trim()) {
+        showToast('CDP-ID is required.', 'error');
+        return;
+    }
+    const cdpIdToAdd: AssociatedCdpId = {
+        id: crypto.randomUUID(),
+        customerType: newAssociatedCdpId.customerType,
+        cdpId: newAssociatedCdpId.cdpId.trim()
+    };
+    const updatedShopper: Shopper = {
+        ...shopper,
+        associatedCdpIds: [...(shopper.associatedCdpIds || []), cdpIdToAdd]
+    };
+    onUpdate(updatedShopper);
+    setNewAssociatedCdpId({
+        customerType: CustomerType.ReynoldsClient,
+        cdpId: ''
+    });
+    showToast('Associated CDP-ID added!', 'success');
+  };
+
+  const handleDeleteAssociatedCdpId = (id: string) => {
+    if(window.confirm('Are you sure you want to delete this associated CDP-ID?')) {
+        const updatedCdpIds = (shopper.associatedCdpIds || []).filter(cdp => cdp.id !== id);
+        onUpdate({ ...shopper, associatedCdpIds: updatedCdpIds });
+        showToast('Associated CDP-ID deleted.', 'success');
+    }
+  };
+
   const activityFormClasses = "w-full text-sm p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
@@ -227,6 +283,19 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
                     <DetailField label="Phone" value={shopper.phone} />
                 </div>
             </div>
+
+            {associatedDealership && (
+                <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Associated Dealership</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <DetailField label="Name" value={<a href="#" onClick={(e) => { e.preventDefault(); onSwitchView('dealership', associatedDealership.id); }} className="text-blue-600 hover:underline">{associatedDealership.name}</a>} />
+                        <DetailField label="Enterprise (Group)" value={associatedDealership.enterprise} />
+                        <DetailField label="PPSysID" value={associatedDealership.ppSysId} />
+                        <DetailField label="Store Number" value={associatedDealership.storeNumber} />
+                        <DetailField label="Branch Number" value={associatedDealership.branchNumber} />
+                    </div>
+                </div>
+            )}
             
             {/* Identifications */}
             <div className="border-t border-gray-200 pt-6">
@@ -236,6 +305,67 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
                     <DetailField label="Curator Link" value={shopper.curatorLink ? <a href={shopper.curatorLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">{shopper.curatorLink}</a> : 'N/A'} />
                     <DetailField label="CDP-ID" value={shopper.cdpId} />
                     <DetailField label="DMS-ID" value={shopper.dmsId} />
+                </div>
+            </div>
+
+            {/* Associated CDP-ID's Found */}
+            <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Associated CDP-ID's Found</h3>
+                {!isReadOnly && (
+                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] gap-3 items-end">
+                        <div>
+                            <label className="text-xs font-medium text-gray-600">Customer Type</label>
+                            <select
+                                name="customerType"
+                                value={newAssociatedCdpId.customerType}
+                                onChange={handleNewAssociatedCdpIdChange}
+                                className="w-full text-sm p-2 mt-1 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value={CustomerType.ReynoldsClient}>Reynolds Client</option>
+                                <option value={CustomerType.FullPathKnownShopper}>FullPath Known Shopper</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-gray-600">CDP-ID</label>
+                            <input
+                                type="text"
+                                name="cdpId"
+                                value={newAssociatedCdpId.cdpId}
+                                onChange={handleNewAssociatedCdpIdChange}
+                                placeholder="CDP-ID"
+                                required
+                                className="w-full text-sm p-2 mt-1 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleAddAssociatedCdpId}
+                            aria-label="Add Associated CDP-ID"
+                            className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 ring-blue-500 flex justify-center items-center h-[42px] w-[42px]"
+                        >
+                            <PlusIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+                )}
+
+                <div className="space-y-3">
+                    {(shopper.associatedCdpIds && shopper.associatedCdpIds.length > 0) ? (
+                        shopper.associatedCdpIds.map(cdp => (
+                            <div key={cdp.id} className="p-4 bg-white rounded-lg border border-gray-200 group flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-800">{cdp.cdpId}</p>
+                                    <p className="text-xs text-gray-500 mt-1">{cdp.customerType === CustomerType.ReynoldsClient ? 'Reynolds Client' : 'FullPath Known Shopper'}</p>
+                                </div>
+                                {!isReadOnly && (
+                                    <button onClick={() => handleDeleteAssociatedCdpId(cdp.id)} className="p-2 text-gray-400 hover:text-red-600 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Delete associated CDP-ID">
+                                        <TrashIcon className="w-4 h-4"/>
+                                    </button>
+                                )}
+                            </div>
+                        ))
+                    ) : <p className="text-sm text-gray-500 italic text-center py-4">No associated CDP-IDs found.</p>}
                 </div>
             </div>
 
@@ -271,7 +401,7 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
                                 required
                             />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-[1fr,1fr,auto] gap-3 items-center">
+                        <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto] gap-3 items-center">
                            <input
                                 type="text"
                                 name="activity"
@@ -279,14 +409,6 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
                                 onChange={handleNewActivityChange}
                                 placeholder="Activity Type (e.g., Visited VDP)"
                                 required
-                                className={activityFormClasses}
-                            />
-                            <input
-                                type="text"
-                                name="action"
-                                value={newActivity.action}
-                                onChange={handleNewActivityChange}
-                                placeholder="Action Taken (e.g., Price not displaying)"
                                 className={activityFormClasses}
                             />
                             <button
@@ -312,9 +434,8 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
                                         <input type="date" name="date" value={editedActivity?.date || ''} onChange={handleEditedActivityChange} className={activityFormClasses} required/>
                                         <input type="time" name="time" value={editedActivity?.time || ''} onChange={handleEditedActivityChange} className={activityFormClasses} required/>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-1 gap-3">
                                         <input type="text" name="activity" placeholder="Activity Type" value={editedActivity?.activity || ''} onChange={handleEditedActivityChange} className={activityFormClasses} required/>
-                                        <input type="text" name="action" placeholder="Action Taken" value={editedActivity?.action || ''} onChange={handleEditedActivityChange} className={activityFormClasses} />
                                     </div>
                                     <div className="flex justify-end gap-2">
                                         <button onClick={handleCancelEdit} className="text-sm font-semibold text-gray-600 px-3 py-1 rounded-md hover:bg-gray-200">Cancel</button>
@@ -324,11 +445,11 @@ const ShopperDetailView: React.FC<ShopperDetailViewProps> = ({
                             ) : (
                                 <div className="p-4 bg-white rounded-lg border border-gray-200 group">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="text-xs text-gray-500 font-medium">{new Date(act.date).toLocaleDateString(undefined, { timeZone: 'UTC' })} {act.time}</p>
-                                            <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap"><span className="font-semibold">Activity:</span> {act.activity}</p>
-                                            {act.action && <p className="mt-1 text-sm text-gray-800 whitespace-pre-wrap"><span className="font-semibold">Action:</span> {act.action}</p>}
-                                        </div>
+                                        <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                                            <span className="font-medium text-gray-600">{new Date(act.date).toLocaleDateString(undefined, { timeZone: 'UTC' })} @ {act.time}</span>
+                                            <span className="mx-2 text-gray-300">|</span>
+                                            <span>{act.activity}</span>
+                                        </p>
                                         {!isReadOnly && (
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => handleStartEdit(act)} className="p-2 text-gray-400 hover:text-blue-600 rounded-full" aria-label="Edit activity"><PencilIcon className="w-4 h-4"/></button>

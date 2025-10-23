@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Dealership, DealershipStatus, Ticket, Project, Task, Meeting, FeatureAnnouncement, Status, ProjectStatus, TaskStatus, Update, DealershipGroup, Shopper, ProductPricing, Product, WebsiteLink } from '../types.ts';
 import Modal from './common/Modal.tsx';
@@ -134,13 +135,15 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         }, { New: [], Old: [] });
     }, []);
 
-    // FIX: Refactor product change handler to use a functional update with .map for safer immutable state updates, which can resolve subtle type inference issues.
+    // FIX: Refactored product change handler to use a functional update with .map for safer immutable state updates. This resolves subtle type inference issues that caused editedData.products to become 'unknown'.
     const handleProductChange = (index: number, field: keyof ProductPricing, value: string) => {
         setEditedData(prev => {
-            const newProducts = (prev.products || []).map((product, i) => {
+            const products = Array.isArray(prev.products) ? prev.products : [];
+            const newProducts = products.map((product, i) => {
                 if (i !== index) {
                     return product;
                 }
+                
                 const updatedProduct = { ...product };
                 if (field === 'productId') {
                     updatedProduct.productId = value;
@@ -428,7 +431,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                 <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Products &amp; Pricing</h3>
                     <div className="space-y-3">
-                        {/* FIX: Use Array.isArray as a type guard to ensure 'data.products' is an array before calling .map, preventing potential runtime errors if it is undefined. */}
+                        {/* FIX: The 'products' property on data can be undefined. Using a fallback to an empty array ensures .map can be called safely, resolving the TypeScript error. */}
                         {(Array.isArray(data.products) ? data.products : []).map((product, index) => {
                             const selectedProduct = PRODUCTS.find(p => p.id === product.productId);
                             return isEditing ? (

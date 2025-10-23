@@ -50,7 +50,11 @@ const ShopperForm: React.FC<ShopperFormProps> = ({ onSave, onClose, shopperToEdi
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'dealershipId') {
+      setFormData(prev => ({ ...prev, dealershipIds: value ? [value] : [] }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,9 +68,23 @@ const ShopperForm: React.FC<ShopperFormProps> = ({ onSave, onClose, shopperToEdi
   return (
     <form onSubmit={handleSubmit}>
       <FormSection title="Shopper Information">
-        <div>
+        <div className="col-span-2">
           <label className={labelClasses}>Customer Name</label>
           <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} required className={formElementClasses} />
+        </div>
+        <div className="col-span-2">
+          <label className={labelClasses}>Associated Dealership</label>
+          <select
+            name="dealershipId"
+            value={(formData.dealershipIds && formData.dealershipIds[0]) || ''}
+            onChange={handleChange}
+            className={formElementClasses}
+          >
+            <option value="">Select a dealership...</option>
+            {allDealerships.sort((a, b) => a.name.localeCompare(b.name)).map(d => (
+              <option key={d.id} value={d.id}>{d.name} ({d.accountNumber})</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className={labelClasses}>Email</label>
@@ -80,7 +98,7 @@ const ShopperForm: React.FC<ShopperFormProps> = ({ onSave, onClose, shopperToEdi
           <label className={labelClasses}>Curator ID</label>
           <input type="text" name="curatorId" value={formData.curatorId} onChange={handleChange} required className={formElementClasses} />
         </div>
-        <div className="col-span-2">
+        <div>
           <label className={labelClasses}>Curator Link</label>
           <input type="url" name="curatorLink" value={formData.curatorLink || ''} onChange={handleChange} className={formElementClasses} />
         </div>
