@@ -7,7 +7,7 @@ import { PencilIcon } from './icons/PencilIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import LinkingSection from './common/LinkingSection.tsx';
 import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
-import { PRODUCTS, DEALERSHIP_STATUS_OPTIONS } from '../constants.ts';
+import { PRODUCTS, DEALERSHIP_STATUS_OPTIONS, REYNOLDS_SOLUTIONS, FULLPATH_SOLUTIONS } from '../constants.ts';
 import EditableText from './common/inlineEdit/EditableText.tsx';
 import EditableSelect from './common/inlineEdit/EditableSelect.tsx';
 import EditableDate from './common/inlineEdit/EditableDate.tsx';
@@ -104,6 +104,16 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
 
     const handleFieldSave = (field: keyof Dealership, value: any) => {
       setEditedData(prev => ({ ...prev, [field]: value }));
+    };
+    
+    const handleSolutionToggle = (solution: string) => {
+        setEditedData(prev => {
+            const currentSolutions = prev.solutions || [];
+            const newSolutions = currentSolutions.includes(solution)
+                ? currentSolutions.filter(s => s !== solution)
+                : [...currentSolutions, solution];
+            return { ...prev, solutions: newSolutions };
+        });
     };
 
     const handleCancel = () => {
@@ -251,7 +261,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
         appendField('ID', dealership.id);
         appendField('Account Number (CIF)', dealership.accountNumber);
         appendField('Status', dealership.status);
-        appendField('Has Managed Solution', dealership.hasManagedSolution ? 'Yes' : 'No');
+        appendField('Solutions', (dealership.solutions || []).join(', '));
         appendField('Enterprise (Group)', dealership.enterprise);
         appendField('Address', dealership.address);
         appendDateField('Go-Live Date', dealership.goLiveDate);
@@ -359,6 +369,53 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                         <EditableDate label="Term Date" value={data.termDate} onSave={(v) => handleFieldSave('termDate', v)} isReadOnly={!isEditing} />
                     </div>
                 </div>
+                
+                <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Solution Details</h3>
+                     {isEditing ? (
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="text-md font-medium text-gray-800 mb-3">Reynolds Solutions</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+                                    {REYNOLDS_SOLUTIONS.map(solution => (
+                                    <label key={solution} className="flex items-center text-sm">
+                                        <input type="checkbox" checked={(editedData.solutions || []).includes(solution)} onChange={() => handleSolutionToggle(solution)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/>
+                                        <span className="ml-2 text-gray-800">{solution}</span>
+                                    </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-md font-medium text-gray-800 mb-3">Fullpath Solutions</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+                                    {FULLPATH_SOLUTIONS.map(solution => (
+                                    <label key={solution} className="flex items-center text-sm">
+                                        <input type="checkbox" checked={(editedData.solutions || []).includes(solution)} onChange={() => handleSolutionToggle(solution)} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/>
+                                        <span className="ml-2 text-gray-800">{solution}</span>
+                                    </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="text-md font-medium text-gray-800 mb-3">Reynolds Solutions</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {REYNOLDS_SOLUTIONS.filter(s => (data.solutions || []).includes(s)).map(s => <span key={s} className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded">{s}</span>)}
+                                    {REYNOLDS_SOLUTIONS.filter(s => (data.solutions || []).includes(s)).length === 0 && <p className="text-sm text-gray-500 italic">None</p>}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-md font-medium text-gray-800 mb-3">Fullpath Solutions</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {FULLPATH_SOLUTIONS.filter(s => (data.solutions || []).includes(s)).map(s => <span key={s} className="px-2 py-1 text-sm bg-green-100 text-green-800 rounded">{s}</span>)}
+                                    {FULLPATH_SOLUTIONS.filter(s => (data.solutions || []).includes(s)).length === 0 && <p className="text-sm text-gray-500 italic">None</p>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <div className="border-t border-gray-200 pt-6">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -409,11 +466,11 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                         </ul>
                     ) : <p className="text-sm text-gray-500 italic">No website links added.</p>)}
                 </div>
-
+                
                 <div className="border-t border-gray-200 pt-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                       <EditableCheckbox label="Has Managed Solution" value={data.hasManagedSolution} onSave={(v) => handleFieldSave('hasManagedSolution', v)} isReadOnly={!isEditing} />
-                       <EditableCheckbox label="Previously Fullpath Customer" value={data.wasFullpathCustomer} onSave={(v) => handleFieldSave('wasFullpathCustomer', v)} isReadOnly={!isEditing} />
+                        <EditableCheckbox label="Use Custom Equity Provider" value={data.useCustomEquityProvider} onSave={(v) => handleFieldSave('useCustomEquityProvider', v)} isReadOnly={!isEditing} />
+                        {data.useCustomEquityProvider && <EditableText label="Equity Book Provider" value={data.equityBookProvider} onSave={(v) => handleFieldSave('equityBookProvider', v)} isReadOnly={!isEditing} />}
                     </div>
                 </div>
 

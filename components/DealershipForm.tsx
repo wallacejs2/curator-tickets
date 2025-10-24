@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink, ProductPricing, Product } from '../types.ts';
-import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
+import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS, REYNOLDS_SOLUTIONS, FULLPATH_SOLUTIONS } from '../constants.ts';
 import { PlusIcon } from './icons/PlusIcon.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 
@@ -30,8 +30,7 @@ const getInitialState = (): Omit<Dealership, 'id' | 'updates'> => ({
     accountNumber: '',
     status: DealershipStatus.Pending,
     products: [],
-    hasManagedSolution: false,
-    wasFullpathCustomer: false,
+    solutions: [],
     goLiveDate: '',
     termDate: '',
     enterprise: '',
@@ -170,6 +169,16 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     });
   };
 
+  const handleSolutionToggle = (solution: string) => {
+    setFormData(prev => {
+        const currentSolutions = prev.solutions || [];
+        const newSolutions = currentSolutions.includes(solution)
+            ? currentSolutions.filter(s => s !== solution)
+            : [...currentSolutions, solution];
+        return { ...prev, solutions: newSolutions };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const submissionData = {
@@ -205,6 +214,41 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         <div><label className={labelClasses}>Term Date</label><input type="date" name="termDate" value={formData.termDate || ''} onChange={handleChange} className={formElementClasses} /></div>
       </FormSection>
 
+      <FormSection title="Solution Details" gridCols={1}>
+        <div>
+          <h4 className="text-md font-medium text-gray-800 mb-3">Reynolds Solutions</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+            {REYNOLDS_SOLUTIONS.map(solution => (
+              <label key={solution} className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  checked={(formData.solutions || []).includes(solution)}
+                  onChange={() => handleSolutionToggle(solution)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="ml-2 text-gray-800">{solution}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="mt-6">
+          <h4 className="text-md font-medium text-gray-800 mb-3">Fullpath Solutions</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+            {FULLPATH_SOLUTIONS.map(solution => (
+              <label key={solution} className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  checked={(formData.solutions || []).includes(solution)}
+                  onChange={() => handleSolutionToggle(solution)}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="ml-2 text-gray-800">{solution}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </FormSection>
+
       <FormSection title="Organization Details">
         <div><label className={labelClasses}>Enterprise (Group)</label><input type="text" name="enterprise" value={formData.enterprise || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div><label className={labelClasses}>Store Number</label><input type="text" name="storeNumber" value={formData.storeNumber || ''} onChange={handleChange} className={formElementClasses} /></div>
@@ -214,10 +258,8 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         <div><label className={labelClasses}>BU-ID</label><input type="text" name="buId" value={formData.buId || ''} onChange={handleChange} className={formElementClasses} /></div>
         <div className="col-span-2"><label className={labelClasses}>Address</label><input type="text" name="address" value={formData.address || ''} onChange={handleChange} className={formElementClasses} /></div>
       </FormSection>
-
-      <FormSection title="Flags & Providers" gridCols={2}>
-        <div className="flex items-center"><input type="checkbox" name="hasManagedSolution" checked={!!formData.hasManagedSolution} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><label className="ml-2 text-sm font-medium text-gray-700">Has Managed Solution</label></div>
-        <div className="flex items-center"><input type="checkbox" name="wasFullpathCustomer" checked={!!formData.wasFullpathCustomer} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><label className="ml-2 text-sm font-medium text-gray-700">Was Fullpath Customer</label></div>
+      
+      <FormSection title="Providers" gridCols={1}>
         <div className="col-span-2 flex items-center"><input type="checkbox" name="useCustomEquityProvider" checked={!!formData.useCustomEquityProvider} onChange={handleChange} className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"/><label className="ml-2 text-sm font-medium text-gray-700">Use Custom Equity Provider</label></div>
         {formData.useCustomEquityProvider && (<div><label className={labelClasses}>Equity Book Provider</label><input type="text" name="equityBookProvider" value={formData.equityBookProvider || ''} onChange={handleChange} className={formElementClasses} /></div>)}
       </FormSection>

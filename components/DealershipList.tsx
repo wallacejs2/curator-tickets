@@ -13,7 +13,7 @@ import { ContentCopyIcon } from './icons/ContentCopyIcon.tsx';
 import { ReceiptLongIcon } from './icons/ReceiptLongIcon.tsx';
 import { WorkspaceIcon } from './icons/WorkspaceIcon.tsx';
 import { AccountBalanceIcon } from './icons/AccountBalanceIcon.tsx';
-import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS } from '../constants.ts';
+import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS, REYNOLDS_SOLUTIONS, FULLPATH_SOLUTIONS } from '../constants.ts';
 import { DownloadIcon } from './icons/DownloadIcon.tsx';
 
 interface DealershipListProps {
@@ -141,9 +141,6 @@ const DealershipCard: React.FC<{
               <div className="flex-1 cursor-pointer" onClick={onClick}>
                 <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-xl font-semibold text-gray-900">{dealership.name}</h3>
-                    {dealership.hasManagedSolution && (
-                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-200 text-purple-800">Managed</span>
-                    )}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -314,6 +311,7 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, allDealers
   
   const handleExportAll = () => {
     const productHeaders = PRODUCTS.map(p => `${p.id} | ${p.name}`);
+    const allSolutions = [...REYNOLDS_SOLUTIONS, ...FULLPATH_SOLUTIONS];
 
     const dataToExport = allDealerships.map(d => {
         const row: any = {};
@@ -325,8 +323,10 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, allDealers
         row.storeNumber = d.storeNumber;
         row.branchNumber = d.branchNumber;
         row.address = d.address;
-        row.wasFullpathCustomer = d.wasFullpathCustomer ? 'Yes' : 'No';
-        row.hasManagedSolution = d.hasManagedSolution ? 'Yes' : 'No';
+        
+        allSolutions.forEach(solution => {
+            row[solution] = (d.solutions || []).includes(solution) ? 'Yes' : '';
+        });
 
         const firstProduct = d.products && d.products[0];
         row.orderReceivedDate = firstProduct?.orderReceivedDate ? new Date(firstProduct.orderReceivedDate).toLocaleDateString() : '';
@@ -364,8 +364,9 @@ const DealershipList: React.FC<DealershipListProps> = ({ dealerships, allDealers
     });
 
     const finalHeaders = [
-        'status', 'accountNumber', 'name', 'enterprise', 'storeNumber', 'branchNumber', 'address', 'wasFullpathCustomer', 
-        'hasManagedSolution', 'orderReceivedDate', 'orderNumber', 'goLiveDate', 'termDate', 'eraSystemId', 'ppSysId', 
+        'status', 'accountNumber', 'name', 'enterprise', 'storeNumber', 'branchNumber', 'address', 
+        ...allSolutions,
+        'orderReceivedDate', 'orderNumber', 'goLiveDate', 'termDate', 'eraSystemId', 'ppSysId', 
         'buId', 'assignedSpecialist', 'sales', 'pocName', 'pocEmail', 'pocPhone', 'clientID1', 'websiteLink1', 
         'clientID2', 'websiteLink2', 'updates',
         ...productHeaders

@@ -38,3 +38,6 @@ export const PRODUCTS: Product[] = [
   { id: '15436', name: 'Curated Managed - Additional Website', fixedPrice: 799, category: 'New' },
   { id: '19588', name: 'Enhanced Customer Data', fixedPrice: 0, category: 'New' },
 ];
+
+export const REYNOLDS_SOLUTIONS = ['XTS', 'MMS', 'TRU', 'ADVSVC'];
+export const FULLPATH_SOLUTIONS = ['DigAds', 'VIN', 'WEB-ENGAGE', 'DYN PMTS'];

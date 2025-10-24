@@ -227,8 +227,7 @@ export interface Dealership {
     accountNumber: string;
     status: DealershipStatus;
     products?: ProductPricing[];
-    hasManagedSolution?: boolean;
-    wasFullpathCustomer?: boolean;
+    solutions?: string[];
     goLiveDate?: string;
     termDate?: string;
     enterprise?: string;
