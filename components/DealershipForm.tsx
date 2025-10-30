@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dealership, DealershipStatus, DealershipGroup, WebsiteLink, ProductPricing, Product } from '../types.ts';
 import { DEALERSHIP_STATUS_OPTIONS, PRODUCTS, REYNOLDS_SOLUTIONS, FULLPATH_SOLUTIONS } from '../constants.ts';
@@ -127,16 +128,18 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
         productId: '',
         sellingPrice: undefined,
     };
+    // FIX: Use Array.isArray for safer type guarding to prevent state corruption.
     setFormData(prev => ({
         ...prev,
-        products: [...(prev.products || []), newProduct]
+        products: [...(Array.isArray(prev.products) ? prev.products : []), newProduct]
     }));
   };
 
   const removeProduct = (id: string) => {
+    // FIX: Use Array.isArray for safer type guarding to prevent state corruption.
     setFormData(prev => ({
         ...prev,
-        products: (prev.products || []).filter(p => p.id !== id)
+        products: (Array.isArray(prev.products) ? prev.products : []).filter(p => p.id !== id)
     }));
   };
   
@@ -183,7 +186,8 @@ const DealershipForm: React.FC<DealershipFormProps> = ({ onSubmit, onUpdate, onC
     e.preventDefault();
     const submissionData = {
       ...formData,
-      products: (formData.products || []).filter(p => p.productId).map(p => ({
+      // FIX: Use Array.isArray to guard against formData.products being of an unexpected type.
+      products: (Array.isArray(formData.products) ? formData.products : []).filter(p => p.productId).map(p => ({
         ...p,
         sellingPrice: p.sellingPrice == null ? undefined : parseFloat(String(p.sellingPrice)),
         orderReceivedDate: p.orderReceivedDate ? new Date(`${p.orderReceivedDate}T00:00:00`).toISOString() : undefined

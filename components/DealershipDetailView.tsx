@@ -83,7 +83,8 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
 
     const { totalFixedPrice, totalSellingPrice } = useMemo(() => {
         const products = isEditing ? editedData.products : dealership.products;
-        if (!products || products.length === 0) {
+        // FIX: Use Array.isArray for a safer type check before calling array methods.
+        if (!Array.isArray(products) || products.length === 0) {
             return { totalFixedPrice: 0, totalSellingPrice: 0 };
         }
     
@@ -124,7 +125,8 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
     const handleSave = () => {
         const dataToSave = {
             ...editedData,
-             products: (editedData.products || []).filter(p => p.productId).map(p => ({
+             // FIX: Use Array.isArray to guard against editedData.products being of an unexpected type.
+             products: (Array.isArray(editedData.products) ? editedData.products : []).filter(p => p.productId).map(p => ({
                 ...p,
                 sellingPrice: p.sellingPrice == null ? undefined : parseFloat(String(p.sellingPrice)),
                 orderReceivedDate: p.orderReceivedDate ? new Date(`${p.orderReceivedDate}`).toISOString() : undefined
@@ -174,11 +176,13 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
 
     const addProduct = () => {
         const newProduct: ProductPricing = { id: crypto.randomUUID(), productId: '', sellingPrice: undefined };
-        setEditedData(prev => ({ ...prev, products: [...(prev.products || []), newProduct] }));
+        // FIX: Use Array.isArray for safer type guarding to prevent state corruption.
+        setEditedData(prev => ({ ...prev, products: [...(Array.isArray(prev.products) ? prev.products : []), newProduct] }));
     };
 
     const removeProduct = (id: string) => {
-        setEditedData(prev => ({ ...prev, products: (prev.products || []).filter(p => p.id !== id) }));
+        // FIX: Use Array.isArray for safer type guarding to prevent state corruption.
+        setEditedData(prev => ({ ...prev, products: (Array.isArray(prev.products) ? prev.products : []).filter(p => p.id !== id) }));
     };
 
     const handleWebsiteLinkChange = (index: number, field: keyof WebsiteLink, value: string) => {
@@ -498,7 +502,7 @@ const DealershipDetailView: React.FC<DealershipDetailViewProps> = ({
                                     <div><label className="text-xs font-semibold text-gray-500">Product</label><select value={product.productId} onChange={(e) => handleProductChange(index, 'productId', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm"><option value="">-- Select --</option>{Object.entries(groupedProducts).map(([cat, prods]) => (<optgroup label={cat} key={cat}>{prods.map(p => <option key={p.id} value={p.id}>{p.id} | {p.name}</option>)}</optgroup>))}</select></div>
                                     <div><label className="text-xs font-semibold text-gray-500">Fixed</label><div className="mt-1 h-[34px] flex items-center px-3 text-sm text-gray-600 bg-gray-200 rounded-sm border">{selectedProduct ? `$${selectedProduct.fixedPrice.toLocaleString()}` : 'N/A'}</div></div>
                                     <div><label className="text-xs font-semibold text-gray-500">Selling</label><input type="number" min="0" step="0.01" value={product.sellingPrice ?? ''} onChange={(e) => handleProductChange(index, 'sellingPrice', e.target.value)} className="mt-1 block w-full bg-white text-gray-900 border border-gray-300 rounded-sm py-1 px-2 text-sm" /></div>
-                                    <button type="button" onClick={() => removeProduct(product.id)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-0"><TrashIcon className="w-5 h-5"/></button>
+                                    <button type="button" onClick={() => removeProduct(product.id!)} className="p-2 text-red-600 hover:bg-red-100 rounded-md mb-0"><TrashIcon className="w-5 h-5"/></button>
                                 </div>
                             ) : (
                                 <div key={product.id} className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-3 bg-gray-50 rounded-md border">

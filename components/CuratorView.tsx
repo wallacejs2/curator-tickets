@@ -40,9 +40,8 @@ const ArticleForm: React.FC<{
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('');
-    const [navigation, setNavigation] = useState<{ title: string; url: string }[]>([]);
-    const [newNavItem, setNewNavItem] = useState({ title: '', url: '' });
-    const [supportingMaterialsUrl, setSupportingMaterialsUrl] = useState('');
+    const [tags, setTags] = useState('');
+    const [navigation, setNavigation] = useState('');
     const isEditing = !!articleToEdit;
 
     const linkedFeatures = allFeatures.filter(f => articleToEdit?.featureIds?.includes(f.id));
@@ -52,36 +51,17 @@ const ArticleForm: React.FC<{
         if (articleToEdit) {
             setTitle(articleToEdit.title);
             setContent(articleToEdit.content);
-            setSupportingMaterialsUrl(articleToEdit.supportingMaterialsUrl || '');
-            setNavigation(articleToEdit.navigation || []);
+            setNavigation((articleToEdit.navigation || []).join(', '));
             setCategory(articleToEdit.category || '');
+            setTags((articleToEdit.tags || []).join(', '));
         } else {
             setTitle('');
             setContent('');
-            setSupportingMaterialsUrl('');
-            setNavigation([]);
+            setNavigation('');
             setCategory('');
+            setTags('');
         }
     }, [articleToEdit]);
-
-    const handleAddNavItem = () => {
-        if (newNavItem.title.trim() && newNavItem.url.trim()) {
-            if (!newNavItem.url.startsWith('http://') && !newNavItem.url.startsWith('https://')) {
-                alert('Please enter a valid URL starting with http:// or https://');
-                return;
-            }
-            if (!navigation.some(item => item.url === newNavItem.url.trim())) {
-                setNavigation([...navigation, { title: newNavItem.title.trim(), url: newNavItem.url.trim() }]);
-                setNewNavItem({ title: '', url: '' });
-            } else {
-                alert('A navigation item with this URL already exists.');
-            }
-        }
-    };
-
-    const handleDeleteNavItem = (url: string) => {
-        setNavigation(navigation.filter(item => item.url !== url));
-    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -89,9 +69,8 @@ const ArticleForm: React.FC<{
             title,
             content,
             category,
-            tags: [], // Tags are not in use in this form
-            supportingMaterialsUrl: supportingMaterialsUrl.trim() || undefined,
-            navigation,
+            tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+            navigation: navigation.split(',').map(t => t.trim()).filter(Boolean),
         };
 
         if (isEditing) {
@@ -114,56 +93,25 @@ const ArticleForm: React.FC<{
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+                <label className={labelClasses}>Title</label>
+                <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className={formElementClasses} />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClasses}>Title</label>
-                    <input type="text" value={title} onChange={e => setTitle(e.target.value)} required className={formElementClasses} />
-                </div>
                 <div>
                     <label className={labelClasses}>Category</label>
                     <input type="text" value={category} onChange={e => setCategory(e.target.value)} required className={formElementClasses} />
                 </div>
-            </div>
-
-            <div>
-                <label className={labelClasses}>Supporting Materials URL</label>
-                <input type="url" value={supportingMaterialsUrl} onChange={e => setSupportingMaterialsUrl(e.target.value)} className={formElementClasses} placeholder="https://example.com/doc.pdf" />
-            </div>
-
-            <div>
-                <label className={labelClasses}>Navigation Links</label>
-                <div className="space-y-2 p-3 border rounded-md bg-gray-50 flex flex-col">
-                    <div className="flex-grow space-y-2 overflow-y-auto max-h-48">
-                        {navigation.map(item => (
-                            <div key={item.url} className="bg-white p-2 rounded border">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold text-gray-800">{item.title}</span>
-                                    <button type="button" onClick={() => handleDeleteNavItem(item.url)} className="p-1 text-red-500 hover:bg-red-100 rounded-full"><TrashIcon className="w-4 h-4" /></button>
-                                </div>
-                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate block">{item.url}</a>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="pt-2 border-t mt-2">
-                        <input 
-                            type="text" 
-                            value={newNavItem.title} 
-                            onChange={e => setNewNavItem(prev => ({...prev, title: e.target.value}))} 
-                            placeholder="Link Title" 
-                            className="w-full bg-white text-sm p-2 border border-gray-300 rounded-md mb-2" 
-                        />
-                        <div className="flex items-center gap-2">
-                            <input 
-                                type="url" 
-                                value={newNavItem.url} 
-                                onChange={e => setNewNavItem(prev => ({...prev, url: e.target.value}))} 
-                                placeholder="https://example.com" 
-                                className="flex-grow bg-white text-sm p-2 border border-gray-300 rounded-md" 
-                            />
-                            <button type="button" onClick={handleAddNavItem} className="bg-blue-100 text-blue-800 font-semibold p-2 rounded-md hover:bg-blue-200">Add</button>
-                        </div>
-                    </div>
+                <div>
+                    <label className={labelClasses}>Tags (comma-separated)</label>
+                    <input type="text" value={tags} onChange={e => setTags(e.target.value)} className={formElementClasses} placeholder="e.g., getting-started, overview" />
                 </div>
+            </div>
+
+            <div>
+                <label className={labelClasses}>Navigation (comma-separated)</label>
+                <input type="text" value={navigation} onChange={e => setNavigation(e.target.value)} className={formElementClasses} placeholder="e.g., Introduction, Core Features"/>
             </div>
             
             <div>
@@ -292,73 +240,65 @@ const CuratorView: React.FC<CuratorViewProps> = ({ articles, onSave, onDelete, o
 
             <main className="flex-1 p-6">
                 {selectedArticle ? (
-                    <div className="bg-white rounded-lg shadow-md border border-gray-200 h-full overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex justify-between items-start mb-4 pb-4 border-b">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">{selectedArticle.title}</h2>
-                                    <div className="flex items-center gap-3 mt-2">
-                                        <p className="text-sm text-gray-500">Last updated: {new Date(selectedArticle.lastModifiedDate).toLocaleString()}</p>
-                                        {selectedArticle.category && (
-                                            <>
-                                                <span className="text-gray-300">•</span>
-                                                <span className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">{selectedArticle.category}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => onToggleFavorite(selectedArticle.id)} className="p-2 text-gray-400 hover:text-yellow-500 rounded-full" title={selectedArticle.isFavorite ? 'Remove from favorites' : 'Add to favorites'}><StarIcon filled={!!selectedArticle.isFavorite} className={`w-5 h-5 ${selectedArticle.isFavorite ? 'text-yellow-500' : ''}`} /></button>
-                                    <button onClick={() => { setEditingArticle(selectedArticle); setIsFormOpen(true); }} className="p-2 text-gray-400 hover:text-blue-600 rounded-full" title="Edit Article"><PencilIcon className="w-5 h-5"/></button>
-                                    <button onClick={handleDelete} className="p-2 text-gray-400 hover:text-red-600 rounded-full" title="Delete Article"><TrashIcon className="w-5 h-5"/></button>
+                    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 h-full overflow-y-auto">
+                        <div className="flex justify-between items-start mb-4 pb-4 border-b">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">{selectedArticle.title}</h2>
+                                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                                    <p className="text-sm text-gray-500">Last updated: {new Date(selectedArticle.lastModifiedDate).toLocaleString()}</p>
+                                    {selectedArticle.category && (
+                                        <>
+                                            <span className="text-gray-300">•</span>
+                                            <span className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-700 rounded-full">{selectedArticle.category}</span>
+                                        </>
+                                    )}
                                 </div>
                             </div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => onToggleFavorite(selectedArticle.id)} className="p-2 text-gray-400 hover:text-yellow-500 rounded-full" title={selectedArticle.isFavorite ? 'Remove from favorites' : 'Add to favorites'}><StarIcon filled={!!selectedArticle.isFavorite} className={`w-5 h-5 ${selectedArticle.isFavorite ? 'text-yellow-500' : ''}`} /></button>
+                                <button onClick={() => { setEditingArticle(selectedArticle); setIsFormOpen(true); }} className="p-2 text-gray-400 hover:text-blue-600 rounded-full" title="Edit Article"><PencilIcon className="w-5 h-5"/></button>
+                                <button onClick={handleDelete} className="p-2 text-gray-400 hover:text-red-600 rounded-full" title="Delete Article"><TrashIcon className="w-5 h-5"/></button>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="text-sm font-semibold text-gray-600">Tags:</span>
+                            {selectedArticle.tags && selectedArticle.tags.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedArticle.tags.map(tag => <span key={tag} className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">{tag}</span>)}
+                                </div>
+                            ) : <span className="text-sm text-gray-500 italic">No tags</span>}
+                        </div>
 
-                            <div className="flex flex-col md:flex-row gap-6 mb-6">
-                                {selectedArticle.navigation && selectedArticle.navigation.length > 0 && (
-                                    <div className="flex-1 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                        <h3 className="font-semibold text-gray-800 mb-3">Navigation</h3>
-                                        <div className="space-y-2">
-                                            {selectedArticle.navigation.map(item => (
-                                                <a key={item.url} href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 p-2 bg-blue-50 rounded-md hover:bg-blue-100">
-                                                    <ShareIcon className="w-4 h-4 flex-shrink-0"/>
-                                                    <span className="truncate">{item.title}</span>
-                                                </a>
-                                            ))}
+                        <div className="flex items-center gap-2 mb-6">
+                            <span className="text-sm font-semibold text-gray-600">Navigation:</span>
+                            {selectedArticle.navigation && selectedArticle.navigation.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedArticle.navigation.map(navItem => <span key={navItem} className="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-800 rounded-full">{navItem}</span>)}
+                                </div>
+                            ) : <span className="text-sm text-gray-500 italic">No navigation items</span>}
+                        </div>
+
+
+                        <div className="prose max-w-none rich-text-content" dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
+
+                        <div className="pt-6 mt-6 border-t border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                                <SparklesIcon className="w-6 h-6 text-pink-500" />
+                                Related Features ({linkedFeatures.length})
+                            </h3>
+                            {linkedFeatures.length > 0 ? (
+                                <div className="space-y-3">
+                                    {linkedFeatures.map(feature => (
+                                        <div key={feature.id} onClick={() => onSwitchView('feature', feature.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200">
+                                            <p className="font-medium text-sm text-blue-700">{feature.title}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Status: {feature.status} | Launch: {new Date(feature.launchDate).toLocaleDateString()}</p>
                                         </div>
-                                    </div>
-                                )}
-                                {selectedArticle.supportingMaterialsUrl && (
-                                    <div className="flex-1 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                        <h3 className="font-semibold text-gray-800 mb-3">Supporting Materials</h3>
-                                        <a href={selectedArticle.supportingMaterialsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 p-2 bg-blue-50 rounded-md hover:bg-blue-100">
-                                            <ShareIcon className="w-4 h-4"/>
-                                            <span>View Supporting Document</span>
-                                        </a>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="prose max-w-none rich-text-content" dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
-
-                            <div className="pt-6 mt-6 border-t border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                                    <SparklesIcon className="w-6 h-6 text-pink-500" />
-                                    Related Features ({linkedFeatures.length})
-                                </h3>
-                                {linkedFeatures.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {linkedFeatures.map(feature => (
-                                            <div key={feature.id} onClick={() => onSwitchView('feature', feature.id)} className="p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-blue-50 border border-gray-200">
-                                                <p className="font-medium text-sm text-blue-700">{feature.title}</p>
-                                                <p className="text-xs text-gray-500 mt-1">Status: {feature.status} | Launch: {new Date(feature.launchDate).toLocaleDateString()}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-gray-500 italic">No features linked to this article.</p>
-                                )}
-                            </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500 italic">No features linked to this article.</p>
+                            )}
                         </div>
                     </div>
                 ) : (

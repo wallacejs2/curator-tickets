@@ -340,8 +340,7 @@ export interface CuratorArticle {
     createdDate: string;
     lastModifiedDate: string;
     isFavorite?: boolean;
-    navigation?: { title: string, url: string }[];
-    supportingMaterialsUrl?: string;
+    navigation?: string[];
     featureIds?: string[];
     linkedArticleIds?: string[];
 }

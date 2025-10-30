@@ -733,11 +733,7 @@ export const initialCuratorArticles: CuratorArticle[] = [
         createdDate: new Date('2024-07-01T10:00:00Z').toISOString(),
         lastModifiedDate: new Date('2024-07-02T11:00:00Z').toISOString(),
         isFavorite: true,
-        navigation: [
-            { title: 'Curator Official Website', url: 'https://curator.example.com' },
-            { title: 'Technical Documentation', url: 'https://docs.curator.example.com' },
-        ],
-        supportingMaterialsUrl: 'https://example.com/curator-intro-deck.pdf',
+        navigation: ['Introduction', 'Core Features'],
         featureIds: ['feat-1'],
     },
     {
@@ -748,6 +744,7 @@ export const initialCuratorArticles: CuratorArticle[] = [
         category: 'How-To',
         createdDate: new Date('2024-07-05T14:30:00Z').toISOString(),
         lastModifiedDate: new Date('2024-07-05T14:30:00Z').toISOString(),
+        navigation: ['Setup', 'Adding Tasks', 'Linking Tickets'],
     }
 ];
 
